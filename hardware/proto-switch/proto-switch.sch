@@ -5,7 +5,7 @@ EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
 Sheet 1 5
-Title "TBGe Switch Prototype"
+Title "DAQnet Switch Prototype"
 Date "2018-11-24"
 Rev "1"
 Comp ""
@@ -78,8 +78,8 @@ $EndSheet
 $Sheet
 S 3200 3000 900  2650
 U 5C2ED83C
-F0 "TGBe Ports" 50
-F1 "tbge.sch" 50
+F0 "DAQnet Ports" 50
+F1 "daqnet.sch" 50
 F2 "P1_LED1" I R 4100 3450 50 
 F3 "P1_LED2" I R 4100 3550 50 
 F4 "TD1-" I R 4100 3350 50 

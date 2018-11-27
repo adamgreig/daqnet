@@ -1,4 +1,4 @@
-from tbge import main
+from daqnet import main
 
 if __name__ == "__main__":
     main()

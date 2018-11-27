@@ -1,10 +1,11 @@
 EESchema Schematic File Version 4
+LIBS:proto-sensor-cache
 EELAYER 29 0
 EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
 Sheet 1 1
-Title "TBGe Sensor Prototype"
+Title "DAQnet Sensor Prototype"
 Date "2018-11-20"
 Rev "1"
 Comp ""
@@ -371,7 +372,7 @@ F 0 "P1" H 4600 5250 50  0000 C CNN
 F 1 "COAX" H 4600 5000 50  0000 C CNN
 F 2 "agg:BNC_PCB_RA_5-1634556-0" H 4600 4940 50  0001 C CNN
 F 3 "" H 4700 5050 50  0001 C CNN
-F 4 "1608592" H 4600 4870 50  0001 C CNN "Farnell"
+F 4 "1248952" H 4600 4870 50  0001 C CNN "Farnell"
 	1    4600 5150
 	-1   0    0    -1  
 $EndComp
