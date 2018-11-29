@@ -2,7 +2,7 @@ Bill Of Materials
 =================
 
 Source file: proto-sensor.xml
-Date: 2018-11-27T02:29:31.894264
+Date: 2018-11-29T20:35:01.680405
 
 Parts Missing Footprints
 ------------------------
@@ -64,8 +64,8 @@ Vendor Specific BOMs
 1462758,1,1x RJHSE-538x RJHSE-538X
 2302541,3,3x 140 0402
 9239111,4,4x 100 0402
-1608592,1,1x COAX BNC_PCB_RA_5-1634556-0
-2528765,15,15x 100n 0402
+1248952,1,1x COAX BNC_PCB_RA_5-1634556-0
+2810260,15,15x 100n 0402
 2611921,3,3x 10µ 0603
 2302739,7,7x 10k 0402
 2470416,8,8x 10n 0402
@@ -87,7 +87,7 @@ Vendor Specific BOMs
 
   Voltage Rating
   ~~~~~~~~~~~~~~
-50,29,29x R1 R3 R5 R4 R6 R2 R8 R7 R13 R12 R16 C4 C3 C10 C11 C12 C6 C17 R15 R14 R9 R10 C16 R11 R19 C27 C29 R20 R21 0603,0402
+50,29,29x R1 R3 R5 R4 R6 R2 R8 R7 R13 R12 R16 C4 C3 C10 C11 C12 C6 C17 R15 R14 R9 R10 C16 R11 R19 C27 C29 R20 R21 0402,0603
 16,15,15x C20 C14 C2 C1 C8 C7 C9 C5 C28 C23 C26 C21 C25 C24 C30 0402
 6.3,3,3x C19 C13 C15 0603
 10,2,2x C18 C22 0402
@@ -102,8 +102,8 @@ MAX15062AATA+TCT-ND  1   MAX15062        TDFN-8          IC2
 1462758              1   RJHSE-538x      RJHSE-538X      IC1
 2302541              3   140             0402            R4 R5 R6
 9239111              4   100             0402            R19 R2 R7 R8
-1608592              1   COAX            BNC_PCB_RA_5-1634556-0 P1
-2528765              15  100n            0402            C1 C14 C2 C20 C21 C23 C24 C25 C26 C28 C30 C5 C7 C8 C9
+1248952              1   COAX            BNC_PCB_RA_5-1634556-0 P1
+2810260              15  100n            0402            C1 C14 C2 C20 C21 C23 C24 C25 C26 C28 C30 C5 C7 C8 C9
 2611921              3   10µ             0603            C13 C15 C19
 2302739              7   10k             0402            R12 R13 R14 R15 R16 R20 R21
 2470416              8   10n             0402            C10 C11 C12 C27 C29 C3 C4 C6
@@ -121,7 +121,7 @@ MAX15062AATA+TCT-ND  1   MAX15062        TDFN-8          IC2
 2513633              1   MAX11665AUT     SOT-23-6        IC6
 2368169              1   ESD_DIODE       0402            D4
 2462664              1   ECMF04-4HSM10   uQFN-10L        IC7
-50                   29  100n 48V,0µ47 48V,10n,10k,100,1k,140 0603,0402       C10 C11 C12 C16 C17 C27 C29 C3 C4 C6 R1 R10 R11 R12 R13 R14 R15 R16 R19 R2 R20 R21 R3 R4 R5 R6 R7 R8 R9
+50                   29  10n,10k,140,100,0µ47 48V,100n 48V,1k 0402,0603       C10 C11 C12 C16 C17 C27 C29 C3 C4 C6 R1 R10 R11 R12 R13 R14 R15 R16 R19 R2 R20 R21 R3 R4 R5 R6 R7 R8 R9
 16                   15  100n            0402            C1 C14 C2 C20 C21 C23 C24 C25 C26 C28 C30 C5 C7 C8 C9
 6.3                  3   10µ             0603            C13 C15 C19
 10                   2   1µ              0402            C18 C22

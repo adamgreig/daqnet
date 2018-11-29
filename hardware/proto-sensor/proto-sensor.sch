@@ -431,7 +431,7 @@ F 1 "100n" H 1450 2480 50  0000 C CNN
 F 2 "agg:0402" H 1400 2550 50  0001 C CNN
 F 3 "" H 1400 2550 50  0001 C CNN
 F 4 "16" H 0   0   50  0001 C CNN "Voltage Rating"
-F 5 "2528765" H 0   0   50  0001 C CNN "Farnell"
+F 5 "2810260" H 0   0   50  0001 C CNN "Farnell"
 	1    1400 2550
 	0    1    1    0   
 $EndComp
@@ -487,7 +487,7 @@ F 1 "100n" H 1450 2180 50  0000 C CNN
 F 2 "agg:0402" H 1400 2250 50  0001 C CNN
 F 3 "" H 1400 2250 50  0001 C CNN
 F 4 "16" H 0   0   50  0001 C CNN "Voltage Rating"
-F 5 "2528765" H 0   0   50  0001 C CNN "Farnell"
+F 5 "2810260" H 0   0   50  0001 C CNN "Farnell"
 	1    1400 2250
 	0    1    1    0   
 $EndComp
@@ -689,7 +689,7 @@ F 1 "100n" H 4900 880 50  0000 C CNN
 F 2 "agg:0402" H 4850 950 50  0001 C CNN
 F 3 "" H 4850 950 50  0001 C CNN
 F 4 "16" H 0   0   50  0001 C CNN "Voltage Rating"
-F 5 "2528765" H 0   0   50  0001 C CNN "Farnell"
+F 5 "2810260" H 0   0   50  0001 C CNN "Farnell"
 	1    4850 950 
 	0    1    1    0   
 $EndComp
@@ -728,7 +728,7 @@ F 1 "100n" H 4650 880 50  0000 C CNN
 F 2 "agg:0402" H 4600 950 50  0001 C CNN
 F 3 "" H 4600 950 50  0001 C CNN
 F 4 "16" H 0   0   50  0001 C CNN "Voltage Rating"
-F 5 "2528765" H 0   0   50  0001 C CNN "Farnell"
+F 5 "2810260" H 0   0   50  0001 C CNN "Farnell"
 	1    4600 950 
 	0    1    1    0   
 $EndComp
@@ -785,7 +785,7 @@ F 1 "100n" H 5150 1580 50  0000 C CNN
 F 2 "agg:0402" H 5100 1650 50  0001 C CNN
 F 3 "" H 5100 1650 50  0001 C CNN
 F 4 "16" H 0   0   50  0001 C CNN "Voltage Rating"
-F 5 "2528765" H 0   0   50  0001 C CNN "Farnell"
+F 5 "2810260" H 0   0   50  0001 C CNN "Farnell"
 	1    5100 1650
 	0    1    1    0   
 $EndComp
@@ -824,7 +824,7 @@ F 1 "100n" H 4650 1580 50  0000 C CNN
 F 2 "agg:0402" H 4600 1650 50  0001 C CNN
 F 3 "" H 4600 1650 50  0001 C CNN
 F 4 "16" H 0   0   50  0001 C CNN "Voltage Rating"
-F 5 "2528765" H 0   0   50  0001 C CNN "Farnell"
+F 5 "2810260" H 0   0   50  0001 C CNN "Farnell"
 	1    4600 1650
 	0    1    1    0   
 $EndComp
@@ -876,7 +876,7 @@ F 1 "100n" H 5400 1580 50  0000 C CNN
 F 2 "agg:0402" H 5350 1650 50  0001 C CNN
 F 3 "" H 5350 1650 50  0001 C CNN
 F 4 "16" H 0   0   50  0001 C CNN "Voltage Rating"
-F 5 "2528765" H 0   0   50  0001 C CNN "Farnell"
+F 5 "2810260" H 0   0   50  0001 C CNN "Farnell"
 	1    5350 1650
 	0    1    1    0   
 $EndComp
@@ -946,7 +946,7 @@ F 1 "100n" H 4900 1580 50  0000 C CNN
 F 2 "agg:0402" H 4850 1650 50  0001 C CNN
 F 3 "" H 4850 1650 50  0001 C CNN
 F 4 "16" H 0   0   50  0001 C CNN "Voltage Rating"
-F 5 "2528765" H 0   0   50  0001 C CNN "Farnell"
+F 5 "2810260" H 0   0   50  0001 C CNN "Farnell"
 	1    4850 1650
 	0    1    1    0   
 $EndComp
@@ -959,7 +959,7 @@ F 1 "100n" H 7650 5980 50  0000 C CNN
 F 2 "agg:0402" H 7600 6050 50  0001 C CNN
 F 3 "" H 7600 6050 50  0001 C CNN
 F 4 "16" H 0   0   50  0001 C CNN "Voltage Rating"
-F 5 "2528765" H 0   0   50  0001 C CNN "Farnell"
+F 5 "2810260" H 0   0   50  0001 C CNN "Farnell"
 	1    7600 6050
 	0    1    1    0   
 $EndComp
@@ -1027,7 +1027,7 @@ F 1 "100n" H 8600 3930 50  0000 C CNN
 F 2 "agg:0402" H 8550 4000 50  0001 C CNN
 F 3 "" H 8550 4000 50  0001 C CNN
 F 4 "16" H 0   0   50  0001 C CNN "Voltage Rating"
-F 5 "2528765" H 0   0   50  0001 C CNN "Farnell"
+F 5 "2810260" H 0   0   50  0001 C CNN "Farnell"
 	1    8550 4000
 	0    1    1    0   
 $EndComp
@@ -1124,7 +1124,7 @@ F 1 "100n" H 9800 5130 50  0000 C CNN
 F 2 "agg:0402" H 9750 5200 50  0001 C CNN
 F 3 "" H 9750 5200 50  0001 C CNN
 F 4 "16" H 0   0   50  0001 C CNN "Voltage Rating"
-F 5 "2528765" H 0   0   50  0001 C CNN "Farnell"
+F 5 "2810260" H 0   0   50  0001 C CNN "Farnell"
 	1    9750 5200
 	0    1    1    0   
 $EndComp
@@ -1907,7 +1907,7 @@ F 1 "100n" H 9250 3130 50  0000 C CNN
 F 2 "agg:0402" H 9200 3200 50  0001 C CNN
 F 3 "" H 9200 3200 50  0001 C CNN
 F 4 "16" H 0   0   50  0001 C CNN "Voltage Rating"
-F 5 "2528765" H 0   0   50  0001 C CNN "Farnell"
+F 5 "2810260" H 0   0   50  0001 C CNN "Farnell"
 	1    9200 3200
 	0    1    1    0   
 $EndComp
@@ -2059,7 +2059,7 @@ F 1 "100n" H 5250 4630 50  0000 C CNN
 F 2 "agg:0402" H 5200 4700 50  0001 C CNN
 F 3 "" H 5200 4700 50  0001 C CNN
 F 4 "16" H 0   0   50  0001 C CNN "Voltage Rating"
-F 5 "2528765" H 0   0   50  0001 C CNN "Farnell"
+F 5 "2810260" H 0   0   50  0001 C CNN "Farnell"
 	1    5200 4700
 	0    1    1    0   
 $EndComp
@@ -2404,7 +2404,7 @@ F 1 "100n" H 5150 880 50  0000 C CNN
 F 2 "agg:0402" H 5100 950 50  0001 C CNN
 F 3 "" H 5100 950 50  0001 C CNN
 F 4 "16" H 0   0   50  0001 C CNN "Voltage Rating"
-F 5 "2528765" H 0   0   50  0001 C CNN "Farnell"
+F 5 "2810260" H 0   0   50  0001 C CNN "Farnell"
 	1    5100 950 
 	0    1    1    0   
 $EndComp
@@ -2440,7 +2440,7 @@ F 1 "100n" H 5400 880 50  0000 C CNN
 F 2 "agg:0402" H 5350 950 50  0001 C CNN
 F 3 "" H 5350 950 50  0001 C CNN
 F 4 "16" H 0   0   50  0001 C CNN "Voltage Rating"
-F 5 "2528765" H 0   0   50  0001 C CNN "Farnell"
+F 5 "2810260" H 0   0   50  0001 C CNN "Farnell"
 	1    5350 950 
 	0    1    1    0   
 $EndComp
@@ -2794,4 +2794,5 @@ Wire Wire Line
 	7300 1350 8050 1350
 Wire Wire Line
 	7300 1150 8050 1150
+NoConn ~ 10350 1500
 $EndSCHEMATC

@@ -1,0 +1,3060 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<export version="D">
+  <design>
+    <source>/home/adam/Projects/daqnet/hardware/proto-switch/proto-switch.sch</source>
+    <date>Thu 29 Nov 2018 20:34:26 GMT</date>
+    <tool>Eeschema 6.0.0-rc1-unknown-106eaaa~84~ubuntu18.04.1</tool>
+    <sheet number="1" name="/" tstamps="/">
+      <title_block>
+        <title>DAQnet Switch Prototype</title>
+        <company/>
+        <rev>1</rev>
+        <date>2018-11-24</date>
+        <source>proto-switch.sch</source>
+        <comment number="1" value="Drawn by: Adam Greig"/>
+        <comment number="2" value=""/>
+        <comment number="3" value=""/>
+        <comment number="4" value=""/>
+      </title_block>
+    </sheet>
+    <sheet number="2" name="/iCE40/" tstamps="/5C2ED715/">
+      <title_block>
+        <title>DAQnet Switch Prototype</title>
+        <company/>
+        <rev>1</rev>
+        <date>2018-11-24</date>
+        <source>ice40.sch</source>
+        <comment number="1" value="Drawn by: Adam Greig"/>
+        <comment number="2" value=""/>
+        <comment number="3" value=""/>
+        <comment number="4" value=""/>
+      </title_block>
+    </sheet>
+    <sheet number="3" name="/Ethernet/" tstamps="/5C2ED784/">
+      <title_block>
+        <title>DAQnet Switch Prototype</title>
+        <company/>
+        <rev>1</rev>
+        <date>2018-11-24</date>
+        <source>ethernet.sch</source>
+        <comment number="1" value="Drawn by: Adam Greig"/>
+        <comment number="2" value=""/>
+        <comment number="3" value=""/>
+        <comment number="4" value=""/>
+      </title_block>
+    </sheet>
+    <sheet number="4" name="/DAQnet Ports/" tstamps="/5C2ED83C/">
+      <title_block>
+        <title>DAQnet Switch Prototype</title>
+        <company/>
+        <rev>1</rev>
+        <date>2018-11-24</date>
+        <source>daqnet.sch</source>
+        <comment number="1" value="Drawn by: Adam Greig"/>
+        <comment number="2" value=""/>
+        <comment number="3" value=""/>
+        <comment number="4" value=""/>
+      </title_block>
+    </sheet>
+    <sheet number="5" name="/Power/" tstamps="/5C2ED962/">
+      <title_block>
+        <title>DAQnet Switch Prototype</title>
+        <company/>
+        <rev>1</rev>
+        <date>2018-11-24</date>
+        <source>power.sch</source>
+        <comment number="1" value="Drawn by: Adam Greig"/>
+        <comment number="2" value=""/>
+        <comment number="3" value=""/>
+        <comment number="4" value=""/>
+      </title_block>
+    </sheet>
+  </design>
+  <components>
+    <comp ref="X101">
+      <value>M3_MOUNT</value>
+      <footprint>agg:M3_MOUNT</footprint>
+      <libsource lib="agg" part="PART" description="Generic placeholder part"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>5C8667E8</tstamp>
+    </comp>
+    <comp ref="X102">
+      <value>M3_MOUNT</value>
+      <footprint>agg:M3_MOUNT</footprint>
+      <libsource lib="agg" part="PART" description="Generic placeholder part"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>5C8675C5</tstamp>
+    </comp>
+    <comp ref="X104">
+      <value>M3_MOUNT</value>
+      <footprint>agg:M3_MOUNT</footprint>
+      <libsource lib="agg" part="PART" description="Generic placeholder part"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>5C867961</tstamp>
+    </comp>
+    <comp ref="X103">
+      <value>M3_MOUNT</value>
+      <footprint>agg:M3_MOUNT</footprint>
+      <libsource lib="agg" part="PART" description="Generic placeholder part"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>5C867C8A</tstamp>
+    </comp>
+    <comp ref="C222">
+      <value>100n</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2810260</field>
+        <field name="Voltage">16</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C3290FB</tstamp>
+    </comp>
+    <comp ref="C221">
+      <value>10µ</value>
+      <footprint>agg:0603</footprint>
+      <fields>
+        <field name="Farnell">2611921</field>
+        <field name="Voltage">6.3</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C329101</tstamp>
+    </comp>
+    <comp ref="R205">
+      <value>100</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">9239111</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C329107</tstamp>
+    </comp>
+    <comp ref="C219">
+      <value>100n</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2810260</field>
+        <field name="Voltage">16</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C329116</tstamp>
+    </comp>
+    <comp ref="C218">
+      <value>10µ</value>
+      <footprint>agg:0603</footprint>
+      <fields>
+        <field name="Farnell">2611921</field>
+        <field name="Voltage">6.3</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C32911C</tstamp>
+    </comp>
+    <comp ref="R204">
+      <value>100</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">9239111</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C329122</tstamp>
+    </comp>
+    <comp ref="R207">
+      <value>10k</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2302739</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C32913F</tstamp>
+    </comp>
+    <comp ref="R206">
+      <value>10k</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2302739</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C329146</tstamp>
+    </comp>
+    <comp ref="R211">
+      <value>10k</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2302739</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C32915B</tstamp>
+    </comp>
+    <comp ref="C203">
+      <value>100n</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2810260</field>
+        <field name="Voltage">16</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C329175</tstamp>
+    </comp>
+    <comp ref="C207">
+      <value>10n</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2470416</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C32917B</tstamp>
+    </comp>
+    <comp ref="C206">
+      <value>10n</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2470416</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C329181</tstamp>
+    </comp>
+    <comp ref="C202">
+      <value>100n</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2810260</field>
+        <field name="Voltage">16</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C329187</tstamp>
+    </comp>
+    <comp ref="C211">
+      <value>100n</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2810260</field>
+        <field name="Voltage">16</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C3291A6</tstamp>
+    </comp>
+    <comp ref="C213">
+      <value>10n</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2470416</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C3291AC</tstamp>
+    </comp>
+    <comp ref="C214">
+      <value>10n</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2470416</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C3291B2</tstamp>
+    </comp>
+    <comp ref="C209">
+      <value>100n</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2810260</field>
+        <field name="Voltage">16</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C3291B8</tstamp>
+    </comp>
+    <comp ref="C212">
+      <value>100n</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2810260</field>
+        <field name="Voltage">16</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C3291D4</tstamp>
+    </comp>
+    <comp ref="C215">
+      <value>10n</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2470416</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C3291DA</tstamp>
+    </comp>
+    <comp ref="C216">
+      <value>10n</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2470416</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C3291F2</tstamp>
+    </comp>
+    <comp ref="C210">
+      <value>100n</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2810260</field>
+        <field name="Voltage">16</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C3291F8</tstamp>
+    </comp>
+    <comp ref="D202">
+      <value>LED</value>
+      <footprint>agg:0603-LED</footprint>
+      <fields>
+        <field name="Farnell">2290328</field>
+      </fields>
+      <libsource lib="agg" part="LED" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C329207</tstamp>
+    </comp>
+    <comp ref="R208">
+      <value>1k</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2331474</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C329213</tstamp>
+    </comp>
+    <comp ref="R209">
+      <value>1k</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2331474</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C329219</tstamp>
+    </comp>
+    <comp ref="D203">
+      <value>LED</value>
+      <footprint>agg:0603-LED</footprint>
+      <fields>
+        <field name="Farnell">2290329</field>
+      </fields>
+      <libsource lib="agg" part="LED" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C329238</tstamp>
+    </comp>
+    <comp ref="R210">
+      <value>1k</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2331474</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C329245</tstamp>
+    </comp>
+    <comp ref="D201">
+      <value>LED</value>
+      <footprint>agg:0603-LED</footprint>
+      <fields>
+        <field name="Farnell">2290328</field>
+      </fields>
+      <libsource lib="agg" part="LED" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C32924F</tstamp>
+    </comp>
+    <comp ref="C208">
+      <value>10n</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2470416</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C3292D6</tstamp>
+    </comp>
+    <comp ref="C204">
+      <value>100n</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2810260</field>
+        <field name="Voltage">16</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C3292DD</tstamp>
+    </comp>
+    <comp ref="C205">
+      <value>100n</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2810260</field>
+        <field name="Voltage">16</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C3292F1</tstamp>
+    </comp>
+    <comp ref="C220">
+      <value>100n</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2810260</field>
+        <field name="Voltage">16</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C359753</tstamp>
+    </comp>
+    <comp ref="IC201">
+      <value>W25Q80</value>
+      <footprint>agg:UFDFN-8</footprint>
+      <datasheet>http://www.winbond.com/resource-files/w25q80dv%20dl_revh_10022015.pdf</datasheet>
+      <fields>
+        <field name="DigiKey">W25Q80DVUXIECT-ND</field>
+      </fields>
+      <libsource lib="agg" part="W25Q80" description="8Mbit SPI flash memory"/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C359762</tstamp>
+    </comp>
+    <comp ref="C201">
+      <value>100n</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2810260</field>
+        <field name="Voltage">16</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C359768</tstamp>
+    </comp>
+    <comp ref="C217">
+      <value>100n</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2810260</field>
+        <field name="Voltage">16</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C359795</tstamp>
+    </comp>
+    <comp ref="R202">
+      <value>10k</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2302739</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C3597A9</tstamp>
+    </comp>
+    <comp ref="R201">
+      <value>10k</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2302739</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C3597AF</tstamp>
+    </comp>
+    <comp ref="J201">
+      <value>~</value>
+      <footprint>agg:FTSH-105-01-F-D-K</footprint>
+      <fields>
+        <field name="Farnell">2856426</field>
+      </fields>
+      <libsource lib="agg" part="CONN_02x05" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C359804</tstamp>
+    </comp>
+    <comp ref="Y201">
+      <value>25M</value>
+      <footprint>agg:XTAL-25x20</footprint>
+      <datasheet>http://www.farnell.com/datasheets/2581435.pdf</datasheet>
+      <fields>
+        <field name="Farnell">2849479</field>
+      </fields>
+      <libsource lib="agg" part="TCXO_ST" description="4 pin TCXO with Standy"/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C35980F</tstamp>
+    </comp>
+    <comp ref="SW201">
+      <value>~</value>
+      <footprint>agg:KSR232G</footprint>
+      <datasheet>http://www.farnell.com/datasheets/2578487.pdf</datasheet>
+      <fields>
+        <field name="Farnell">2845744</field>
+      </fields>
+      <libsource lib="agg" part="SWITCH_SPST" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C35981D</tstamp>
+    </comp>
+    <comp ref="IC202">
+      <value>iCE40HX8K-BG121</value>
+      <footprint>agg:Lattice-BG121</footprint>
+      <datasheet>http://www.latticesemi.com/view_document?document_id=49312</datasheet>
+      <fields>
+        <field name="DigiKey">220-2148-ND</field>
+      </fields>
+      <libsource lib="agg" part="iCE40HX8K-BG121" description="iCE40 HX FPGA"/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C3290A5</tstamp>
+    </comp>
+    <comp ref="J202">
+      <value>UART</value>
+      <footprint>agg:SM04B-PASS</footprint>
+      <libsource lib="agg" part="CONN_01x04" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C79BDE6</tstamp>
+    </comp>
+    <comp ref="D205">
+      <value>ESD_DIODE</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2368169</field>
+      </fields>
+      <libsource lib="agg" part="ESD_DIODE" description="ESD diode"/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C869CDC</tstamp>
+    </comp>
+    <comp ref="D204">
+      <value>ESD_DIODE</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2368169</field>
+      </fields>
+      <libsource lib="agg" part="ESD_DIODE" description="ESD diode"/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C86B2A8</tstamp>
+    </comp>
+    <comp ref="R212">
+      <value>1k</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2331474</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C86B9AB</tstamp>
+    </comp>
+    <comp ref="R213">
+      <value>1k</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2331474</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5C887ABF</tstamp>
+    </comp>
+    <comp ref="C223">
+      <value>10µ</value>
+      <footprint>agg:0603</footprint>
+      <fields>
+        <field name="Farnell">2611921</field>
+        <field name="Voltage">6.3</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5DA59B6E</tstamp>
+    </comp>
+    <comp ref="C224">
+      <value>10µ</value>
+      <footprint>agg:0603</footprint>
+      <fields>
+        <field name="Farnell">2611921</field>
+        <field name="Voltage">6.3</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/iCE40/" tstamps="/5C2ED715/"/>
+      <tstamp>5DA7C955</tstamp>
+    </comp>
+    <comp ref="J302">
+      <value>RJHSE-538x</value>
+      <footprint>agg:RJHSE-538X</footprint>
+      <fields>
+        <field name="Farnell">1462758</field>
+      </fields>
+      <libsource lib="agg" part="RJHSE-538x" description="Shielded 8P8C Modular Connector with LEDs"/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C475CF2</tstamp>
+    </comp>
+    <comp ref="T301">
+      <value>749013011A</value>
+      <footprint>agg:749010012A</footprint>
+      <fields>
+        <field name="Farnell">2422553</field>
+      </fields>
+      <libsource lib="agg" part="749010012A" description="10/100Mbps ethernet magnetics"/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C47818D</tstamp>
+    </comp>
+    <comp ref="D302">
+      <value>MB2S</value>
+      <footprint>agg:TO-269AA</footprint>
+      <datasheet>http://www.vishay.com/docs/88661/mb2s.pdf</datasheet>
+      <fields>
+        <field name="Farnell">9550003</field>
+      </fields>
+      <libsource lib="Diode_Bridge" part="MB2S" description="Miniature Glass Passivated Single-Phase Surface Mount Bridge Rectifiers, 140V Vrms, 0.5A If, TO-269AA"/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C4792BD</tstamp>
+    </comp>
+    <comp ref="D303">
+      <value>MB2S</value>
+      <footprint>agg:TO-269AA</footprint>
+      <datasheet>http://www.vishay.com/docs/88661/mb2s.pdf</datasheet>
+      <fields>
+        <field name="Farnell">9550003</field>
+      </fields>
+      <libsource lib="Diode_Bridge" part="MB2S" description="Miniature Glass Passivated Single-Phase Surface Mount Bridge Rectifiers, 140V Vrms, 0.5A If, TO-269AA"/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C47A00B</tstamp>
+    </comp>
+    <comp ref="C307">
+      <value>100n</value>
+      <footprint>agg:0603</footprint>
+      <fields>
+        <field name="Farnell">431989</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C4807DF</tstamp>
+    </comp>
+    <comp ref="C308">
+      <value>100n</value>
+      <footprint>agg:0603</footprint>
+      <fields>
+        <field name="Farnell">431989</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C481163</tstamp>
+    </comp>
+    <comp ref="IC303">
+      <value>MAX5969x</value>
+      <footprint>agg:DFN-10-EP-MAX</footprint>
+      <fields>
+        <field name="Farnell">2514586</field>
+      </fields>
+      <libsource lib="agg" part="MAX5969x" description="MAX5969x 802.3af PoE PD controller"/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C482C06</tstamp>
+    </comp>
+    <comp ref="R316">
+      <value>24k9</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">1469699</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C48382C</tstamp>
+    </comp>
+    <comp ref="R317">
+      <value>619</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2302613</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C483AC6</tstamp>
+    </comp>
+    <comp ref="D301">
+      <value>SMAJ58A</value>
+      <footprint>agg:DO-214AC-SMA</footprint>
+      <datasheet>http://www.farnell.com/datasheets/2076055.pdf</datasheet>
+      <fields>
+        <field name="Farnell">1899460</field>
+      </fields>
+      <libsource lib="agg" part="SCHOTTKY" description="Schottky Diode"/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C486150</tstamp>
+    </comp>
+    <comp ref="C313">
+      <value>100n 60V</value>
+      <footprint>agg:0805</footprint>
+      <datasheet>http://www.farnell.com/datasheets/1958513.pdf</datasheet>
+      <fields>
+        <field name="Farnell">2496941</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C486828</tstamp>
+    </comp>
+    <comp ref="C301">
+      <value>22µ</value>
+      <footprint>agg:1206</footprint>
+      <fields>
+        <field name="Farnell">2320923</field>
+        <field name="Voltage">16</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C48CB5B</tstamp>
+    </comp>
+    <comp ref="C302">
+      <value>100n</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2810260</field>
+        <field name="Voltage">16</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C48D0D0</tstamp>
+    </comp>
+    <comp ref="L301">
+      <value>FB</value>
+      <footprint>agg:0603</footprint>
+      <fields>
+        <field name="Farnell">1463451</field>
+      </fields>
+      <libsource lib="agg" part="L" description=""/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C48D3B3</tstamp>
+    </comp>
+    <comp ref="C303">
+      <value>22µ</value>
+      <footprint>agg:1206</footprint>
+      <fields>
+        <field name="Farnell">2320923</field>
+        <field name="Voltage">16</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C48E0E8</tstamp>
+    </comp>
+    <comp ref="C304">
+      <value>100n</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2810260</field>
+        <field name="Voltage">16</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C48E5C4</tstamp>
+    </comp>
+    <comp ref="C305">
+      <value>2µ2</value>
+      <footprint>agg:0603</footprint>
+      <fields>
+        <field name="Farnell">2320817</field>
+        <field name="Voltage">10</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C48EA19</tstamp>
+    </comp>
+    <comp ref="C306">
+      <value>100n</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2810260</field>
+        <field name="Voltage">16</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C48ED9E</tstamp>
+    </comp>
+    <comp ref="R301">
+      <value>33</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2302472</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C48F71A</tstamp>
+    </comp>
+    <comp ref="R302">
+      <value>33</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2302472</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C4913C6</tstamp>
+    </comp>
+    <comp ref="R303">
+      <value>33</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2302472</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C49174E</tstamp>
+    </comp>
+    <comp ref="R304">
+      <value>33</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2302472</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C4919F0</tstamp>
+    </comp>
+    <comp ref="R308">
+      <value>1k</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2331474</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C491F66</tstamp>
+    </comp>
+    <comp ref="R309">
+      <value>6k49</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2302722</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C4928D3</tstamp>
+    </comp>
+    <comp ref="R311">
+      <value>10k</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2302739</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C4F8DE9</tstamp>
+    </comp>
+    <comp ref="C309">
+      <value>DNF</value>
+      <footprint>agg:0805</footprint>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C501D20</tstamp>
+    </comp>
+    <comp ref="R312">
+      <value>DNF</value>
+      <footprint>agg:0603</footprint>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C503DE8</tstamp>
+    </comp>
+    <comp ref="C310">
+      <value>DNF</value>
+      <footprint>agg:0805</footprint>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C5055D0</tstamp>
+    </comp>
+    <comp ref="R313">
+      <value>DNF</value>
+      <footprint>agg:0603</footprint>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C5055DA</tstamp>
+    </comp>
+    <comp ref="C311">
+      <value>DNF</value>
+      <footprint>agg:0805</footprint>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C507F0B</tstamp>
+    </comp>
+    <comp ref="R314">
+      <value>DNF</value>
+      <footprint>agg:0603</footprint>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C507F15</tstamp>
+    </comp>
+    <comp ref="C312">
+      <value>DNF</value>
+      <footprint>agg:0805</footprint>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C507F1F</tstamp>
+    </comp>
+    <comp ref="R315">
+      <value>DNF</value>
+      <footprint>agg:0603</footprint>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C507F29</tstamp>
+    </comp>
+    <comp ref="L302">
+      <value>FB</value>
+      <footprint>agg:0603</footprint>
+      <fields>
+        <field name="Farnell">1463451</field>
+      </fields>
+      <libsource lib="agg" part="L" description=""/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C672F8A</tstamp>
+    </comp>
+    <comp ref="R310">
+      <value>1k</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2331474</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C6C7BB4</tstamp>
+    </comp>
+    <comp ref="R305">
+      <value>33</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2302472</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C78D99E</tstamp>
+    </comp>
+    <comp ref="R306">
+      <value>33</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2302472</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C78E1BD</tstamp>
+    </comp>
+    <comp ref="R307">
+      <value>33</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2302472</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C78E6FF</tstamp>
+    </comp>
+    <comp ref="R318">
+      <value>1k</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2331474</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C93A52C</tstamp>
+    </comp>
+    <comp ref="IC301">
+      <value>KSZ8081RNA</value>
+      <footprint>agg:QFN-24-EP-MICREL</footprint>
+      <datasheet>http://www.farnell.com/datasheets/2310338.pdf</datasheet>
+      <fields>
+        <field name="Farnell">2509802</field>
+      </fields>
+      <libsource lib="agg" part="KSZ8081RNx" description="RMII 100/10Mbps ethernet PHY"/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5C4816F0</tstamp>
+    </comp>
+    <comp ref="C314">
+      <value>100n</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2810260</field>
+        <field name="Voltage">16</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5D7C14C4</tstamp>
+    </comp>
+    <comp ref="Y301">
+      <value>25M</value>
+      <footprint>agg:XTAL-25x20</footprint>
+      <datasheet>http://www.farnell.com/datasheets/2581435.pdf</datasheet>
+      <fields>
+        <field name="Farnell">2849479</field>
+      </fields>
+      <libsource lib="agg" part="TCXO_ST" description="4 pin TCXO with Standy"/>
+      <sheetpath names="/Ethernet/" tstamps="/5C2ED784/"/>
+      <tstamp>5D7C14E2</tstamp>
+    </comp>
+    <comp ref="R417">
+      <value>1k</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2331474</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/DAQnet Ports/" tstamps="/5C2ED83C/"/>
+      <tstamp>5C33D9A6</tstamp>
+    </comp>
+    <comp ref="R418">
+      <value>1k</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2331474</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/DAQnet Ports/" tstamps="/5C2ED83C/"/>
+      <tstamp>5C33D9C7</tstamp>
+    </comp>
+    <comp ref="R410">
+      <value>100</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">9239111</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/DAQnet Ports/" tstamps="/5C2ED83C/"/>
+      <tstamp>5C33D9E1</tstamp>
+    </comp>
+    <comp ref="R402">
+      <value>140</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2302541</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/DAQnet Ports/" tstamps="/5C2ED83C/"/>
+      <tstamp>5C33D9E7</tstamp>
+    </comp>
+    <comp ref="R401">
+      <value>140</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2302541</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/DAQnet Ports/" tstamps="/5C2ED83C/"/>
+      <tstamp>5C33D9ED</tstamp>
+    </comp>
+    <comp ref="R409">
+      <value>140</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2302541</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/DAQnet Ports/" tstamps="/5C2ED83C/"/>
+      <tstamp>5C33D9FD</tstamp>
+    </comp>
+    <comp ref="IC401">
+      <value>ECMF04-4HSM10</value>
+      <footprint>agg:uQFN-10L</footprint>
+      <datasheet>https://www.st.com/resource/en/datasheet/ecmf04-4hsm10.pdf</datasheet>
+      <fields>
+        <field name="Farnell">2462664</field>
+      </fields>
+      <libsource lib="agg" part="ECMF04-4HSM10" description="Common mode filter with ESD protection for high speed serial interface"/>
+      <sheetpath names="/DAQnet Ports/" tstamps="/5C2ED83C/"/>
+      <tstamp>5C33DA10</tstamp>
+    </comp>
+    <comp ref="R419">
+      <value>1k</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2331474</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/DAQnet Ports/" tstamps="/5C2ED83C/"/>
+      <tstamp>5C757392</tstamp>
+    </comp>
+    <comp ref="R420">
+      <value>1k</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2331474</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/DAQnet Ports/" tstamps="/5C2ED83C/"/>
+      <tstamp>5C7573C3</tstamp>
+    </comp>
+    <comp ref="R412">
+      <value>100</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">9239111</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/DAQnet Ports/" tstamps="/5C2ED83C/"/>
+      <tstamp>5C7573DF</tstamp>
+    </comp>
+    <comp ref="R404">
+      <value>140</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2302541</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/DAQnet Ports/" tstamps="/5C2ED83C/"/>
+      <tstamp>5C7573E9</tstamp>
+    </comp>
+    <comp ref="R403">
+      <value>140</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2302541</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/DAQnet Ports/" tstamps="/5C2ED83C/"/>
+      <tstamp>5C7573F3</tstamp>
+    </comp>
+    <comp ref="R411">
+      <value>140</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2302541</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/DAQnet Ports/" tstamps="/5C2ED83C/"/>
+      <tstamp>5C757401</tstamp>
+    </comp>
+    <comp ref="IC402">
+      <value>ECMF04-4HSM10</value>
+      <footprint>agg:uQFN-10L</footprint>
+      <datasheet>https://www.st.com/resource/en/datasheet/ecmf04-4hsm10.pdf</datasheet>
+      <fields>
+        <field name="Farnell">2462664</field>
+      </fields>
+      <libsource lib="agg" part="ECMF04-4HSM10" description="Common mode filter with ESD protection for high speed serial interface"/>
+      <sheetpath names="/DAQnet Ports/" tstamps="/5C2ED83C/"/>
+      <tstamp>5C757412</tstamp>
+    </comp>
+    <comp ref="R421">
+      <value>1k</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2331474</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/DAQnet Ports/" tstamps="/5C2ED83C/"/>
+      <tstamp>5C764949</tstamp>
+    </comp>
+    <comp ref="R422">
+      <value>1k</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2331474</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/DAQnet Ports/" tstamps="/5C2ED83C/"/>
+      <tstamp>5C76497A</tstamp>
+    </comp>
+    <comp ref="R414">
+      <value>100</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">9239111</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/DAQnet Ports/" tstamps="/5C2ED83C/"/>
+      <tstamp>5C764996</tstamp>
+    </comp>
+    <comp ref="R406">
+      <value>140</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2302541</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/DAQnet Ports/" tstamps="/5C2ED83C/"/>
+      <tstamp>5C7649A0</tstamp>
+    </comp>
+    <comp ref="R405">
+      <value>140</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2302541</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/DAQnet Ports/" tstamps="/5C2ED83C/"/>
+      <tstamp>5C7649AA</tstamp>
+    </comp>
+    <comp ref="R413">
+      <value>140</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2302541</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/DAQnet Ports/" tstamps="/5C2ED83C/"/>
+      <tstamp>5C7649B8</tstamp>
+    </comp>
+    <comp ref="IC403">
+      <value>ECMF04-4HSM10</value>
+      <footprint>agg:uQFN-10L</footprint>
+      <datasheet>https://www.st.com/resource/en/datasheet/ecmf04-4hsm10.pdf</datasheet>
+      <fields>
+        <field name="Farnell">2462664</field>
+      </fields>
+      <libsource lib="agg" part="ECMF04-4HSM10" description="Common mode filter with ESD protection for high speed serial interface"/>
+      <sheetpath names="/DAQnet Ports/" tstamps="/5C2ED83C/"/>
+      <tstamp>5C7649C9</tstamp>
+    </comp>
+    <comp ref="R423">
+      <value>1k</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2331474</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/DAQnet Ports/" tstamps="/5C2ED83C/"/>
+      <tstamp>5C77538D</tstamp>
+    </comp>
+    <comp ref="R424">
+      <value>1k</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2331474</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/DAQnet Ports/" tstamps="/5C2ED83C/"/>
+      <tstamp>5C7753BE</tstamp>
+    </comp>
+    <comp ref="R416">
+      <value>100</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">9239111</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/DAQnet Ports/" tstamps="/5C2ED83C/"/>
+      <tstamp>5C7753DA</tstamp>
+    </comp>
+    <comp ref="R408">
+      <value>140</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2302541</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/DAQnet Ports/" tstamps="/5C2ED83C/"/>
+      <tstamp>5C7753E4</tstamp>
+    </comp>
+    <comp ref="R407">
+      <value>140</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2302541</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/DAQnet Ports/" tstamps="/5C2ED83C/"/>
+      <tstamp>5C7753EE</tstamp>
+    </comp>
+    <comp ref="R415">
+      <value>140</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2302541</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/DAQnet Ports/" tstamps="/5C2ED83C/"/>
+      <tstamp>5C7753FC</tstamp>
+    </comp>
+    <comp ref="IC404">
+      <value>ECMF04-4HSM10</value>
+      <footprint>agg:uQFN-10L</footprint>
+      <datasheet>https://www.st.com/resource/en/datasheet/ecmf04-4hsm10.pdf</datasheet>
+      <fields>
+        <field name="Farnell">2462664</field>
+      </fields>
+      <libsource lib="agg" part="ECMF04-4HSM10" description="Common mode filter with ESD protection for high speed serial interface"/>
+      <sheetpath names="/DAQnet Ports/" tstamps="/5C2ED83C/"/>
+      <tstamp>5C77540D</tstamp>
+    </comp>
+    <comp ref="J401">
+      <value>RJHSE-538x-04</value>
+      <footprint>agg:RJHSE-538X-04</footprint>
+      <fields>
+        <field name="Farnell">1860606</field>
+      </fields>
+      <libsource lib="agg" part="RJHSE-538x-04" description="4-Port Shielded 8P8C Modular Connector with LEDs"/>
+      <sheetpath names="/DAQnet Ports/" tstamps="/5C2ED83C/"/>
+      <tstamp>5CBACC73</tstamp>
+    </comp>
+    <comp ref="IC502">
+      <value>MCP1700</value>
+      <footprint>agg:SOT-23</footprint>
+      <datasheet>http://www.farnell.com/datasheets/1784514.pdf</datasheet>
+      <fields>
+        <field name="Farnell">1851940</field>
+      </fields>
+      <libsource lib="agg" part="MCP1700" description="LDO Voltage Regulator"/>
+      <sheetpath names="/Power/" tstamps="/5C2ED962/"/>
+      <tstamp>5C37DA17</tstamp>
+    </comp>
+    <comp ref="C504">
+      <value>1µ</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">1458896</field>
+        <field name="Voltage">10</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/Power/" tstamps="/5C2ED962/"/>
+      <tstamp>5C37DA1D</tstamp>
+    </comp>
+    <comp ref="C503">
+      <value>100n</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2810260</field>
+        <field name="Voltage">16</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/Power/" tstamps="/5C2ED962/"/>
+      <tstamp>5C37DA3F</tstamp>
+    </comp>
+    <comp ref="TP503">
+      <value>TESTPAD</value>
+      <footprint>agg:TESTPAD</footprint>
+      <libsource lib="agg" part="TESTPAD" description="Test pad"/>
+      <sheetpath names="/Power/" tstamps="/5C2ED962/"/>
+      <tstamp>5C37DA58</tstamp>
+    </comp>
+    <comp ref="J501">
+      <value>GND</value>
+      <footprint>agg:SIL-254P-01</footprint>
+      <libsource lib="agg" part="CONN_01x01" description=""/>
+      <sheetpath names="/Power/" tstamps="/5C2ED962/"/>
+      <tstamp>5C37DA60</tstamp>
+    </comp>
+    <comp ref="IC501">
+      <value>TEC 2-4810</value>
+      <footprint>agg:SIP-8-DCDC</footprint>
+      <fields>
+        <field name="Farnell">2854900</field>
+      </fields>
+      <libsource lib="agg" part="TEC2" description="Isolated DC-DC converter"/>
+      <sheetpath names="/Power/" tstamps="/5C2ED962/"/>
+      <tstamp>5C48779D</tstamp>
+    </comp>
+    <comp ref="IC503">
+      <value>TEC 2-4815</value>
+      <footprint>agg:SIP-8-DCDC</footprint>
+      <fields>
+        <field name="Farnell">2854905</field>
+      </fields>
+      <libsource lib="agg" part="TEC2" description="Isolated DC-DC converter"/>
+      <sheetpath names="/Power/" tstamps="/5C2ED962/"/>
+      <tstamp>5C48807D</tstamp>
+    </comp>
+    <comp ref="C501">
+      <value>10µ</value>
+      <footprint>agg:0603</footprint>
+      <fields>
+        <field name="Farnell">2611921</field>
+        <field name="Voltage">6.3</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/Power/" tstamps="/5C2ED962/"/>
+      <tstamp>5C67C8A9</tstamp>
+    </comp>
+    <comp ref="R501">
+      <value>1k</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2331474</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/Power/" tstamps="/5C2ED962/"/>
+      <tstamp>5C684137</tstamp>
+    </comp>
+    <comp ref="R502">
+      <value>1k</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2331474</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/Power/" tstamps="/5C2ED962/"/>
+      <tstamp>5C68756D</tstamp>
+    </comp>
+    <comp ref="C502">
+      <value>10µ</value>
+      <footprint>agg:0603</footprint>
+      <fields>
+        <field name="Farnell">2469398</field>
+        <field name="Voltage">25</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/Power/" tstamps="/5C2ED962/"/>
+      <tstamp>5C68CEE8</tstamp>
+    </comp>
+    <comp ref="TP502">
+      <value>TESTPAD</value>
+      <footprint>agg:TESTPAD</footprint>
+      <libsource lib="agg" part="TESTPAD" description="Test pad"/>
+      <sheetpath names="/Power/" tstamps="/5C2ED962/"/>
+      <tstamp>5C6A4283</tstamp>
+    </comp>
+    <comp ref="TP501">
+      <value>TESTPAD</value>
+      <footprint>agg:TESTPAD</footprint>
+      <libsource lib="agg" part="TESTPAD" description="Test pad"/>
+      <sheetpath names="/Power/" tstamps="/5C2ED962/"/>
+      <tstamp>5C6A67C6</tstamp>
+    </comp>
+    <comp ref="TP505">
+      <value>TESTPAD</value>
+      <footprint>agg:TESTPAD</footprint>
+      <libsource lib="agg" part="TESTPAD" description="Test pad"/>
+      <sheetpath names="/Power/" tstamps="/5C2ED962/"/>
+      <tstamp>5C935AD0</tstamp>
+    </comp>
+    <comp ref="TP504">
+      <value>TESTPAD</value>
+      <footprint>agg:TESTPAD</footprint>
+      <libsource lib="agg" part="TESTPAD" description="Test pad"/>
+      <sheetpath names="/Power/" tstamps="/5C2ED962/"/>
+      <tstamp>5C9372D2</tstamp>
+    </comp>
+    <comp ref="C505">
+      <value>10µ</value>
+      <footprint>agg:0603</footprint>
+      <fields>
+        <field name="Farnell">2469398</field>
+        <field name="Voltage">25</field>
+      </fields>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/Power/" tstamps="/5C2ED962/"/>
+      <tstamp>5D75A5F9</tstamp>
+    </comp>
+    <comp ref="D501">
+      <value>LED</value>
+      <footprint>agg:0603-LED</footprint>
+      <fields>
+        <field name="Farnell">2290328</field>
+      </fields>
+      <libsource lib="agg" part="LED" description=""/>
+      <sheetpath names="/Power/" tstamps="/5C2ED962/"/>
+      <tstamp>5D760AE7</tstamp>
+    </comp>
+    <comp ref="R503">
+      <value>1k</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2331474</field>
+        <field name="Voltage">50</field>
+      </fields>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/Power/" tstamps="/5C2ED962/"/>
+      <tstamp>5D760AF4</tstamp>
+    </comp>
+  </components>
+  <libparts>
+    <libpart lib="Diode_Bridge" part="MB2S">
+      <aliases>
+        <alias>MB4S</alias>
+        <alias>MB6S</alias>
+        <alias>RMB2S</alias>
+        <alias>RMB4S</alias>
+      </aliases>
+      <description>Miniature Glass Passivated Single-Phase Surface Mount Bridge Rectifiers, 140V Vrms, 0.5A If, TO-269AA</description>
+      <docs>http://www.vishay.com/docs/88661/mb2s.pdf</docs>
+      <footprints>
+        <fp>TO?269AA*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">D</field>
+        <field name="Value">MB2S</field>
+        <field name="Footprint">Package_TO_SOT_SMD:TO-269AA</field>
+      </fields>
+      <pins>
+        <pin num="1" name="~~" type="passive"/>
+        <pin num="2" name="~~" type="passive"/>
+        <pin num="3" name="+" type="passive"/>
+        <pin num="4" name="-" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="agg" part="749010012A">
+      <description>10/100Mbps ethernet magnetics</description>
+      <fields>
+        <field name="Reference">T</field>
+        <field name="Value">749010012A</field>
+        <field name="Footprint">agg:749010012A</field>
+        <field name="Datasheet">http://katalog.we-online.de/pbs/datasheet/749010012A.pdf</field>
+        <field name="Farnell">2422552</field>
+      </fields>
+      <pins>
+        <pin num="1" name="TD+" type="passive"/>
+        <pin num="2" name="CTD" type="passive"/>
+        <pin num="3" name="TD-" type="passive"/>
+        <pin num="4" name="NC" type="NotConnected"/>
+        <pin num="5" name="NC" type="NotConnected"/>
+        <pin num="6" name="RD+" type="passive"/>
+        <pin num="7" name="CRD" type="passive"/>
+        <pin num="8" name="RD-" type="passive"/>
+        <pin num="9" name="RX-" type="passive"/>
+        <pin num="10" name="CRX" type="passive"/>
+        <pin num="11" name="RX+" type="passive"/>
+        <pin num="12" name="NC" type="NotConnected"/>
+        <pin num="13" name="NC" type="NotConnected"/>
+        <pin num="14" name="TX-" type="passive"/>
+        <pin num="15" name="CTX" type="passive"/>
+        <pin num="16" name="TX+" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="agg" part="C">
+      <fields>
+        <field name="Reference">C</field>
+        <field name="Value">C</field>
+      </fields>
+      <pins>
+        <pin num="1" name="~" type="passive"/>
+        <pin num="2" name="~" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="agg" part="CONN_01x01">
+      <fields>
+        <field name="Reference">J</field>
+        <field name="Value">CONN_01x01</field>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="agg" part="CONN_01x04">
+      <fields>
+        <field name="Reference">J</field>
+        <field name="Value">CONN_01x04</field>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+        <pin num="2" name="2" type="passive"/>
+        <pin num="3" name="3" type="passive"/>
+        <pin num="4" name="4" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="agg" part="CONN_02x05">
+      <fields>
+        <field name="Reference">J</field>
+        <field name="Value">CONN_02x05</field>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+        <pin num="2" name="2" type="passive"/>
+        <pin num="3" name="3" type="passive"/>
+        <pin num="4" name="4" type="passive"/>
+        <pin num="5" name="5" type="passive"/>
+        <pin num="6" name="6" type="passive"/>
+        <pin num="7" name="7" type="passive"/>
+        <pin num="8" name="8" type="passive"/>
+        <pin num="9" name="9" type="passive"/>
+        <pin num="10" name="10" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="agg" part="ECMF04-4HSM10">
+      <description>Common mode filter with ESD protection for high speed serial interface</description>
+      <fields>
+        <field name="Reference">IC</field>
+        <field name="Value">ECMF04-4HSM10</field>
+        <field name="Footprint">agg:uQFN-10L</field>
+        <field name="Datasheet">https://www.st.com/resource/en/datasheet/ecmf04-4hsm10.pdf</field>
+        <field name="Farnell">2462664</field>
+      </fields>
+      <pins>
+        <pin num="1" name="D1+" type="passive"/>
+        <pin num="2" name="D1-" type="passive"/>
+        <pin num="3" name="GND" type="power_in"/>
+        <pin num="4" name="D2+" type="passive"/>
+        <pin num="5" name="D2-" type="passive"/>
+        <pin num="6" name="D2-" type="passive"/>
+        <pin num="7" name="D2+" type="passive"/>
+        <pin num="8" name="GND" type="power_in"/>
+        <pin num="9" name="D1-" type="passive"/>
+        <pin num="10" name="D1+" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="agg" part="ESD_DIODE">
+      <description>ESD diode</description>
+      <fields>
+        <field name="Reference">D</field>
+        <field name="Value">ESD_DIODE</field>
+        <field name="Footprint">agg:0402</field>
+        <field name="Farnell">2368169</field>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+        <pin num="2" name="2" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="agg" part="KSZ8081RNx">
+      <description>RMII 100/10Mbps ethernet PHY</description>
+      <fields>
+        <field name="Reference">IC</field>
+        <field name="Value">KSZ8081RNx</field>
+        <field name="Footprint">agg:QFN-24-EP-MICREL</field>
+        <field name="Datasheet">http://ww1.microchip.com/downloads/en/DeviceDoc/KSZ8081RNA_RND.pdf</field>
+        <field name="Farnell">2509802</field>
+      </fields>
+      <pins>
+        <pin num="1" name="VDD_1v2" type="power_out"/>
+        <pin num="2" name="VDDA_3v3" type="power_in"/>
+        <pin num="3" name="RXM" type="BiDi"/>
+        <pin num="4" name="RXP" type="BiDi"/>
+        <pin num="5" name="TXM" type="BiDi"/>
+        <pin num="6" name="TXP" type="BiDi"/>
+        <pin num="7" name="XO" type="output"/>
+        <pin num="8" name="XI" type="input"/>
+        <pin num="9" name="REXT" type="input"/>
+        <pin num="10" name="MDIO" type="BiDi"/>
+        <pin num="11" name="MDC" type="input"/>
+        <pin num="12" name="RXD1" type="output"/>
+        <pin num="13" name="RXD0" type="output"/>
+        <pin num="14" name="VDDIO" type="power_in"/>
+        <pin num="15" name="CRS_DV" type="BiDi"/>
+        <pin num="16" name="REF_CLK" type="output"/>
+        <pin num="17" name="RXER" type="output"/>
+        <pin num="18" name="INTRP" type="output"/>
+        <pin num="19" name="TXEN" type="input"/>
+        <pin num="20" name="TXD0" type="input"/>
+        <pin num="21" name="TXD1" type="input"/>
+        <pin num="22" name="GND" type="power_in"/>
+        <pin num="23" name="LED0" type="output"/>
+        <pin num="24" name="~RST" type="input"/>
+        <pin num="EP" name="GND" type="power_in"/>
+      </pins>
+    </libpart>
+    <libpart lib="agg" part="L">
+      <fields>
+        <field name="Reference">L</field>
+        <field name="Value">L</field>
+      </fields>
+      <pins>
+        <pin num="1" name="~" type="passive"/>
+        <pin num="2" name="~" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="agg" part="LED">
+      <fields>
+        <field name="Reference">D</field>
+        <field name="Value">LED</field>
+      </fields>
+      <pins>
+        <pin num="1" name="~" type="passive"/>
+        <pin num="2" name="~" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="agg" part="MAX5969x">
+      <description>MAX5969x 802.3af PoE PD controller</description>
+      <fields>
+        <field name="Reference">IC</field>
+        <field name="Value">MAX5969x</field>
+        <field name="Footprint">agg:DFN-10-EP-MAX</field>
+        <field name="Datasheet">https://datasheets.maximintegrated.com/en/ds/MAX5969A-MAX5969B.pdf</field>
+        <field name="Farnell">2514586</field>
+      </fields>
+      <pins>
+        <pin num="1" name="VDD" type="power_in"/>
+        <pin num="2" name="DET" type="input"/>
+        <pin num="3" name="NC" type="NotConnected"/>
+        <pin num="4" name="IC" type="NotConnected"/>
+        <pin num="5" name="VSS" type="power_in"/>
+        <pin num="6" name="RTN" type="power_out"/>
+        <pin num="7" name="WAD" type="input"/>
+        <pin num="8" name="PG" type="output"/>
+        <pin num="9" name="~2EC" type="output"/>
+        <pin num="10" name="CLS" type="input"/>
+        <pin num="EP" name="VSS" type="power_in"/>
+      </pins>
+    </libpart>
+    <libpart lib="agg" part="MCP1700">
+      <description>LDO Voltage Regulator</description>
+      <fields>
+        <field name="Reference">IC</field>
+        <field name="Value">MCP1700</field>
+        <field name="Footprint">agg:SOT-23</field>
+        <field name="Datasheet">http://www.farnell.com/datasheets/1784514.pdf</field>
+        <field name="Farnell">1296592</field>
+      </fields>
+      <pins>
+        <pin num="1" name="GND" type="power_in"/>
+        <pin num="2" name="VOUT" type="power_out"/>
+        <pin num="3" name="VIN" type="power_in"/>
+      </pins>
+    </libpart>
+    <libpart lib="agg" part="PART">
+      <description>Generic placeholder part</description>
+      <fields>
+        <field name="Reference">X</field>
+        <field name="Value">PART</field>
+      </fields>
+    </libpart>
+    <libpart lib="agg" part="R">
+      <fields>
+        <field name="Reference">R</field>
+        <field name="Value">R</field>
+      </fields>
+      <pins>
+        <pin num="1" name="~" type="passive"/>
+        <pin num="2" name="~" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="agg" part="RJHSE-538x">
+      <description>Shielded 8P8C Modular Connector with LEDs</description>
+      <fields>
+        <field name="Reference">J</field>
+        <field name="Value">RJHSE-538x</field>
+        <field name="Footprint">agg:RJHSE-538X</field>
+        <field name="Datasheet">http://www.farnell.com/cad/2167247.pdf</field>
+        <field name="Farnell">1462758</field>
+      </fields>
+      <pins>
+        <pin num="1" name="TX+" type="passive"/>
+        <pin num="2" name="TX-" type="passive"/>
+        <pin num="3" name="RX+" type="passive"/>
+        <pin num="4" name="~" type="passive"/>
+        <pin num="5" name="~" type="passive"/>
+        <pin num="6" name="RX-" type="passive"/>
+        <pin num="7" name="~" type="passive"/>
+        <pin num="8" name="~" type="passive"/>
+        <pin num="9" name="LED1_C" type="passive"/>
+        <pin num="10" name="LED1_A" type="passive"/>
+        <pin num="11" name="LED2_C" type="passive"/>
+        <pin num="12" name="LED2_A" type="passive"/>
+        <pin num="S1" name="SHIELD" type="passive"/>
+        <pin num="S2" name="SHIELD" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="agg" part="RJHSE-538x-04">
+      <description>4-Port Shielded 8P8C Modular Connector with LEDs</description>
+      <fields>
+        <field name="Reference">J</field>
+        <field name="Value">RJHSE-538x-04</field>
+        <field name="Footprint">agg:RJHSE-538X-04</field>
+        <field name="Datasheet">https://cdn.amphenol-icc.com/media/wysiwyg/files/drawing/rjhse538x04.pdf</field>
+        <field name="Farnell">1860606</field>
+      </fields>
+      <pins>
+        <pin num="1P1" name="TX+" type="passive"/>
+        <pin num="1P2" name="TX-" type="passive"/>
+        <pin num="1P3" name="RX+" type="passive"/>
+        <pin num="1P4" name="~" type="passive"/>
+        <pin num="1P5" name="~" type="passive"/>
+        <pin num="1P6" name="RX-" type="passive"/>
+        <pin num="1P7" name="~" type="passive"/>
+        <pin num="1P8" name="~" type="passive"/>
+        <pin num="1P9" name="LED1-" type="passive"/>
+        <pin num="1P10" name="LED1+" type="passive"/>
+        <pin num="1P11" name="LED2-" type="passive"/>
+        <pin num="1P12" name="LED2+" type="passive"/>
+        <pin num="2P1" name="TX+" type="passive"/>
+        <pin num="2P2" name="TX-" type="passive"/>
+        <pin num="2P3" name="RX+" type="passive"/>
+        <pin num="2P4" name="~" type="passive"/>
+        <pin num="2P5" name="~" type="passive"/>
+        <pin num="2P6" name="RX-" type="passive"/>
+        <pin num="2P7" name="~" type="passive"/>
+        <pin num="2P8" name="~" type="passive"/>
+        <pin num="2P9" name="LED1-" type="passive"/>
+        <pin num="2P10" name="LED1+" type="passive"/>
+        <pin num="2P11" name="LED2-" type="passive"/>
+        <pin num="2P12" name="LED2+" type="passive"/>
+        <pin num="3P1" name="TX+" type="passive"/>
+        <pin num="3P2" name="TX-" type="passive"/>
+        <pin num="3P3" name="RX+" type="passive"/>
+        <pin num="3P4" name="~" type="passive"/>
+        <pin num="3P5" name="~" type="passive"/>
+        <pin num="3P6" name="RX-" type="passive"/>
+        <pin num="3P7" name="~" type="passive"/>
+        <pin num="3P8" name="~" type="passive"/>
+        <pin num="3P9" name="LED1-" type="passive"/>
+        <pin num="3P10" name="LED1+" type="passive"/>
+        <pin num="3P11" name="LED2-" type="passive"/>
+        <pin num="3P12" name="LED2+" type="passive"/>
+        <pin num="4P1" name="TX+" type="passive"/>
+        <pin num="4P2" name="TX-" type="passive"/>
+        <pin num="4P3" name="RX+" type="passive"/>
+        <pin num="4P4" name="~" type="passive"/>
+        <pin num="4P5" name="~" type="passive"/>
+        <pin num="4P6" name="RX-" type="passive"/>
+        <pin num="4P7" name="~" type="passive"/>
+        <pin num="4P8" name="~" type="passive"/>
+        <pin num="4P9" name="LED1-" type="passive"/>
+        <pin num="4P10" name="LED1+" type="passive"/>
+        <pin num="4P11" name="LED2-" type="passive"/>
+        <pin num="4P12" name="LED2+" type="passive"/>
+        <pin num="S1" name="SHIELD" type="passive"/>
+        <pin num="S2" name="SHIELD" type="passive"/>
+        <pin num="S3" name="SHIELD" type="passive"/>
+        <pin num="S4" name="SHIELD" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="agg" part="SCHOTTKY">
+      <description>Schottky Diode</description>
+      <fields>
+        <field name="Reference">D</field>
+        <field name="Value">SCHOTTKY</field>
+      </fields>
+      <pins>
+        <pin num="1" name="~" type="passive"/>
+        <pin num="2" name="~" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="agg" part="SWITCH_SPST">
+      <fields>
+        <field name="Reference">SW</field>
+        <field name="Value">SWITCH_SPST</field>
+      </fields>
+      <pins>
+        <pin num="1" name="&quot;~&quot;" type="passive"/>
+        <pin num="2" name="&quot;~&quot;" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="agg" part="TCXO_ST">
+      <description>4 pin TCXO with Standy</description>
+      <fields>
+        <field name="Reference">Y</field>
+        <field name="Value">TCXO_ST</field>
+        <field name="Farnell">2405760</field>
+      </fields>
+      <pins>
+        <pin num="1" name="~ST" type="input"/>
+        <pin num="2" name="GND" type="power_in"/>
+        <pin num="3" name="OUT" type="output"/>
+        <pin num="4" name="VCC" type="power_in"/>
+      </pins>
+    </libpart>
+    <libpart lib="agg" part="TEC2">
+      <description>Isolated DC-DC converter</description>
+      <fields>
+        <field name="Reference">IC</field>
+        <field name="Value">TEC2</field>
+        <field name="Footprint">agg:SIP-8-DCDC</field>
+        <field name="Datasheet">https://assets.tracopower.com/20181123133641/TEC2/documents/tec2-datasheet.pdf</field>
+        <field name="Farnell">2854900</field>
+      </fields>
+      <pins>
+        <pin num="1" name="-Vin" type="power_in"/>
+        <pin num="2" name="+Vin" type="power_in"/>
+        <pin num="3" name="On/Off" type="input"/>
+        <pin num="5" name="NC" type="NotConnected"/>
+        <pin num="6" name="+Vout" type="power_out"/>
+        <pin num="7" name="COM" type="power_in"/>
+        <pin num="8" name="-Vout" type="power_out"/>
+      </pins>
+    </libpart>
+    <libpart lib="agg" part="TESTPAD">
+      <description>Test pad</description>
+      <fields>
+        <field name="Reference">TP</field>
+        <field name="Value">TESTPAD</field>
+        <field name="Footprint">agg:TESTPAD</field>
+      </fields>
+      <pins>
+        <pin num="1" name="TP" type="input"/>
+      </pins>
+    </libpart>
+    <libpart lib="agg" part="W25Q80">
+      <description>8Mbit SPI flash memory</description>
+      <fields>
+        <field name="Reference">IC</field>
+        <field name="Value">W25Q80</field>
+        <field name="Footprint">agg:UFDFN-8</field>
+        <field name="Datasheet">http://www.winbond.com/resource-files/w25q80dv%20dl_revh_10022015.pdf</field>
+        <field name="DigiKey">W25Q80DVUXIECT-ND</field>
+      </fields>
+      <pins>
+        <pin num="1" name="~CS" type="input"/>
+        <pin num="2" name="DO/IO1" type="BiDi"/>
+        <pin num="3" name="~WP~/IO2" type="BiDi"/>
+        <pin num="4" name="GND" type="power_in"/>
+        <pin num="5" name="DI/IO0" type="BiDi"/>
+        <pin num="6" name="CLK" type="input"/>
+        <pin num="7" name="~HOLD~/IO3" type="BiDi"/>
+        <pin num="8" name="VCC" type="power_in"/>
+      </pins>
+    </libpart>
+    <libpart lib="agg" part="iCE40HX8K-BG121">
+      <description>iCE40 HX FPGA</description>
+      <fields>
+        <field name="Reference">IC</field>
+        <field name="Value">iCE40HX8K-BG121</field>
+        <field name="Footprint">agg:Lattice-BG121</field>
+        <field name="Datasheet">http://www.latticesemi.com/view_document?document_id=49312</field>
+        <field name="DigiKey">220-2148-ND</field>
+      </fields>
+      <pins>
+        <pin num="A1" name="IOT_225" type="BiDi"/>
+        <pin num="A2" name="IOT_222" type="BiDi"/>
+        <pin num="A3" name="IOT_223" type="BiDi"/>
+        <pin num="A4" name="IOT_211" type="BiDi"/>
+        <pin num="A5" name="IOT_207" type="BiDi"/>
+        <pin num="A6" name="IOT_206" type="BiDi"/>
+        <pin num="A7" name="IOT_192" type="BiDi"/>
+        <pin num="A8" name="IOT_190" type="BiDi"/>
+        <pin num="A9" name="IOT_178" type="BiDi"/>
+        <pin num="A10" name="IOT_170" type="BiDi"/>
+        <pin num="A11" name="IOT_168" type="BiDi"/>
+        <pin num="B1" name="IOL_2A" type="BiDi"/>
+        <pin num="B2" name="IOL_2B" type="BiDi"/>
+        <pin num="B3" name="IOT_221" type="BiDi"/>
+        <pin num="B4" name="IOT_219" type="BiDi"/>
+        <pin num="B5" name="IOT_208" type="BiDi"/>
+        <pin num="B6" name="IOT_198_GBIN0" type="BiDi"/>
+        <pin num="B7" name="IOT_197_GBIN1" type="BiDi"/>
+        <pin num="B8" name="IOT_177" type="BiDi"/>
+        <pin num="B9" name="IOT_174" type="BiDi"/>
+        <pin num="B10" name="VPP_FAST" type="power_in"/>
+        <pin num="B11" name="IOR_161" type="BiDi"/>
+        <pin num="C1" name="IOL_5B" type="BiDi"/>
+        <pin num="C2" name="IOL_5A" type="BiDi"/>
+        <pin num="C3" name="IOL_4B" type="BiDi"/>
+        <pin num="C4" name="IOL_4A" type="BiDi"/>
+        <pin num="C5" name="GNDPLL1" type="power_in"/>
+        <pin num="C6" name="VCCPLL1" type="power_in"/>
+        <pin num="C7" name="IOT_191" type="BiDi"/>
+        <pin num="C8" name="IOT_179" type="BiDi"/>
+        <pin num="C9" name="IOT_172" type="BiDi"/>
+        <pin num="C10" name="VPP_2V5" type="power_in"/>
+        <pin num="C11" name="IOR_160" type="BiDi"/>
+        <pin num="D1" name="IOL_8B" type="BiDi"/>
+        <pin num="D2" name="IOL_9A" type="BiDi"/>
+        <pin num="D3" name="IOL_9B" type="BiDi"/>
+        <pin num="D4" name="VCC" type="power_in"/>
+        <pin num="D5" name="IOT_212" type="BiDi"/>
+        <pin num="D6" name="VCCIO_0" type="power_in"/>
+        <pin num="D7" name="IOT_181" type="BiDi"/>
+        <pin num="D8" name="VCC" type="power_in"/>
+        <pin num="D9" name="IOR_147" type="BiDi"/>
+        <pin num="D10" name="IOR_154" type="BiDi"/>
+        <pin num="D11" name="IOR_152" type="BiDi"/>
+        <pin num="E1" name="IOL_8A" type="BiDi"/>
+        <pin num="E2" name="IOL_10A" type="BiDi"/>
+        <pin num="E3" name="IOL_10B" type="BiDi"/>
+        <pin num="E4" name="VCCIO_3" type="power_in"/>
+        <pin num="E5" name="GND" type="power_in"/>
+        <pin num="E6" name="GND" type="power_in"/>
+        <pin num="E7" name="GND" type="power_in"/>
+        <pin num="E8" name="IOR_146" type="BiDi"/>
+        <pin num="E9" name="IOR_144" type="BiDi"/>
+        <pin num="E10" name="IOR_141_GBIN2" type="BiDi"/>
+        <pin num="E11" name="IOR_148" type="BiDi"/>
+        <pin num="F1" name="IOL_12A" type="BiDi"/>
+        <pin num="F2" name="IOL_12B" type="BiDi"/>
+        <pin num="F3" name="IOL_13B_GBIN7" type="BiDi"/>
+        <pin num="F4" name="IOL_13A" type="BiDi"/>
+        <pin num="F5" name="GND" type="power_in"/>
+        <pin num="F6" name="GND" type="power_in"/>
+        <pin num="F7" name="GND" type="power_in"/>
+        <pin num="F8" name="VCCIO_1" type="power_in"/>
+        <pin num="F9" name="IOR_137" type="BiDi"/>
+        <pin num="F10" name="IOR_136" type="BiDi"/>
+        <pin num="F11" name="IOR_140_GBIN3" type="BiDi"/>
+        <pin num="G1" name="IOL_14A_GBIN6" type="BiDi"/>
+        <pin num="G2" name="IOL_14B" type="BiDi"/>
+        <pin num="G3" name="IOL_17A" type="BiDi"/>
+        <pin num="G4" name="VCCIO_3" type="power_in"/>
+        <pin num="G5" name="GND" type="power_in"/>
+        <pin num="G6" name="GND" type="power_in"/>
+        <pin num="G7" name="GND" type="power_in"/>
+        <pin num="G8" name="IOR_118" type="BiDi"/>
+        <pin num="G9" name="IOR_128" type="BiDi"/>
+        <pin num="G10" name="IOR_120" type="BiDi"/>
+        <pin num="G11" name="IOR_129" type="BiDi"/>
+        <pin num="H1" name="IOL_18A" type="BiDi"/>
+        <pin num="H2" name="IOL_18B" type="BiDi"/>
+        <pin num="H3" name="IOL_17B" type="BiDi"/>
+        <pin num="H4" name="VCC" type="power_in"/>
+        <pin num="H5" name="GND" type="power_in"/>
+        <pin num="H6" name="VCCIO_2" type="power_in"/>
+        <pin num="H7" name="IOB_87" type="BiDi"/>
+        <pin num="H8" name="VCC" type="power_in"/>
+        <pin num="H9" name="IOB_104_CBSEL1" type="BiDi"/>
+        <pin num="H10" name="IOR_116" type="BiDi"/>
+        <pin num="H11" name="IOR_119" type="BiDi"/>
+        <pin num="J1" name="IOL_23A" type="BiDi"/>
+        <pin num="J2" name="IOL_25B" type="BiDi"/>
+        <pin num="J3" name="IOB_57" type="BiDi"/>
+        <pin num="J4" name="IOB_64" type="BiDi"/>
+        <pin num="J5" name="IOB_78" type="BiDi"/>
+        <pin num="J6" name="VCCPLL0" type="power_in"/>
+        <pin num="J7" name="IOB_86" type="BiDi"/>
+        <pin num="J8" name="IOB_91" type="BiDi"/>
+        <pin num="J9" name="IOB_106_SDI" type="BiDi"/>
+        <pin num="J10" name="IOR_117" type="BiDi"/>
+        <pin num="J11" name="IOR_114" type="BiDi"/>
+        <pin num="K1" name="IOL_23B" type="BiDi"/>
+        <pin num="K2" name="IOL_25A" type="BiDi"/>
+        <pin num="K3" name="IOB_63" type="BiDi"/>
+        <pin num="K4" name="IOB_73" type="BiDi"/>
+        <pin num="K5" name="IOB_79" type="BiDi"/>
+        <pin num="K6" name="IOB_82_GBIN4" type="BiDi"/>
+        <pin num="K7" name="IOB_89" type="BiDi"/>
+        <pin num="K8" name="CDONE" type="BiDi"/>
+        <pin num="K9" name="IOB_105_SDO" type="BiDi"/>
+        <pin num="K10" name="IOB_108_SS" type="BiDi"/>
+        <pin num="K11" name="IOR_115" type="BiDi"/>
+        <pin num="L1" name="IOB_56" type="BiDi"/>
+        <pin num="L2" name="IOB_61" type="BiDi"/>
+        <pin num="L3" name="IOB_71" type="BiDi"/>
+        <pin num="L4" name="IOB_72" type="BiDi"/>
+        <pin num="L5" name="IOB_81_GBIN5" type="BiDi"/>
+        <pin num="L6" name="GNDPLL0" type="power_in"/>
+        <pin num="L7" name="IOB_94" type="BiDi"/>
+        <pin num="L8" name="IOB_103_CBSEL0" type="BiDi"/>
+        <pin num="L9" name="CRESET_B" type="input"/>
+        <pin num="L10" name="IOB_107_SCK" type="BiDi"/>
+        <pin num="L11" name="VCC_SPI" type="power_in"/>
+      </pins>
+    </libpart>
+  </libparts>
+  <libraries>
+    <library logical="Diode_Bridge">
+      <uri>/usr/lib/kicad-nightly/share/kicad/library/Diode_Bridge.lib</uri>
+    </library>
+    <library logical="agg">
+      <uri>/home/adam/Projects/daqnet/hardware/proto-switch/../agg-kicad/agg-kicad.lib</uri>
+    </library>
+  </libraries>
+  <nets>
+    <net code="1" name="/DAQnet Ports/RD4-">
+      <node ref="IC202" pin="K1"/>
+      <node ref="IC404" pin="7"/>
+      <node ref="R416" pin="2"/>
+    </net>
+    <net code="2" name="/iCE40/PHY_~RST">
+      <node ref="IC202" pin="K2"/>
+      <node ref="IC301" pin="24"/>
+      <node ref="R311" pin="2"/>
+    </net>
+    <net code="3" name="/Ethernet/MDC">
+      <node ref="IC301" pin="11"/>
+      <node ref="IC202" pin="K3"/>
+    </net>
+    <net code="4" name="/Ethernet/MDIO">
+      <node ref="R308" pin="2"/>
+      <node ref="IC301" pin="10"/>
+      <node ref="IC202" pin="L3"/>
+    </net>
+    <net code="5" name="/Ethernet/TXD1">
+      <node ref="R307" pin="2"/>
+      <node ref="IC202" pin="L1"/>
+    </net>
+    <net code="6" name="/Ethernet/TXD0">
+      <node ref="R306" pin="2"/>
+      <node ref="IC202" pin="J3"/>
+    </net>
+    <net code="7" name="/Ethernet/TXEN">
+      <node ref="R305" pin="2"/>
+      <node ref="IC202" pin="L2"/>
+    </net>
+    <net code="8" name="/Ethernet/REF_CLK">
+      <node ref="IC202" pin="K4"/>
+      <node ref="R304" pin="2"/>
+    </net>
+    <net code="9" name="/Ethernet/CRS_DV">
+      <node ref="IC202" pin="L4"/>
+      <node ref="R303" pin="2"/>
+    </net>
+    <net code="10" name="/Ethernet/RXD1">
+      <node ref="IC202" pin="J5"/>
+      <node ref="R301" pin="2"/>
+    </net>
+    <net code="11" name="/Ethernet/RXD0">
+      <node ref="IC202" pin="K5"/>
+      <node ref="R302" pin="2"/>
+    </net>
+    <net code="12" name="/Power/48VPG">
+      <node ref="R502" pin="1"/>
+      <node ref="R501" pin="1"/>
+      <node ref="IC303" pin="8"/>
+    </net>
+    <net code="13" name="/Ethernet/0VDC">
+      <node ref="IC503" pin="1"/>
+      <node ref="TP504" pin="1"/>
+      <node ref="IC303" pin="7"/>
+      <node ref="IC303" pin="6"/>
+      <node ref="IC501" pin="1"/>
+    </net>
+    <net code="14" name="/Ethernet/48VDC">
+      <node ref="L302" pin="1"/>
+      <node ref="IC501" pin="2"/>
+      <node ref="IC503" pin="2"/>
+      <node ref="TP505" pin="1"/>
+    </net>
+    <net code="15" name="/DAQnet Ports/RD4+">
+      <node ref="R416" pin="1"/>
+      <node ref="IC202" pin="J1"/>
+      <node ref="IC404" pin="6"/>
+    </net>
+    <net code="16" name="/iCE40/ETH_LED">
+      <node ref="R318" pin="1"/>
+      <node ref="IC202" pin="J2"/>
+    </net>
+    <net code="17" name="/DAQnet Ports/TD4+">
+      <node ref="R408" pin="2"/>
+      <node ref="IC202" pin="H1"/>
+    </net>
+    <net code="18" name="/DAQnet Ports/TD4-">
+      <node ref="IC202" pin="H2"/>
+      <node ref="R407" pin="2"/>
+    </net>
+    <net code="19" name="/DAQnet Ports/P4_LED2">
+      <node ref="J401" pin="4P12"/>
+      <node ref="IC202" pin="H3"/>
+    </net>
+    <net code="20" name="/DAQnet Ports/P4_LED1">
+      <node ref="IC202" pin="F4"/>
+      <node ref="J401" pin="4P10"/>
+    </net>
+    <net code="21" name="/DAQnet Ports/RD3+">
+      <node ref="IC403" pin="6"/>
+      <node ref="R414" pin="1"/>
+      <node ref="IC202" pin="G1"/>
+    </net>
+    <net code="22" name="/DAQnet Ports/RD3-">
+      <node ref="IC403" pin="7"/>
+      <node ref="IC202" pin="G2"/>
+      <node ref="R414" pin="2"/>
+    </net>
+    <net code="23" name="/DAQnet Ports/TD3+">
+      <node ref="R406" pin="2"/>
+      <node ref="IC202" pin="F1"/>
+    </net>
+    <net code="24" name="/DAQnet Ports/TD3-">
+      <node ref="IC202" pin="F2"/>
+      <node ref="R405" pin="2"/>
+    </net>
+    <net code="25" name="/DAQnet Ports/P3_LED2">
+      <node ref="IC202" pin="F3"/>
+      <node ref="J401" pin="3P12"/>
+    </net>
+    <net code="26" name="/DAQnet Ports/P3_LED1">
+      <node ref="IC202" pin="G3"/>
+      <node ref="J401" pin="3P10"/>
+    </net>
+    <net code="27" name="/DAQnet Ports/RD2+">
+      <node ref="R412" pin="1"/>
+      <node ref="IC402" pin="6"/>
+      <node ref="IC202" pin="E2"/>
+    </net>
+    <net code="28" name="/DAQnet Ports/RD2-">
+      <node ref="IC202" pin="E3"/>
+      <node ref="IC402" pin="7"/>
+      <node ref="R412" pin="2"/>
+    </net>
+    <net code="29" name="/DAQnet Ports/TD2+">
+      <node ref="IC202" pin="E1"/>
+      <node ref="R404" pin="2"/>
+    </net>
+    <net code="30" name="/DAQnet Ports/P2_LED1">
+      <node ref="IC202" pin="D2"/>
+      <node ref="J401" pin="2P10"/>
+    </net>
+    <net code="31" name="/DAQnet Ports/RD1+">
+      <node ref="R410" pin="1"/>
+      <node ref="IC202" pin="C2"/>
+      <node ref="IC401" pin="6"/>
+    </net>
+    <net code="32" name="/DAQnet Ports/P2_LED2">
+      <node ref="IC202" pin="C3"/>
+      <node ref="J401" pin="2P12"/>
+    </net>
+    <net code="33" name="/DAQnet Ports/RD1-">
+      <node ref="IC202" pin="C1"/>
+      <node ref="IC401" pin="7"/>
+      <node ref="R410" pin="2"/>
+    </net>
+    <net code="34" name="/DAQnet Ports/TD2-">
+      <node ref="R403" pin="2"/>
+      <node ref="IC202" pin="D1"/>
+    </net>
+    <net code="35" name="/DAQnet Ports/P1_LED2">
+      <node ref="J401" pin="1P12"/>
+      <node ref="IC202" pin="D3"/>
+    </net>
+    <net code="36" name="/DAQnet Ports/P1_LED1">
+      <node ref="IC202" pin="C4"/>
+      <node ref="J401" pin="1P10"/>
+    </net>
+    <net code="37" name="/DAQnet Ports/TD1-">
+      <node ref="IC202" pin="B2"/>
+      <node ref="R401" pin="2"/>
+    </net>
+    <net code="38" name="/DAQnet Ports/TD1+">
+      <node ref="R402" pin="2"/>
+      <node ref="IC202" pin="B1"/>
+    </net>
+    <net code="39" name="Net-(IC202-PadB10)">
+      <node ref="IC202" pin="B10"/>
+    </net>
+    <net code="40" name="Net-(J201-Pad7)">
+      <node ref="J201" pin="7"/>
+    </net>
+    <net code="41" name="3v3">
+      <node ref="C220" pin="1"/>
+      <node ref="D203" pin="2"/>
+      <node ref="C215" pin="1"/>
+      <node ref="C212" pin="1"/>
+      <node ref="C210" pin="1"/>
+      <node ref="C216" pin="1"/>
+      <node ref="L301" pin="1"/>
+      <node ref="TP501" pin="1"/>
+      <node ref="D501" pin="2"/>
+      <node ref="R310" pin="1"/>
+      <node ref="C304" pin="1"/>
+      <node ref="C303" pin="1"/>
+      <node ref="R308" pin="1"/>
+      <node ref="IC501" pin="6"/>
+      <node ref="C501" pin="1"/>
+      <node ref="IC502" pin="3"/>
+      <node ref="Y301" pin="4"/>
+      <node ref="Y301" pin="1"/>
+      <node ref="IC301" pin="14"/>
+      <node ref="C314" pin="1"/>
+      <node ref="C503" pin="1"/>
+      <node ref="C201" pin="1"/>
+      <node ref="IC201" pin="8"/>
+      <node ref="R202" pin="1"/>
+      <node ref="C217" pin="1"/>
+      <node ref="IC202" pin="L11"/>
+      <node ref="R207" pin="1"/>
+      <node ref="Y201" pin="4"/>
+      <node ref="C224" pin="1"/>
+      <node ref="C223" pin="1"/>
+      <node ref="R211" pin="1"/>
+      <node ref="C209" pin="1"/>
+      <node ref="R201" pin="1"/>
+      <node ref="J201" pin="1"/>
+      <node ref="Y201" pin="1"/>
+      <node ref="IC202" pin="D6"/>
+      <node ref="IC202" pin="E4"/>
+      <node ref="IC202" pin="C10"/>
+      <node ref="IC202" pin="F8"/>
+      <node ref="C214" pin="1"/>
+      <node ref="C213" pin="1"/>
+      <node ref="IC202" pin="G4"/>
+      <node ref="IC202" pin="H6"/>
+      <node ref="C211" pin="1"/>
+      <node ref="R206" pin="1"/>
+    </net>
+    <net code="42" name="/iCE40/CLK">
+      <node ref="Y201" pin="3"/>
+      <node ref="IC202" pin="B6"/>
+    </net>
+    <net code="43" name="/iCE40/CRESET_B">
+      <node ref="IC202" pin="L9"/>
+      <node ref="R206" pin="2"/>
+      <node ref="J201" pin="8"/>
+      <node ref="SW201" pin="2"/>
+    </net>
+    <net code="44" name="GND">
+      <node ref="J401" pin="2P8"/>
+      <node ref="J401" pin="1P8"/>
+      <node ref="J401" pin="3P8"/>
+      <node ref="J401" pin="3P7"/>
+      <node ref="J401" pin="2P7"/>
+      <node ref="IC202" pin="E7"/>
+      <node ref="IC404" pin="8"/>
+      <node ref="IC404" pin="3"/>
+      <node ref="J201" pin="5"/>
+      <node ref="IC202" pin="F5"/>
+      <node ref="J401" pin="4P8"/>
+      <node ref="C501" pin="2"/>
+      <node ref="IC202" pin="E5"/>
+      <node ref="J401" pin="1P7"/>
+      <node ref="R424" pin="2"/>
+      <node ref="IC202" pin="E6"/>
+      <node ref="R423" pin="2"/>
+      <node ref="D204" pin="2"/>
+      <node ref="D205" pin="2"/>
+      <node ref="C304" pin="2"/>
+      <node ref="C209" pin="2"/>
+      <node ref="IC503" pin="7"/>
+      <node ref="C306" pin="2"/>
+      <node ref="C305" pin="2"/>
+      <node ref="C303" pin="2"/>
+      <node ref="C302" pin="2"/>
+      <node ref="C301" pin="2"/>
+      <node ref="R309" pin="1"/>
+      <node ref="IC301" pin="22"/>
+      <node ref="R311" pin="1"/>
+      <node ref="IC301" pin="EP"/>
+      <node ref="C224" pin="2"/>
+      <node ref="Y301" pin="2"/>
+      <node ref="C314" pin="2"/>
+      <node ref="J202" pin="4"/>
+      <node ref="IC501" pin="7"/>
+      <node ref="J302" pin="11"/>
+      <node ref="C307" pin="2"/>
+      <node ref="C308" pin="2"/>
+      <node ref="C223" pin="2"/>
+      <node ref="C217" pin="2"/>
+      <node ref="J201" pin="9"/>
+      <node ref="IC401" pin="8"/>
+      <node ref="C201" pin="2"/>
+      <node ref="IC401" pin="3"/>
+      <node ref="IC402" pin="8"/>
+      <node ref="IC403" pin="8"/>
+      <node ref="IC403" pin="3"/>
+      <node ref="IC201" pin="4"/>
+      <node ref="C503" pin="2"/>
+      <node ref="C505" pin="2"/>
+      <node ref="R503" pin="2"/>
+      <node ref="SW201" pin="1"/>
+      <node ref="Y201" pin="2"/>
+      <node ref="R422" pin="2"/>
+      <node ref="R421" pin="2"/>
+      <node ref="C502" pin="2"/>
+      <node ref="R419" pin="2"/>
+      <node ref="IC202" pin="F6"/>
+      <node ref="J201" pin="3"/>
+      <node ref="IC202" pin="F7"/>
+      <node ref="IC402" pin="3"/>
+      <node ref="IC202" pin="G5"/>
+      <node ref="IC202" pin="G6"/>
+      <node ref="IC202" pin="G7"/>
+      <node ref="J401" pin="4P7"/>
+      <node ref="IC502" pin="1"/>
+      <node ref="R418" pin="2"/>
+      <node ref="R417" pin="2"/>
+      <node ref="IC202" pin="H5"/>
+      <node ref="J501" pin="1"/>
+      <node ref="R420" pin="2"/>
+      <node ref="C504" pin="2"/>
+      <node ref="C204" pin="2"/>
+      <node ref="R208" pin="2"/>
+      <node ref="C212" pin="2"/>
+      <node ref="C208" pin="2"/>
+      <node ref="C215" pin="2"/>
+      <node ref="C220" pin="2"/>
+      <node ref="C205" pin="2"/>
+      <node ref="C203" pin="2"/>
+      <node ref="C216" pin="2"/>
+      <node ref="C210" pin="2"/>
+      <node ref="C211" pin="2"/>
+      <node ref="C214" pin="2"/>
+      <node ref="C213" pin="2"/>
+      <node ref="C202" pin="2"/>
+      <node ref="C206" pin="2"/>
+      <node ref="C207" pin="2"/>
+      <node ref="R209" pin="2"/>
+    </net>
+    <net code="45" name="Net-(IC202-PadJ4)">
+      <node ref="IC202" pin="J4"/>
+    </net>
+    <net code="46" name="Net-(IC202-PadL5)">
+      <node ref="IC202" pin="L5"/>
+    </net>
+    <net code="47" name="Net-(IC202-PadK6)">
+      <node ref="IC202" pin="K6"/>
+    </net>
+    <net code="48" name="Net-(IC202-PadJ7)">
+      <node ref="IC202" pin="J7"/>
+    </net>
+    <net code="49" name="Net-(IC202-PadH7)">
+      <node ref="IC202" pin="H7"/>
+    </net>
+    <net code="50" name="/iCE40/FLASH_SS">
+      <node ref="J201" pin="6"/>
+      <node ref="IC202" pin="K10"/>
+      <node ref="R211" pin="2"/>
+      <node ref="IC201" pin="1"/>
+    </net>
+    <net code="51" name="/iCE40/FLASH_SDO">
+      <node ref="IC201" pin="2"/>
+      <node ref="IC202" pin="J9"/>
+      <node ref="J201" pin="10"/>
+    </net>
+    <net code="52" name="/iCE40/FLASH_SDI">
+      <node ref="J201" pin="2"/>
+      <node ref="IC201" pin="5"/>
+      <node ref="IC202" pin="K9"/>
+    </net>
+    <net code="53" name="/iCE40/FLASH_SCK">
+      <node ref="IC201" pin="6"/>
+      <node ref="J201" pin="4"/>
+      <node ref="IC202" pin="L10"/>
+    </net>
+    <net code="54" name="/iCE40/FLASH_IO2">
+      <node ref="IC202" pin="K11"/>
+      <node ref="IC201" pin="3"/>
+      <node ref="R202" pin="2"/>
+    </net>
+    <net code="55" name="/iCE40/FLASH_IO3">
+      <node ref="IC201" pin="7"/>
+      <node ref="IC202" pin="J11"/>
+      <node ref="R201" pin="2"/>
+    </net>
+    <net code="56" name="Net-(D204-Pad1)">
+      <node ref="D204" pin="1"/>
+      <node ref="J202" pin="3"/>
+      <node ref="R213" pin="1"/>
+    </net>
+    <net code="57" name="Net-(D205-Pad1)">
+      <node ref="D205" pin="1"/>
+      <node ref="J202" pin="2"/>
+      <node ref="R212" pin="1"/>
+    </net>
+    <net code="58" name="/iCE40/UART_RX">
+      <node ref="R212" pin="2"/>
+      <node ref="IC202" pin="A4"/>
+    </net>
+    <net code="59" name="/iCE40/UART_TX">
+      <node ref="R213" pin="2"/>
+      <node ref="IC202" pin="A3"/>
+    </net>
+    <net code="60" name="Net-(J202-Pad1)">
+      <node ref="J202" pin="1"/>
+    </net>
+    <net code="61" name="Net-(IC202-PadJ8)">
+      <node ref="IC202" pin="J8"/>
+    </net>
+    <net code="62" name="Net-(IC202-PadL7)">
+      <node ref="IC202" pin="L7"/>
+    </net>
+    <net code="63" name="Net-(IC202-PadL8)">
+      <node ref="IC202" pin="L8"/>
+    </net>
+    <net code="64" name="Net-(IC202-PadH9)">
+      <node ref="IC202" pin="H9"/>
+    </net>
+    <net code="65" name="Net-(IC202-PadK7)">
+      <node ref="IC202" pin="K7"/>
+    </net>
+    <net code="66" name="Net-(IC202-PadE11)">
+      <node ref="IC202" pin="E11"/>
+    </net>
+    <net code="67" name="Net-(IC202-PadD11)">
+      <node ref="IC202" pin="D11"/>
+    </net>
+    <net code="68" name="Net-(IC202-PadB4)">
+      <node ref="IC202" pin="B4"/>
+    </net>
+    <net code="69" name="Net-(IC202-PadB3)">
+      <node ref="IC202" pin="B3"/>
+    </net>
+    <net code="70" name="Net-(IC202-PadC7)">
+      <node ref="IC202" pin="C7"/>
+    </net>
+    <net code="71" name="Net-(IC202-PadC11)">
+      <node ref="IC202" pin="C11"/>
+    </net>
+    <net code="72" name="Net-(IC202-PadB11)">
+      <node ref="IC202" pin="B11"/>
+    </net>
+    <net code="73" name="Net-(IC202-PadC9)">
+      <node ref="IC202" pin="C9"/>
+    </net>
+    <net code="74" name="Net-(IC202-PadB9)">
+      <node ref="IC202" pin="B9"/>
+    </net>
+    <net code="75" name="Net-(IC202-PadB8)">
+      <node ref="IC202" pin="B8"/>
+    </net>
+    <net code="76" name="Net-(IC202-PadA9)">
+      <node ref="IC202" pin="A9"/>
+    </net>
+    <net code="77" name="Net-(IC202-PadC8)">
+      <node ref="IC202" pin="C8"/>
+    </net>
+    <net code="78" name="Net-(IC202-PadD7)">
+      <node ref="IC202" pin="D7"/>
+    </net>
+    <net code="79" name="Net-(IC202-PadA8)">
+      <node ref="IC202" pin="A8"/>
+    </net>
+    <net code="80" name="Net-(IC202-PadD10)">
+      <node ref="IC202" pin="D10"/>
+    </net>
+    <net code="81" name="Net-(IC202-PadA7)">
+      <node ref="IC202" pin="A7"/>
+    </net>
+    <net code="82" name="Net-(IC202-PadB7)">
+      <node ref="IC202" pin="B7"/>
+    </net>
+    <net code="83" name="Net-(IC202-PadA6)">
+      <node ref="IC202" pin="A6"/>
+    </net>
+    <net code="84" name="Net-(IC202-PadA5)">
+      <node ref="IC202" pin="A5"/>
+    </net>
+    <net code="85" name="Net-(IC202-PadB5)">
+      <node ref="IC202" pin="B5"/>
+    </net>
+    <net code="86" name="Net-(IC202-PadD5)">
+      <node ref="IC202" pin="D5"/>
+    </net>
+    <net code="87" name="Net-(IC202-PadA2)">
+      <node ref="IC202" pin="A2"/>
+    </net>
+    <net code="88" name="Net-(IC202-PadG9)">
+      <node ref="IC202" pin="G9"/>
+    </net>
+    <net code="89" name="Net-(IC202-PadH10)">
+      <node ref="IC202" pin="H10"/>
+    </net>
+    <net code="90" name="Net-(IC202-PadJ10)">
+      <node ref="IC202" pin="J10"/>
+    </net>
+    <net code="91" name="Net-(IC202-PadG8)">
+      <node ref="IC202" pin="G8"/>
+    </net>
+    <net code="92" name="Net-(IC202-PadH11)">
+      <node ref="IC202" pin="H11"/>
+    </net>
+    <net code="93" name="Net-(IC202-PadG10)">
+      <node ref="IC202" pin="G10"/>
+    </net>
+    <net code="94" name="Net-(IC202-PadG11)">
+      <node ref="IC202" pin="G11"/>
+    </net>
+    <net code="95" name="Net-(IC202-PadF10)">
+      <node ref="IC202" pin="F10"/>
+    </net>
+    <net code="96" name="Net-(IC202-PadF9)">
+      <node ref="IC202" pin="F9"/>
+    </net>
+    <net code="97" name="Net-(IC202-PadF11)">
+      <node ref="IC202" pin="F11"/>
+    </net>
+    <net code="98" name="Net-(IC202-PadE10)">
+      <node ref="IC202" pin="E10"/>
+    </net>
+    <net code="99" name="Net-(IC202-PadE9)">
+      <node ref="IC202" pin="E9"/>
+    </net>
+    <net code="100" name="Net-(IC202-PadE8)">
+      <node ref="IC202" pin="E8"/>
+    </net>
+    <net code="101" name="Net-(IC202-PadD9)">
+      <node ref="IC202" pin="D9"/>
+    </net>
+    <net code="102" name="Net-(IC202-PadA1)">
+      <node ref="IC202" pin="A1"/>
+    </net>
+    <net code="103" name="Net-(C221-Pad2)">
+      <node ref="C221" pin="2"/>
+      <node ref="C222" pin="2"/>
+      <node ref="IC202" pin="C5"/>
+    </net>
+    <net code="104" name="1v2">
+      <node ref="C202" pin="1"/>
+      <node ref="IC202" pin="H8"/>
+      <node ref="C206" pin="1"/>
+      <node ref="R205" pin="1"/>
+      <node ref="IC202" pin="D4"/>
+      <node ref="IC202" pin="H4"/>
+      <node ref="C205" pin="1"/>
+      <node ref="IC202" pin="D8"/>
+      <node ref="C203" pin="1"/>
+      <node ref="C208" pin="1"/>
+      <node ref="C207" pin="1"/>
+      <node ref="C204" pin="1"/>
+      <node ref="C504" pin="1"/>
+      <node ref="IC502" pin="2"/>
+      <node ref="TP503" pin="1"/>
+      <node ref="R204" pin="1"/>
+    </net>
+    <net code="105" name="Net-(C218-Pad2)">
+      <node ref="C219" pin="2"/>
+      <node ref="IC202" pin="L6"/>
+      <node ref="C218" pin="2"/>
+    </net>
+    <net code="106" name="Net-(C218-Pad1)">
+      <node ref="R204" pin="2"/>
+      <node ref="C218" pin="1"/>
+      <node ref="C219" pin="1"/>
+      <node ref="IC202" pin="J6"/>
+    </net>
+    <net code="107" name="Net-(C221-Pad1)">
+      <node ref="IC202" pin="C6"/>
+      <node ref="C222" pin="1"/>
+      <node ref="C221" pin="1"/>
+      <node ref="R205" pin="2"/>
+    </net>
+    <net code="108" name="/iCE40/CDONE">
+      <node ref="R207" pin="2"/>
+      <node ref="IC202" pin="K8"/>
+      <node ref="R210" pin="2"/>
+    </net>
+    <net code="109" name="/iCE40/ULED1">
+      <node ref="D201" pin="2"/>
+      <node ref="IC202" pin="A11"/>
+    </net>
+    <net code="110" name="/iCE40/ULED2">
+      <node ref="IC202" pin="A10"/>
+      <node ref="D202" pin="2"/>
+    </net>
+    <net code="111" name="Net-(D202-Pad1)">
+      <node ref="R209" pin="1"/>
+      <node ref="D202" pin="1"/>
+    </net>
+    <net code="112" name="Net-(D203-Pad1)">
+      <node ref="R210" pin="1"/>
+      <node ref="D203" pin="1"/>
+    </net>
+    <net code="113" name="Net-(D201-Pad1)">
+      <node ref="D201" pin="1"/>
+      <node ref="R208" pin="1"/>
+    </net>
+    <net code="114" name="/Ethernet/VB2">
+      <node ref="D303" pin="1"/>
+      <node ref="J302" pin="4"/>
+      <node ref="J302" pin="5"/>
+      <node ref="C310" pin="1"/>
+    </net>
+    <net code="115" name="/Ethernet/VA1">
+      <node ref="D302" pin="2"/>
+      <node ref="C311" pin="1"/>
+      <node ref="T301" pin="15"/>
+    </net>
+    <net code="116" name="/Ethernet/VA2">
+      <node ref="C312" pin="1"/>
+      <node ref="D302" pin="1"/>
+      <node ref="T301" pin="10"/>
+    </net>
+    <net code="117" name="/Ethernet/VB1">
+      <node ref="C309" pin="1"/>
+      <node ref="D303" pin="2"/>
+      <node ref="J302" pin="7"/>
+      <node ref="J302" pin="8"/>
+    </net>
+    <net code="118" name="Net-(C313-Pad2)">
+      <node ref="D303" pin="4"/>
+      <node ref="IC303" pin="5"/>
+      <node ref="D302" pin="4"/>
+      <node ref="IC303" pin="EP"/>
+      <node ref="R317" pin="2"/>
+      <node ref="D301" pin="2"/>
+      <node ref="C313" pin="2"/>
+    </net>
+    <net code="119" name="Net-(IC303-Pad2)">
+      <node ref="R316" pin="2"/>
+      <node ref="IC303" pin="2"/>
+    </net>
+    <net code="120" name="Net-(IC303-Pad10)">
+      <node ref="IC303" pin="10"/>
+      <node ref="R317" pin="1"/>
+    </net>
+    <net code="121" name="Net-(C310-Pad2)">
+      <node ref="C310" pin="2"/>
+      <node ref="R313" pin="1"/>
+    </net>
+    <net code="122" name="Net-(C309-Pad2)">
+      <node ref="C309" pin="2"/>
+      <node ref="R312" pin="1"/>
+    </net>
+    <net code="123" name="Net-(IC301-Pad9)">
+      <node ref="IC301" pin="9"/>
+      <node ref="R309" pin="2"/>
+    </net>
+    <net code="124" name="Net-(C312-Pad2)">
+      <node ref="C312" pin="2"/>
+      <node ref="R315" pin="1"/>
+    </net>
+    <net code="125" name="Net-(C311-Pad2)">
+      <node ref="R314" pin="1"/>
+      <node ref="C311" pin="2"/>
+    </net>
+    <net code="126" name="CHASSIS">
+      <node ref="J401" pin="S4"/>
+      <node ref="J302" pin="S1"/>
+      <node ref="R315" pin="2"/>
+      <node ref="R314" pin="2"/>
+      <node ref="R313" pin="2"/>
+      <node ref="R312" pin="2"/>
+    </net>
+    <net code="127" name="Net-(IC301-Pad17)">
+      <node ref="IC301" pin="17"/>
+    </net>
+    <net code="128" name="Net-(J302-PadS2)">
+      <node ref="J302" pin="S2"/>
+    </net>
+    <net code="129" name="Net-(IC301-Pad18)">
+      <node ref="IC301" pin="18"/>
+    </net>
+    <net code="130" name="Net-(IC301-Pad21)">
+      <node ref="IC301" pin="21"/>
+      <node ref="R307" pin="1"/>
+    </net>
+    <net code="131" name="Net-(IC301-Pad19)">
+      <node ref="R305" pin="1"/>
+      <node ref="IC301" pin="19"/>
+    </net>
+    <net code="132" name="Net-(IC301-Pad7)">
+      <node ref="IC301" pin="7"/>
+    </net>
+    <net code="133" name="Net-(J302-Pad2)">
+      <node ref="T301" pin="14"/>
+      <node ref="J302" pin="2"/>
+    </net>
+    <net code="134" name="Net-(IC301-Pad8)">
+      <node ref="Y301" pin="3"/>
+      <node ref="IC301" pin="8"/>
+    </net>
+    <net code="135" name="/Ethernet/LINK_LED">
+      <node ref="J302" pin="9"/>
+      <node ref="IC301" pin="23"/>
+    </net>
+    <net code="136" name="Net-(C313-Pad1)">
+      <node ref="D302" pin="3"/>
+      <node ref="D303" pin="3"/>
+      <node ref="C313" pin="1"/>
+      <node ref="L302" pin="2"/>
+      <node ref="IC303" pin="1"/>
+      <node ref="R316" pin="1"/>
+      <node ref="D301" pin="1"/>
+    </net>
+    <net code="137" name="Net-(IC303-Pad9)">
+      <node ref="IC303" pin="9"/>
+    </net>
+    <net code="138" name="Net-(J302-Pad12)">
+      <node ref="R318" pin="2"/>
+      <node ref="J302" pin="12"/>
+    </net>
+    <net code="139" name="Net-(IC301-Pad20)">
+      <node ref="IC301" pin="20"/>
+      <node ref="R306" pin="1"/>
+    </net>
+    <net code="140" name="Net-(J302-Pad10)">
+      <node ref="J302" pin="10"/>
+      <node ref="R310" pin="2"/>
+    </net>
+    <net code="141" name="Net-(IC301-Pad13)">
+      <node ref="IC301" pin="13"/>
+      <node ref="R302" pin="1"/>
+    </net>
+    <net code="142" name="Net-(IC301-Pad12)">
+      <node ref="R301" pin="1"/>
+      <node ref="IC301" pin="12"/>
+    </net>
+    <net code="143" name="Net-(IC301-Pad15)">
+      <node ref="R303" pin="1"/>
+      <node ref="IC301" pin="15"/>
+    </net>
+    <net code="144" name="Net-(J302-Pad3)">
+      <node ref="J302" pin="3"/>
+      <node ref="T301" pin="11"/>
+    </net>
+    <net code="145" name="Net-(J302-Pad6)">
+      <node ref="T301" pin="9"/>
+      <node ref="J302" pin="6"/>
+    </net>
+    <net code="146" name="Net-(J302-Pad1)">
+      <node ref="T301" pin="16"/>
+      <node ref="J302" pin="1"/>
+    </net>
+    <net code="147" name="Net-(IC301-Pad16)">
+      <node ref="R304" pin="1"/>
+      <node ref="IC301" pin="16"/>
+    </net>
+    <net code="148" name="Net-(T301-Pad5)">
+      <node ref="T301" pin="5"/>
+    </net>
+    <net code="149" name="Net-(T301-Pad4)">
+      <node ref="T301" pin="4"/>
+    </net>
+    <net code="150" name="Net-(C307-Pad1)">
+      <node ref="T301" pin="7"/>
+      <node ref="C307" pin="1"/>
+    </net>
+    <net code="151" name="Net-(C308-Pad1)">
+      <node ref="T301" pin="2"/>
+      <node ref="C308" pin="1"/>
+    </net>
+    <net code="152" name="Net-(IC303-Pad4)">
+      <node ref="IC303" pin="4"/>
+    </net>
+    <net code="153" name="Net-(IC303-Pad3)">
+      <node ref="IC303" pin="3"/>
+    </net>
+    <net code="154" name="Net-(T301-Pad13)">
+      <node ref="T301" pin="13"/>
+    </net>
+    <net code="155" name="Net-(T301-Pad12)">
+      <node ref="T301" pin="12"/>
+    </net>
+    <net code="156" name="Net-(C301-Pad1)">
+      <node ref="L301" pin="2"/>
+      <node ref="C302" pin="1"/>
+      <node ref="C301" pin="1"/>
+      <node ref="IC301" pin="2"/>
+    </net>
+    <net code="157" name="/Ethernet/RD+">
+      <node ref="T301" pin="6"/>
+      <node ref="IC301" pin="4"/>
+    </net>
+    <net code="158" name="/Ethernet/TD-">
+      <node ref="IC301" pin="5"/>
+      <node ref="T301" pin="3"/>
+    </net>
+    <net code="159" name="/Ethernet/TD+">
+      <node ref="IC301" pin="6"/>
+      <node ref="T301" pin="1"/>
+    </net>
+    <net code="160" name="/Ethernet/RD-">
+      <node ref="IC301" pin="3"/>
+      <node ref="T301" pin="8"/>
+    </net>
+    <net code="161" name="Net-(C305-Pad1)">
+      <node ref="IC301" pin="1"/>
+      <node ref="C306" pin="1"/>
+      <node ref="C305" pin="1"/>
+    </net>
+    <net code="162" name="/DAQnet Ports/ETD4+">
+      <node ref="R408" pin="1"/>
+      <node ref="IC404" pin="9"/>
+      <node ref="R415" pin="1"/>
+    </net>
+    <net code="163" name="24v">
+      <node ref="J401" pin="1P4"/>
+      <node ref="J401" pin="1P5"/>
+      <node ref="TP502" pin="1"/>
+      <node ref="J401" pin="2P4"/>
+      <node ref="J401" pin="2P5"/>
+      <node ref="IC503" pin="6"/>
+      <node ref="C502" pin="1"/>
+      <node ref="C505" pin="1"/>
+      <node ref="J401" pin="4P5"/>
+      <node ref="J401" pin="4P4"/>
+      <node ref="J401" pin="3P5"/>
+      <node ref="J401" pin="3P4"/>
+    </net>
+    <net code="164" name="/DAQnet Ports/TX4+">
+      <node ref="J401" pin="4P3"/>
+      <node ref="IC404" pin="2"/>
+    </net>
+    <net code="165" name="/DAQnet Ports/RX4-">
+      <node ref="J401" pin="4P2"/>
+      <node ref="IC404" pin="4"/>
+    </net>
+    <net code="166" name="/DAQnet Ports/RX4+">
+      <node ref="IC404" pin="5"/>
+      <node ref="J401" pin="4P1"/>
+    </net>
+    <net code="167" name="Net-(J401-Pad4P11)">
+      <node ref="R424" pin="1"/>
+      <node ref="J401" pin="4P11"/>
+    </net>
+    <net code="168" name="Net-(J401-Pad4P9)">
+      <node ref="R423" pin="1"/>
+      <node ref="J401" pin="4P9"/>
+    </net>
+    <net code="169" name="/DAQnet Ports/ETD4-">
+      <node ref="R415" pin="2"/>
+      <node ref="IC404" pin="10"/>
+      <node ref="R407" pin="1"/>
+    </net>
+    <net code="170" name="/DAQnet Ports/TX4-">
+      <node ref="J401" pin="4P6"/>
+      <node ref="IC404" pin="1"/>
+    </net>
+    <net code="171" name="Net-(J401-PadS1)">
+      <node ref="J401" pin="S1"/>
+    </net>
+    <net code="172" name="Net-(J401-PadS2)">
+      <node ref="J401" pin="S2"/>
+    </net>
+    <net code="173" name="Net-(J401-PadS3)">
+      <node ref="J401" pin="S3"/>
+    </net>
+    <net code="174" name="Net-(J401-Pad3P11)">
+      <node ref="J401" pin="3P11"/>
+      <node ref="R422" pin="1"/>
+    </net>
+    <net code="175" name="Net-(J401-Pad3P9)">
+      <node ref="J401" pin="3P9"/>
+      <node ref="R421" pin="1"/>
+    </net>
+    <net code="176" name="Net-(J401-Pad2P9)">
+      <node ref="J401" pin="2P9"/>
+      <node ref="R419" pin="1"/>
+    </net>
+    <net code="177" name="Net-(J401-Pad1P11)">
+      <node ref="R418" pin="1"/>
+      <node ref="J401" pin="1P11"/>
+    </net>
+    <net code="178" name="Net-(J401-Pad1P9)">
+      <node ref="J401" pin="1P9"/>
+      <node ref="R417" pin="1"/>
+    </net>
+    <net code="179" name="Net-(J401-Pad2P11)">
+      <node ref="R420" pin="1"/>
+      <node ref="J401" pin="2P11"/>
+    </net>
+    <net code="180" name="/DAQnet Ports/RX1+">
+      <node ref="IC401" pin="5"/>
+      <node ref="J401" pin="1P1"/>
+    </net>
+    <net code="181" name="/DAQnet Ports/RX1-">
+      <node ref="J401" pin="1P2"/>
+      <node ref="IC401" pin="4"/>
+    </net>
+    <net code="182" name="/DAQnet Ports/TX1+">
+      <node ref="J401" pin="1P3"/>
+      <node ref="IC401" pin="2"/>
+    </net>
+    <net code="183" name="/DAQnet Ports/TX1-">
+      <node ref="J401" pin="1P6"/>
+      <node ref="IC401" pin="1"/>
+    </net>
+    <net code="184" name="/DAQnet Ports/ETD1+">
+      <node ref="IC401" pin="9"/>
+      <node ref="R402" pin="1"/>
+      <node ref="R409" pin="1"/>
+    </net>
+    <net code="185" name="/DAQnet Ports/ETD1-">
+      <node ref="R401" pin="1"/>
+      <node ref="IC401" pin="10"/>
+      <node ref="R409" pin="2"/>
+    </net>
+    <net code="186" name="/DAQnet Ports/ETD3-">
+      <node ref="R413" pin="2"/>
+      <node ref="R405" pin="1"/>
+      <node ref="IC403" pin="10"/>
+    </net>
+    <net code="187" name="/DAQnet Ports/ETD3+">
+      <node ref="R413" pin="1"/>
+      <node ref="R406" pin="1"/>
+      <node ref="IC403" pin="9"/>
+    </net>
+    <net code="188" name="/DAQnet Ports/TX3-">
+      <node ref="IC403" pin="1"/>
+      <node ref="J401" pin="3P6"/>
+    </net>
+    <net code="189" name="/DAQnet Ports/RX3+">
+      <node ref="J401" pin="3P1"/>
+      <node ref="IC403" pin="5"/>
+    </net>
+    <net code="190" name="/DAQnet Ports/RX3-">
+      <node ref="IC403" pin="4"/>
+      <node ref="J401" pin="3P2"/>
+    </net>
+    <net code="191" name="/DAQnet Ports/TX3+">
+      <node ref="IC403" pin="2"/>
+      <node ref="J401" pin="3P3"/>
+    </net>
+    <net code="192" name="/DAQnet Ports/RX2+">
+      <node ref="IC402" pin="5"/>
+      <node ref="J401" pin="2P1"/>
+    </net>
+    <net code="193" name="/DAQnet Ports/RX2-">
+      <node ref="IC402" pin="4"/>
+      <node ref="J401" pin="2P2"/>
+    </net>
+    <net code="194" name="/DAQnet Ports/TX2+">
+      <node ref="IC402" pin="2"/>
+      <node ref="J401" pin="2P3"/>
+    </net>
+    <net code="195" name="/DAQnet Ports/TX2-">
+      <node ref="IC402" pin="1"/>
+      <node ref="J401" pin="2P6"/>
+    </net>
+    <net code="196" name="/DAQnet Ports/ETD2-">
+      <node ref="IC402" pin="10"/>
+      <node ref="R403" pin="1"/>
+      <node ref="R411" pin="2"/>
+    </net>
+    <net code="197" name="/DAQnet Ports/ETD2+">
+      <node ref="R404" pin="1"/>
+      <node ref="R411" pin="1"/>
+      <node ref="IC402" pin="9"/>
+    </net>
+    <net code="198" name="Net-(IC503-Pad3)">
+      <node ref="IC503" pin="3"/>
+      <node ref="R502" pin="2"/>
+    </net>
+    <net code="199" name="Net-(IC501-Pad3)">
+      <node ref="R501" pin="2"/>
+      <node ref="IC501" pin="3"/>
+    </net>
+    <net code="200" name="Net-(IC503-Pad8)">
+      <node ref="IC503" pin="8"/>
+    </net>
+    <net code="201" name="Net-(D501-Pad1)">
+      <node ref="D501" pin="1"/>
+      <node ref="R503" pin="1"/>
+    </net>
+    <net code="202" name="Net-(IC501-Pad8)">
+      <node ref="IC501" pin="8"/>
+    </net>
+    <net code="203" name="Net-(IC501-Pad5)">
+      <node ref="IC501" pin="5"/>
+    </net>
+    <net code="204" name="Net-(IC503-Pad5)">
+      <node ref="IC503" pin="5"/>
+    </net>
+  </nets>
+</export>
