@@ -4,7 +4,7 @@ MDIO Controller
 Copyright 2018 Adam Greig
 """
 
-from migen import (Module, Signal, TSTriple, If, FSM, Array, Cat,
+from migen import (Module, Signal, TSTriple, If, FSM, Array,
                    NextValue, NextState)
 
 
@@ -167,10 +167,8 @@ class MDIO(Module):
             "PA5",
             mdc.eq(mdc_int),
             self.mdio_t.oe.eq(1),
-            self.mdio_t.o.eq(_phy_addr[-1]),
-            If(mdc_fall == 1,
-                NextValue(_phy_addr, Cat(0, _phy_addr[:-1])),
-                NextValue(bit_counter, bit_counter - 1)),
+            self.mdio_t.o.eq(Array(_phy_addr)[bit_counter - 1]),
+            If(mdc_fall == 1, NextValue(bit_counter, bit_counter - 1)),
             If(bit_counter == 0,
                 NextValue(bit_counter, 5),
                 NextState("RA5"))
@@ -182,10 +180,8 @@ class MDIO(Module):
             "RA5",
             mdc.eq(mdc_int),
             self.mdio_t.oe.eq(1),
-            self.mdio_t.o.eq(_register[-1]),
-            If(mdc_fall == 1,
-                NextValue(_register, Cat(0, _register[:-1])),
-                NextValue(bit_counter, bit_counter - 1)),
+            self.mdio_t.o.eq(Array(_register)[bit_counter - 1]),
+            If(mdc_fall == 1, NextValue(bit_counter, bit_counter - 1)),
             If(bit_counter == 0,
                 NextValue(bit_counter, 2),
                 If(
@@ -228,8 +224,8 @@ class MDIO(Module):
             mdc.eq(mdc_int),
             self.mdio_t.oe.eq(0),
             If(mdc_rise == 1,
-                NextValue(self.read_data,
-                          Cat(self.mdio_t.i, self.read_data[:-1]))),
+                NextValue(Array(self.read_data)[bit_counter - 1],
+                          self.mdio_t.i)),
             If(mdc_fall == 1, NextValue(bit_counter, bit_counter - 1)),
             If(bit_counter == 0, NextState("IDLE"))
         )
@@ -240,10 +236,8 @@ class MDIO(Module):
             "D16_W",
             mdc.eq(mdc_int),
             self.mdio_t.oe.eq(1),
-            self.mdio_t.o.eq(_write_data[-1]),
-            If(mdc_fall == 1,
-                NextValue(_write_data, Cat(0, _write_data[:-1])),
-                NextValue(bit_counter, bit_counter - 1)),
+            self.mdio_t.o.eq(Array(_write_data)[bit_counter - 1]),
+            If(mdc_fall == 1, NextValue(bit_counter, bit_counter - 1)),
             If(bit_counter == 0, NextState("IDLE"))
         )
 
