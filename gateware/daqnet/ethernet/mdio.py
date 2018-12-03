@@ -23,7 +23,7 @@ class MDIO(Module):
 
     Inputs:
         * `phy_addr`: 5-bit PHY address
-        * `register`: 5-bit register address to read/write to
+        * `reg_addr`: 5-bit register address to read/write to
         * `rw`: select read (0) or write (1) operation
         * `write_data`: 16-bit data to write
         * `start`: operation begins on rising edge of `start`
@@ -35,7 +35,7 @@ class MDIO(Module):
     def __init__(self, clk_div, mdio, mdc):
         # Inputs
         self.phy_addr = Signal(5)
-        self.register = Signal(5)
+        self.reg_addr = Signal(5)
         self.rw = Signal()
         self.write_data = Signal(16)
         self.start = Signal()
@@ -49,14 +49,14 @@ class MDIO(Module):
         # Create tristate for MDIO
         self.mdio_t = TSTriple()
         if mdio is not None:
-            # Allow None to skip special creation for simulation
+            # Skip special creation when mdio=None (for use with simulator)
             self.specials += self.mdio_t.get_tristate(mdio)
 
         # Create divided clock for MDC
         mdc_int = Signal()
-        mdc_divider = Signal(max=clk_div)
         mdc_rise = Signal()
         mdc_fall = Signal()
+        mdc_divider = Signal(max=clk_div)
         self.sync += (
             If(
                 mdc_divider == 0,
@@ -80,11 +80,13 @@ class MDIO(Module):
         # MDIO FSM
         self.submodules.fsm = FSM(reset_state="IDLE")
         self.comb += self.busy.eq(~self.fsm.ongoing("IDLE"))
+        bit_counter = Signal(6)
+
+        # Latches for inputs
         _phy_addr = Signal.like(self.phy_addr)
-        _register = Signal.like(self.register)
+        _reg_addr = Signal.like(self.reg_addr)
         _rw = Signal.like(self.rw)
         _write_data = Signal.like(self.write_data)
-        bit_counter = Signal(6)
 
         # Idle state
         # Constantly register input data and wait for START signal
@@ -93,9 +95,9 @@ class MDIO(Module):
             mdc.eq(0),
             self.mdio_t.oe.eq(0),
 
-            # Register input signals while in idle
+            # Latch input signals while in idle
             NextValue(_phy_addr, self.phy_addr),
-            NextValue(_register, self.register),
+            NextValue(_reg_addr, self.reg_addr),
             NextValue(_rw, self.rw),
             NextValue(_write_data, self.write_data),
 
@@ -120,9 +122,9 @@ class MDIO(Module):
         self.fsm.act(
             "PRE_32",
             mdc.eq(mdc_int),
+            self.mdio_t.oe.eq(1),
 
             # Output all 1s
-            self.mdio_t.oe.eq(1),
             self.mdio_t.o.eq(1),
 
             # Count falling edges of MDC
@@ -180,7 +182,7 @@ class MDIO(Module):
             "RA5",
             mdc.eq(mdc_int),
             self.mdio_t.oe.eq(1),
-            self.mdio_t.o.eq(Array(_register)[bit_counter - 1]),
+            self.mdio_t.o.eq(Array(_reg_addr)[bit_counter - 1]),
             If(mdc_fall == 1, NextValue(bit_counter, bit_counter - 1)),
             If(bit_counter == 0,
                 NextValue(bit_counter, 2),
@@ -263,12 +265,12 @@ def test_mdio_read():
                 yield
             # Set up a register read
             yield (mdio.phy_addr.eq(phy_addr))
-            yield (mdio.register.eq(reg_addr))
+            yield (mdio.reg_addr.eq(reg_addr))
             yield (mdio.rw.eq(0))
             yield (mdio.start.eq(1))
             yield
             yield (mdio.phy_addr.eq(0))
-            yield (mdio.register.eq(0))
+            yield (mdio.reg_addr.eq(0))
             yield (mdio.start.eq(0))
 
             # Clock through the read
@@ -340,7 +342,7 @@ def test_mdio_write():
 
             # Set up a register write
             yield (mdio.phy_addr.eq(phy_addr))
-            yield (mdio.register.eq(reg_addr))
+            yield (mdio.reg_addr.eq(reg_addr))
             yield (mdio.write_data.eq(reg_value))
             yield (mdio.rw.eq(1))
             yield (mdio.start.eq(1))
@@ -348,7 +350,7 @@ def test_mdio_write():
             yield (mdio.phy_addr.eq(0))
             yield (mdio.write_data.eq(0))
             yield (mdio.rw.eq(0))
-            yield (mdio.register.eq(0))
+            yield (mdio.reg_addr.eq(0))
             yield (mdio.start.eq(0))
 
             # Clock through the write
