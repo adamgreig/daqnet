@@ -1,0 +1,48 @@
+Bill Of Materials
+=================
+
+Source file: interposer.xml
+Date: 2018-12-01T20:48:58.090790
+
+Parts Missing Footprints
+------------------------
+
+
+Parts Missing Order Codes
+-------------------------
+P102   COAX            agg:SMA-EDGE
+P101   COAX            agg:SMA-EDGE
+C101   1µ              agg:0805
+C102   1µ              agg:0805
+C103   100n            agg:0402
+C104   100n            agg:0402
+R101   DNF             agg:0402
+R102   DNF             agg:0402
+
+Inconsistent Order Codes
+------------------------
+
+
+Vendor Specific BOMs
+--------------------
+  RS
+  ~~
+257-8785,2,,2x--RJHSE-5381--RJHSE-538X--J101J102
+759-1288,2,,2x--AD8226ARMZ--MSOP-8--IC101IC102
+794-7990,1,,1x--ESD_DIODE--0402--D101
+761-8591,1,,1x--LT3010-5--MSOP-8-1EP_3x3mm_P0.65mm_EP1.68x1.88mm--U101
+
+
+  Farnell
+  ~~~~~~~
+2368169,1,1x ESD_DIODE 0402
+
+
+Assembly BOM
+------------
+257-8785             2   RJHSE-5381      RJHSE-538X      J101 J102
+759-1288             2   AD8226ARMZ      MSOP-8          IC101 IC102
+794-7990             1   ESD_DIODE       0402            D101
+761-8591             1   LT3010-5        MSOP-8-1EP_3x3mm_P0.65mm_EP1.68x1.88mm U101
+2368169              1   ESD_DIODE       0402            D102
+

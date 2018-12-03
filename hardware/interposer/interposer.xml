@@ -1,0 +1,399 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<export version="D">
+  <design>
+    <source>/home/adam/Projects/daqnet/hardware/interposer/interposer.sch</source>
+    <date>Sat 01 Dec 2018 20:48:58 GMT</date>
+    <tool>Eeschema 6.0.0-rc1-unknown-106eaaa~84~ubuntu18.04.1</tool>
+    <sheet number="1" name="/" tstamps="/">
+      <title_block>
+        <title>DAQnet Interposer</title>
+        <company/>
+        <rev>1</rev>
+        <date>2018-12-01</date>
+        <source>interposer.sch</source>
+        <comment number="1" value="Drawn by: Adam Greig"/>
+        <comment number="2" value=""/>
+        <comment number="3" value=""/>
+        <comment number="4" value=""/>
+      </title_block>
+    </sheet>
+  </design>
+  <components>
+    <comp ref="J101">
+      <value>RJHSE-5381</value>
+      <footprint>agg:RJHSE-538X</footprint>
+      <fields>
+        <field name="RS">257-8785</field>
+      </fields>
+      <libsource lib="agg" part="RJHSE-538x" description="Shielded 8P8C Modular Connector with LEDs"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>5C02DBD9</tstamp>
+    </comp>
+    <comp ref="J102">
+      <value>RJHSE-5381</value>
+      <footprint>agg:RJHSE-538X</footprint>
+      <fields>
+        <field name="RS">257-8785</field>
+      </fields>
+      <libsource lib="agg" part="RJHSE-538x" description="Shielded 8P8C Modular Connector with LEDs"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>5C02EBFB</tstamp>
+    </comp>
+    <comp ref="IC101">
+      <value>AD8226ARMZ</value>
+      <footprint>agg:MSOP-8</footprint>
+      <fields>
+        <field name="RS">759-1288</field>
+      </fields>
+      <libsource lib="agg" part="AD8226" description="Instrumentation Amplifier"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>5C034410</tstamp>
+    </comp>
+    <comp ref="P102">
+      <value>COAX</value>
+      <footprint>agg:SMA-EDGE</footprint>
+      <libsource lib="agg" part="COAX" description="Coaxial connection"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>5C03516A</tstamp>
+    </comp>
+    <comp ref="P101">
+      <value>COAX</value>
+      <footprint>agg:SMA-EDGE</footprint>
+      <libsource lib="agg" part="COAX" description="Coaxial connection"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>5C03585A</tstamp>
+    </comp>
+    <comp ref="D102">
+      <value>ESD_DIODE</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="Farnell">2368169</field>
+      </fields>
+      <libsource lib="agg" part="ESD_DIODE" description="ESD diode"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>5C036043</tstamp>
+    </comp>
+    <comp ref="D101">
+      <value>ESD_DIODE</value>
+      <footprint>agg:0402</footprint>
+      <fields>
+        <field name="RS">794-7990</field>
+      </fields>
+      <libsource lib="agg" part="ESD_DIODE" description="ESD diode"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>5C03650B</tstamp>
+    </comp>
+    <comp ref="IC102">
+      <value>AD8226ARMZ</value>
+      <footprint>agg:MSOP-8</footprint>
+      <fields>
+        <field name="RS">759-1288</field>
+      </fields>
+      <libsource lib="agg" part="AD8226" description="Instrumentation Amplifier"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>5C06787C</tstamp>
+    </comp>
+    <comp ref="U101">
+      <value>LT3010-5</value>
+      <footprint>Package_SO:MSOP-8-1EP_3x3mm_P0.65mm_EP1.68x1.88mm</footprint>
+      <datasheet>http://cds.linear.com/docs/en/datasheet/30105fe.pdf</datasheet>
+      <fields>
+        <field name="RS">761-8591</field>
+      </fields>
+      <libsource lib="Regulator_Linear" part="LT3010-5" description="50mA 3-80V Micropower Low Dropout Regulator, fixed output 5V, MSOP-8"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>5C068E47</tstamp>
+    </comp>
+    <comp ref="C101">
+      <value>1µ</value>
+      <footprint>agg:0805</footprint>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>5C0732F9</tstamp>
+    </comp>
+    <comp ref="C102">
+      <value>1µ</value>
+      <footprint>agg:0805</footprint>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>5C076F7D</tstamp>
+    </comp>
+    <comp ref="C103">
+      <value>100n</value>
+      <footprint>agg:0402</footprint>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>5C09D320</tstamp>
+    </comp>
+    <comp ref="C104">
+      <value>100n</value>
+      <footprint>agg:0402</footprint>
+      <libsource lib="agg" part="C" description=""/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>5C0A219C</tstamp>
+    </comp>
+    <comp ref="R101">
+      <value>DNF</value>
+      <footprint>agg:0402</footprint>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>5C0312EA</tstamp>
+    </comp>
+    <comp ref="R102">
+      <value>DNF</value>
+      <footprint>agg:0402</footprint>
+      <libsource lib="agg" part="R" description=""/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>5C03662C</tstamp>
+    </comp>
+  </components>
+  <libparts>
+    <libpart lib="Regulator_Linear" part="LT3010-5">
+      <description>50mA 3-80V Micropower Low Dropout Regulator, fixed output 5V, MSOP-8</description>
+      <docs>http://cds.linear.com/docs/en/datasheet/30105fe.pdf</docs>
+      <footprints>
+        <fp>MSOP*3x3mm*P0.65mm*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">LT3010-5</field>
+        <field name="Footprint">Package_SO:MSOP-8-1EP_3x3mm_P0.65mm_EP1.68x1.88mm</field>
+      </fields>
+      <pins>
+        <pin num="1" name="OUT" type="power_out"/>
+        <pin num="2" name="SENSE" type="passive"/>
+        <pin num="3" name="NC" type="NotConnected"/>
+        <pin num="4" name="GND" type="power_in"/>
+        <pin num="5" name="~SHDN" type="input"/>
+        <pin num="6" name="NC" type="NotConnected"/>
+        <pin num="7" name="NC" type="NotConnected"/>
+        <pin num="8" name="IN" type="power_in"/>
+        <pin num="9" name="GND" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="agg" part="AD8226">
+      <description>Instrumentation Amplifier</description>
+      <fields>
+        <field name="Reference">IC</field>
+        <field name="Value">AD8226</field>
+        <field name="Footprint">agg:MSOP-8</field>
+        <field name="Farnell">2462026</field>
+      </fields>
+      <pins>
+        <pin num="1" name="-IN" type="input"/>
+        <pin num="2" name="RG" type="passive"/>
+        <pin num="3" name="RG" type="passive"/>
+        <pin num="4" name="+IN" type="input"/>
+        <pin num="5" name="-Vs" type="power_in"/>
+        <pin num="6" name="REF" type="input"/>
+        <pin num="7" name="OUT" type="output"/>
+        <pin num="8" name="+Vs" type="power_in"/>
+      </pins>
+    </libpart>
+    <libpart lib="agg" part="C">
+      <fields>
+        <field name="Reference">C</field>
+        <field name="Value">C</field>
+      </fields>
+      <pins>
+        <pin num="1" name="~" type="passive"/>
+        <pin num="2" name="~" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="agg" part="COAX">
+      <description>Coaxial connection</description>
+      <fields>
+        <field name="Reference">P</field>
+        <field name="Value">COAX</field>
+        <field name="Footprint">agg:SMA-EDGE</field>
+        <field name="Farnell">1608592</field>
+      </fields>
+      <pins>
+        <pin num="1" name="RF" type="BiDi"/>
+        <pin num="2" name="GND" type="power_in"/>
+      </pins>
+    </libpart>
+    <libpart lib="agg" part="ESD_DIODE">
+      <description>ESD diode</description>
+      <fields>
+        <field name="Reference">D</field>
+        <field name="Value">ESD_DIODE</field>
+        <field name="Footprint">agg:0402</field>
+        <field name="Farnell">2368169</field>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+        <pin num="2" name="2" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="agg" part="R">
+      <fields>
+        <field name="Reference">R</field>
+        <field name="Value">R</field>
+      </fields>
+      <pins>
+        <pin num="1" name="~" type="passive"/>
+        <pin num="2" name="~" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="agg" part="RJHSE-538x">
+      <description>Shielded 8P8C Modular Connector with LEDs</description>
+      <fields>
+        <field name="Reference">J</field>
+        <field name="Value">RJHSE-538x</field>
+        <field name="Footprint">agg:RJHSE-538X</field>
+        <field name="Datasheet">http://www.farnell.com/cad/2167247.pdf</field>
+        <field name="Farnell">1462758</field>
+      </fields>
+      <pins>
+        <pin num="1" name="TX+" type="passive"/>
+        <pin num="2" name="TX-" type="passive"/>
+        <pin num="3" name="RX+" type="passive"/>
+        <pin num="4" name="~" type="passive"/>
+        <pin num="5" name="~" type="passive"/>
+        <pin num="6" name="RX-" type="passive"/>
+        <pin num="7" name="~" type="passive"/>
+        <pin num="8" name="~" type="passive"/>
+        <pin num="9" name="LED1_C" type="passive"/>
+        <pin num="10" name="LED1_A" type="passive"/>
+        <pin num="11" name="LED2_C" type="passive"/>
+        <pin num="12" name="LED2_A" type="passive"/>
+        <pin num="S1" name="SHIELD" type="passive"/>
+        <pin num="S2" name="SHIELD" type="passive"/>
+      </pins>
+    </libpart>
+  </libparts>
+  <libraries>
+    <library logical="Regulator_Linear">
+      <uri>/usr/lib/kicad-nightly/share/kicad/library/Regulator_Linear.lib</uri>
+    </library>
+    <library logical="agg">
+      <uri>/home/adam/Projects/daqnet/hardware/interposer/../agg-kicad/agg-kicad.lib</uri>
+    </library>
+  </libraries>
+  <nets>
+    <net code="1" name="Net-(U101-Pad3)">
+      <node ref="U101" pin="3"/>
+    </net>
+    <net code="2" name="Net-(U101-Pad6)">
+      <node ref="U101" pin="6"/>
+    </net>
+    <net code="3" name="Net-(U101-Pad7)">
+      <node ref="U101" pin="7"/>
+    </net>
+    <net code="4" name="+48V">
+      <node ref="C101" pin="1"/>
+      <node ref="U101" pin="8"/>
+      <node ref="U101" pin="5"/>
+      <node ref="J101" pin="5"/>
+      <node ref="J101" pin="4"/>
+      <node ref="J102" pin="5"/>
+      <node ref="J102" pin="4"/>
+    </net>
+    <net code="5" name="Net-(IC101-Pad2)">
+      <node ref="IC101" pin="2"/>
+      <node ref="R101" pin="1"/>
+    </net>
+    <net code="6" name="Net-(IC101-Pad3)">
+      <node ref="R101" pin="2"/>
+      <node ref="IC101" pin="3"/>
+    </net>
+    <net code="7" name="Net-(IC102-Pad2)">
+      <node ref="R102" pin="1"/>
+      <node ref="IC102" pin="2"/>
+    </net>
+    <net code="8" name="Net-(IC102-Pad3)">
+      <node ref="R102" pin="2"/>
+      <node ref="IC102" pin="3"/>
+    </net>
+    <net code="9" name="5v">
+      <node ref="IC101" pin="8"/>
+      <node ref="C102" pin="1"/>
+      <node ref="U101" pin="2"/>
+      <node ref="C104" pin="1"/>
+      <node ref="U101" pin="1"/>
+      <node ref="IC102" pin="8"/>
+      <node ref="C103" pin="1"/>
+    </net>
+    <net code="10" name="GND">
+      <node ref="P102" pin="2"/>
+      <node ref="P101" pin="2"/>
+      <node ref="IC101" pin="6"/>
+      <node ref="IC101" pin="5"/>
+      <node ref="IC102" pin="5"/>
+      <node ref="IC102" pin="6"/>
+      <node ref="J102" pin="7"/>
+      <node ref="J102" pin="8"/>
+      <node ref="J101" pin="7"/>
+      <node ref="J101" pin="8"/>
+      <node ref="U101" pin="4"/>
+      <node ref="U101" pin="9"/>
+      <node ref="D101" pin="2"/>
+      <node ref="D102" pin="2"/>
+      <node ref="C104" pin="2"/>
+      <node ref="C103" pin="2"/>
+      <node ref="C102" pin="2"/>
+      <node ref="C101" pin="2"/>
+    </net>
+    <net code="11" name="CHASSIS">
+      <node ref="J102" pin="S2"/>
+      <node ref="J102" pin="S1"/>
+      <node ref="J101" pin="S2"/>
+      <node ref="J101" pin="S1"/>
+    </net>
+    <net code="12" name="Net-(J101-Pad12)">
+      <node ref="J101" pin="12"/>
+    </net>
+    <net code="13" name="Net-(D101-Pad1)">
+      <node ref="IC101" pin="7"/>
+      <node ref="P101" pin="1"/>
+      <node ref="D101" pin="1"/>
+    </net>
+    <net code="14" name="Net-(D102-Pad1)">
+      <node ref="IC102" pin="7"/>
+      <node ref="D102" pin="1"/>
+      <node ref="P102" pin="1"/>
+    </net>
+    <net code="15" name="Net-(J101-Pad9)">
+      <node ref="J101" pin="9"/>
+    </net>
+    <net code="16" name="Net-(J101-Pad10)">
+      <node ref="J101" pin="10"/>
+    </net>
+    <net code="17" name="Net-(J101-Pad11)">
+      <node ref="J101" pin="11"/>
+    </net>
+    <net code="18" name="/TX+">
+      <node ref="IC101" pin="4"/>
+      <node ref="J102" pin="1"/>
+      <node ref="J101" pin="1"/>
+    </net>
+    <net code="19" name="Net-(J102-Pad11)">
+      <node ref="J102" pin="11"/>
+    </net>
+    <net code="20" name="/RX-">
+      <node ref="IC102" pin="1"/>
+      <node ref="J102" pin="6"/>
+      <node ref="J101" pin="6"/>
+    </net>
+    <net code="21" name="/RX+">
+      <node ref="IC102" pin="4"/>
+      <node ref="J101" pin="3"/>
+      <node ref="J102" pin="3"/>
+    </net>
+    <net code="22" name="Net-(J102-Pad9)">
+      <node ref="J102" pin="9"/>
+    </net>
+    <net code="23" name="Net-(J102-Pad10)">
+      <node ref="J102" pin="10"/>
+    </net>
+    <net code="24" name="Net-(J102-Pad12)">
+      <node ref="J102" pin="12"/>
+    </net>
+    <net code="25" name="/TX-">
+      <node ref="J101" pin="2"/>
+      <node ref="IC101" pin="1"/>
+      <node ref="J102" pin="2"/>
+    </net>
+  </nets>
+</export>

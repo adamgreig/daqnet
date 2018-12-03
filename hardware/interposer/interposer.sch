@@ -400,6 +400,7 @@ F 0 "U101" H 5200 1750 50  0000 C CNN
 F 1 "LT3010-5" H 5450 1750 50  0000 L CNN
 F 2 "Package_SO:MSOP-8-1EP_3x3mm_P0.65mm_EP1.68x1.88mm" H 5450 1825 50  0001 C CNN
 F 3 "http://cds.linear.com/docs/en/datasheet/30105fe.pdf" H 5450 1500 50  0001 C CNN
+F 4 "761-8591" H 5450 1500 50  0001 C CNN "RS"
 	1    5450 1500
 	1    0    0    -1  
 $EndComp
