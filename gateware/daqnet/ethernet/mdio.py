@@ -4,7 +4,7 @@ MDIO Controller
 Copyright 2018 Adam Greig
 """
 
-from migen import (Module, Signal, Instance, TSTriple, If, FSM, Array,
+from migen import (Module, Signal, TSTriple, If, FSM, Array, Cat,
                    NextValue, NextState)
 
 
@@ -52,28 +52,30 @@ class MDIO(Module):
             # Allow None to skip special creation for simulation
             self.specials += self.mdio_t.get_tristate(mdio)
 
-        # Create clock for MDC
+        # Create divided clock for MDC
+        mdc_int = Signal()
         mdc_divider = Signal(max=clk_div)
+        mdc_rise = Signal()
+        mdc_fall = Signal()
         self.sync += (
             If(
                 mdc_divider == 0,
                 mdc_divider.eq(clk_div - 1),
-                mdc.eq(0),
+                mdc_int.eq(0),
+                mdc_fall.eq(1),
+                mdc_rise.eq(0),
             ).Elif(
                 mdc_divider == clk_div//2,
                 mdc_divider.eq(mdc_divider - 1),
-                mdc.eq(1),
+                mdc_int.eq(1),
+                mdc_fall.eq(0),
+                mdc_rise.eq(1),
             ).Else(
-                mdc_divider.eq(mdc_divider - 1))
+                mdc_divider.eq(mdc_divider - 1),
+                mdc_fall.eq(0),
+                mdc_rise.eq(0),
+            )
         )
-
-        # Track rising and falling edges of MDC
-        _last_mdc = Signal()
-        _mdc_rise = Signal()
-        _mdc_fall = Signal()
-        self.sync += _last_mdc.eq(mdc)
-        self.comb += _mdc_rise.eq(mdc & ~_last_mdc)
-        self.comb += _mdc_fall.eq(~mdc & _last_mdc)
 
         # MDIO FSM
         self.submodules.fsm = FSM(reset_state="IDLE")
@@ -82,12 +84,13 @@ class MDIO(Module):
         _register = Signal.like(self.register)
         _rw = Signal.like(self.rw)
         _write_data = Signal.like(self.write_data)
-        _bit_counter = Signal(6)
+        bit_counter = Signal(6)
 
         # Idle state
         # Constantly register input data and wait for START signal
         self.fsm.act(
             "IDLE",
+            mdc.eq(0),
             self.mdio_t.oe.eq(0),
 
             # Register input signals while in idle
@@ -104,26 +107,30 @@ class MDIO(Module):
         # on MDC.
         self.fsm.act(
             "SYNC",
+            mdc.eq(0),
             self.mdio_t.oe.eq(0),
-            NextValue(_bit_counter, 32),
-            If(_mdc_fall == 1, NextState("PRE_32"))
+
+            If(mdc_fall == 1,
+                NextValue(bit_counter, 32),
+                NextState("PRE_32"))
         )
 
         # PRE_32
         # Preamble field: 32 bits of 1
         self.fsm.act(
             "PRE_32",
+            mdc.eq(mdc_int),
 
             # Output all 1s
             self.mdio_t.oe.eq(1),
             self.mdio_t.o.eq(1),
 
             # Count falling edges of MDC
-            If(_mdc_fall == 1,
-                NextValue(_bit_counter, _bit_counter - 1)),
+            If(mdc_fall == 1,
+                NextValue(bit_counter, bit_counter - 1)),
             # Transition to ST on the falling edge after 32 rising edges
-            If(_bit_counter == 0,
-               NextValue(_bit_counter, 2),
+            If(bit_counter == 0,
+               NextValue(bit_counter, 2),
                NextState("ST"))
         )
 
@@ -131,11 +138,12 @@ class MDIO(Module):
         # Start field: always 01
         self.fsm.act(
             "ST",
+            mdc.eq(mdc_int),
             self.mdio_t.oe.eq(1),
-            self.mdio_t.o.eq(_bit_counter[0]),
-            If(_mdc_fall == 1, NextValue(_bit_counter, _bit_counter - 1)),
-            If(_bit_counter == 0,
-                NextValue(_bit_counter, 2),
+            self.mdio_t.o.eq(bit_counter[0]),
+            If(mdc_fall == 1, NextValue(bit_counter, bit_counter - 1)),
+            If(bit_counter == 0,
+                NextValue(bit_counter, 2),
                 NextState("OP"))
         )
 
@@ -143,12 +151,13 @@ class MDIO(Module):
         # Opcode field: read=10, write=01
         self.fsm.act(
             "OP",
+            mdc.eq(mdc_int),
             self.mdio_t.oe.eq(1),
-            (If(_rw == 1, self.mdio_t.o.eq(_bit_counter[0]))
-             .Else(self.mdio_t.o.eq(~_bit_counter[0]))),
-            If(_mdc_fall == 1, NextValue(_bit_counter, _bit_counter - 1)),
-            If(_bit_counter == 0,
-                NextValue(_bit_counter, 5),
+            (If(_rw == 1, self.mdio_t.o.eq(bit_counter[0]))
+             .Else(self.mdio_t.o.eq(~bit_counter[0]))),
+            If(mdc_fall == 1, NextValue(bit_counter, bit_counter - 1)),
+            If(bit_counter == 0,
+                NextValue(bit_counter, 5),
                 NextState("PA5"))
         )
 
@@ -156,11 +165,14 @@ class MDIO(Module):
         # PHY address field, 5 bits
         self.fsm.act(
             "PA5",
+            mdc.eq(mdc_int),
             self.mdio_t.oe.eq(1),
-            self.mdio_t.o.eq(Array(_phy_addr)[_bit_counter - 1]),
-            If(_mdc_fall == 1, NextValue(_bit_counter, _bit_counter - 1)),
-            If(_bit_counter == 0,
-                NextValue(_bit_counter, 5),
+            self.mdio_t.o.eq(_phy_addr[-1]),
+            If(mdc_fall == 1,
+                NextValue(_phy_addr, Cat(0, _phy_addr[:-1])),
+                NextValue(bit_counter, bit_counter - 1)),
+            If(bit_counter == 0,
+                NextValue(bit_counter, 5),
                 NextState("RA5"))
         )
 
@@ -168,11 +180,14 @@ class MDIO(Module):
         # Register address field, 5 bits
         self.fsm.act(
             "RA5",
+            mdc.eq(mdc_int),
             self.mdio_t.oe.eq(1),
-            self.mdio_t.o.eq(Array(_register)[_bit_counter - 1]),
-            If(_mdc_fall == 1, NextValue(_bit_counter, _bit_counter - 1)),
-            If(_bit_counter == 0,
-                NextValue(_bit_counter, 2),
+            self.mdio_t.o.eq(_register[-1]),
+            If(mdc_fall == 1,
+                NextValue(_register, Cat(0, _register[:-1])),
+                NextValue(bit_counter, bit_counter - 1)),
+            If(bit_counter == 0,
+                NextValue(bit_counter, 2),
                 If(
                     _rw == 1,
                     NextState("TA_W")
@@ -185,10 +200,11 @@ class MDIO(Module):
         # Turnaround, 2 bits, OE released for read operations
         self.fsm.act(
             "TA_R",
+            mdc.eq(mdc_int),
             self.mdio_t.oe.eq(0),
-            If(_mdc_fall == 1, NextValue(_bit_counter, _bit_counter - 1)),
-            If(_bit_counter == 0,
-                NextValue(_bit_counter, 16),
+            If(mdc_fall == 1, NextValue(bit_counter, bit_counter - 1)),
+            If(bit_counter == 0,
+                NextValue(bit_counter, 16),
                 NextState("D16_R"))
         )
 
@@ -196,11 +212,12 @@ class MDIO(Module):
         # Turnaround, 2 bits, driven to 10 for write operations
         self.fsm.act(
             "TA_W",
+            mdc.eq(mdc_int),
             self.mdio_t.oe.eq(1),
-            self.mdio_t.o.eq(~_bit_counter[0]),
-            If(_mdc_fall == 1, NextValue(_bit_counter, _bit_counter - 1)),
-            If(_bit_counter == 0,
-                NextValue(_bit_counter, 16),
+            self.mdio_t.o.eq(~bit_counter[0]),
+            If(mdc_fall == 1, NextValue(bit_counter, bit_counter - 1)),
+            If(bit_counter == 0,
+                NextValue(bit_counter, 16),
                 NextState("D16_W"))
         )
 
@@ -208,85 +225,175 @@ class MDIO(Module):
         # Data field, read operation
         self.fsm.act(
             "D16_R",
+            mdc.eq(mdc_int),
             self.mdio_t.oe.eq(0),
-            If(_mdc_rise == 1,
-                NextValue(Array(self.read_data)[_bit_counter - 1],
-                          self.mdio_t.i)),
-            If(_mdc_fall == 1, NextValue(_bit_counter, _bit_counter - 1)),
-            If(_bit_counter == 0,
-                NextState("IDLE"))
+            If(mdc_rise == 1,
+                NextValue(self.read_data,
+                          Cat(self.mdio_t.i, self.read_data[:-1]))),
+            If(mdc_fall == 1, NextValue(bit_counter, bit_counter - 1)),
+            If(bit_counter == 0, NextState("IDLE"))
         )
 
         # D16
         # Data field, write operation
         self.fsm.act(
             "D16_W",
+            mdc.eq(mdc_int),
             self.mdio_t.oe.eq(1),
-            self.mdio_t.o.eq(Array(_write_data)[_bit_counter - 1]),
-            If(_mdc_fall == 1, NextValue(_bit_counter, _bit_counter - 1)),
-            If(_bit_counter == 0,
-                NextState("IDLE"))
+            self.mdio_t.o.eq(_write_data[-1]),
+            If(mdc_fall == 1,
+                NextValue(_write_data, Cat(0, _write_data[:-1])),
+                NextValue(bit_counter, bit_counter - 1)),
+            If(bit_counter == 0, NextState("IDLE"))
         )
 
 
 def test_mdio_read():
+    import random
     from migen.sim import run_simulation
 
     mdc = Signal()
     mdio = MDIO(20, None, mdc)
 
     def testbench():
-        # Idle clocks at start
-        for _ in range(10):
+        rng = random.Random(0)
+
+        # Run ten random reads in sequence
+        for testrun in range(10):
+            phy_addr = rng.randint(0, 31)
+            reg_addr = rng.randint(0, 31)
+            reg_value = rng.randint(0, 65535)
+
+            # Idle clocks at start
+            for _ in range(10):
+                yield
+            # Set up a register read
+            yield (mdio.phy_addr.eq(phy_addr))
+            yield (mdio.register.eq(reg_addr))
+            yield (mdio.rw.eq(0))
+            yield (mdio.start.eq(1))
             yield
-        # Set up a register read
-        yield (mdio.phy_addr.eq(0x03))
-        yield (mdio.register.eq(0x05))
-        yield (mdio.rw.eq(0))
-        yield (mdio.start.eq(1))
-        yield
-        yield (mdio.phy_addr.eq(0))
-        yield (mdio.register.eq(0))
-        yield (mdio.start.eq(0))
+            yield (mdio.phy_addr.eq(0))
+            yield (mdio.register.eq(0))
+            yield (mdio.start.eq(0))
 
-        # Clock through the read
-        ibits = [1, 0, 1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1]
-        obits = []
-        oebits = []
-        mdio_clk = 0
-        last_mdc = (yield mdc)
-        while True:
+            # Clock through the read
+            ibits = [int(x) for x in f"{reg_value:016b}"]
+            obits = []
+            oebits = []
+            mdio_clk = 0
+            last_mdc = (yield mdc)
+            while True:
+                yield
+                new_mdc = (yield mdc)
+                # Detect rising edge
+                if new_mdc and last_mdc == 0:
+                    mdio_clk += 1
+                    obits.append((yield mdio.mdio_t.o))
+                    oebits.append((yield mdio.mdio_t.oe))
+                    if mdio_clk == 64:
+                        break
+                    if mdio_clk >= 48:
+                        yield (mdio.mdio_t.i.eq(ibits[mdio_clk - 48]))
+                last_mdc = new_mdc
+
+            for _ in range(100):
+                yield
+
+            read_data = (yield mdio.read_data)
+            was_busy = (yield mdio.busy)
+
+            # Check transmitted bits were correct
+            pre_32 = [1]*32
+            st = [0, 1]
+            op = [1, 0]
+            pa5 = [int(x) for x in f"{phy_addr:05b}"]
+            ra5 = [int(x) for x in f"{reg_addr:05b}"]
+            expected = pre_32 + st + op + pa5 + ra5
+            assert obits[:46] == expected
+
+            # Check OE transitioned correctly
+            expected = [1]*46 + [0]*18
+            assert oebits == expected
+
+            # Check we read the correct value in the end
+            expected = int("".join(str(x) for x in ibits), 2)
+            assert read_data == expected
+            assert not was_busy
+
+    run_simulation(mdio, testbench(), vcd_name="mdio.vcd")
+
+
+def test_mdio_write():
+    import random
+    from migen.sim import run_simulation
+
+    mdc = Signal()
+    mdio = MDIO(20, None, mdc)
+
+    def testbench():
+        rng = random.Random(0)
+
+        # Run ten random writes in sequence
+        for testrun in range(10):
+            phy_addr = rng.randint(0, 31)
+            reg_addr = rng.randint(0, 31)
+            reg_value = rng.randint(0, 65535)
+
+            # Idle clocks at start
+            for _ in range(10):
+                yield
+
+            # Set up a register write
+            yield (mdio.phy_addr.eq(phy_addr))
+            yield (mdio.register.eq(reg_addr))
+            yield (mdio.write_data.eq(reg_value))
+            yield (mdio.rw.eq(1))
+            yield (mdio.start.eq(1))
             yield
-            new_mdc = (yield mdc)
-            # Detect rising edge
-            if new_mdc and last_mdc == 0:
-                mdio_clk += 1
-                obits.append((yield mdio.mdio_t.o))
-                oebits.append((yield mdio.mdio_t.oe))
-                if mdio_clk == 64:
-                    break
-                if mdio_clk >= 48:
-                    yield (mdio.mdio_t.i.eq(ibits[mdio_clk - 48]))
-            last_mdc = new_mdc
+            yield (mdio.phy_addr.eq(0))
+            yield (mdio.write_data.eq(0))
+            yield (mdio.rw.eq(0))
+            yield (mdio.register.eq(0))
+            yield (mdio.start.eq(0))
 
-        for _ in range(100):
-            yield
+            # Clock through the write
+            obits = []
+            oebits = []
+            mdio_clk = 0
+            last_mdc = (yield mdc)
+            while True:
+                yield
+                new_mdc = (yield mdc)
+                # Detect rising edge
+                if new_mdc and last_mdc == 0:
+                    mdio_clk += 1
+                    obits.append((yield mdio.mdio_t.o))
+                    oebits.append((yield mdio.mdio_t.oe))
+                    if mdio_clk == 64:
+                        break
+                last_mdc = new_mdc
 
-        read_data = (yield mdio.read_data)
-        was_busy = (yield mdio.busy)
+            # Idle at end
+            for _ in range(100):
+                yield
 
-        # Check transmitted bits were correct
-        # PRE_32, ST, OP=0b10, PA5=0x3, RA5=0x5
-        expected = [1]*32 + [0, 1] + [1, 0] + [0, 0, 0, 1, 1] + [0, 0, 1, 0, 1]
-        assert obits[:46] == expected
+            was_busy = (yield mdio.busy)
 
-        # Check OE transitioned correctly
-        expected = [1]*46 + [0]*18
-        assert oebits == expected
+            # Check transmitted bits were correct
+            pre_32 = [1]*32
+            st = [0, 1]
+            op = [0, 1]
+            pa5 = [int(x) for x in f"{phy_addr:05b}"]
+            ra5 = [int(x) for x in f"{reg_addr:05b}"]
+            ta = [1, 0]
+            d16 = [int(x) for x in f"{reg_value:016b}"]
+            expected = pre_32 + st + op + pa5 + ra5 + ta + d16
+            assert obits == expected
 
-        # Check we read the correct value in the end
-        expected = int("".join(str(x) for x in ibits), 2)
-        assert read_data == expected
-        assert not was_busy
+            # Check OE transitioned correctly
+            expected = [1]*64
+            assert oebits == expected
+            assert not was_busy
 
     run_simulation(mdio, testbench(), vcd_name="mdio.vcd")
