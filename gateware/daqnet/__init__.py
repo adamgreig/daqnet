@@ -13,6 +13,7 @@ def get_args():
 def main():
     args = get_args()
     plat = ProtoSwitchPlatform()
+    plat.add_period_constraint('sys', 10)
     top = ProtoSwitchTop(plat)
     if args.build:
         plat.build(top)

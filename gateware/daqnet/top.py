@@ -8,7 +8,7 @@ class PLL(Module):
         self.clk_in = Signal()
         self.clk_out = Signal()
         self.specials += Instance(
-            '(* BEL="X16/Y33/pll_3" *) SB_PLL40_PAD',
+            'SB_PLL40_PAD',
             name=name,
             p_FEEDBACK_PATH="SIMPLE",
             p_PLLOUT_SELECT="GENCLK",
@@ -68,7 +68,7 @@ class ProtoSwitchTop(Module):
         self.submodules.mdio = MDIO(40, rmii.mdio, rmii.mdc)
 
         self.comb += self.mdio.phy_addr.eq(0)
-        self.comb += self.mdio.register.eq(0)
+        self.comb += self.mdio.reg_addr.eq(0)
         self.comb += self.mdio.rw.eq(0)
 
         divider = Signal(24)
