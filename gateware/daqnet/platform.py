@@ -1,28 +1,5 @@
 from migen.build.generic_platform import Pins, IOStandard, Subsignal
 from migen.build.lattice import LatticePlatform
-from migen.build.platforms import mystorm_blackice_ii
-
-
-# Prototyping platform on BlackICE II
-
-_adc = [
-    (
-        "adc", 0,
-        Subsignal("dout1", Pins("pmod8:1"), IOStandard("SB_LVCMOS")),
-        Subsignal("dout2", Pins("pmod8:0"), IOStandard("SB_LVCMOS")),
-        Subsignal("ain", Pins("pmod8:2"), IOStandard("SB_LVDS_INPUT")),
-    ),
-]
-
-_io = mystorm_blackice_ii._io + _adc
-_connectors = mystorm_blackice_ii._connectors
-
-
-class BlackIcePlatform(mystorm_blackice_ii.Platform):
-    def __init__(self):
-        LatticePlatform.__init__(self, "ice40-hx8k-tq144:4k", _io, _connectors,
-                                 toolchain="icestorm")
-
 
 # Prototype sensor node platform
 _protosensor_io = [
@@ -67,6 +44,7 @@ class ProtoSensorPlatform(LatticePlatform):
             "ice40-hx8k-bg121", _protosensor_io, toolchain="icestorm")
 
 
+# Prototype switch platform
 _protoswitch_io = [
     ("user_led", 0, Pins("A11"), IOStandard("SB_LVCMOS")),
     ("user_led", 1, Pins("A10"), IOStandard("SB_LVCMOS")),

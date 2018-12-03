@@ -1,6 +1,6 @@
 import argparse
-from .platform import BlackIcePlatform, ProtoSensorPlatform
-from .top import BlackIceTop, ProtoSensorTop
+from .platform import ProtoSensorPlatform, ProtoSwitchPlatform
+from .top import ProtoSensorTop, ProtoSwitchTop
 
 
 def get_args():
@@ -12,10 +12,8 @@ def get_args():
 
 def main():
     args = get_args()
-    # plat = ProtoSensorPlatform()
-    # top = ProtoSensorTop(plat)
-    plat = BlackIcePlatform()
-    top = BlackIceTop(plat)
+    plat = ProtoSwitchPlatform()
+    top = ProtoSwitchTop(plat)
     if args.build:
         plat.build(top)
     if args.program:

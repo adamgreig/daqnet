@@ -5,12 +5,12 @@ Copyright 2018 Adam Greig
 """
 
 import numpy as np
-from migen import Module, Signal, Instance, Constant, ClockDomain, If
+from migen import Module, Signal, Instance, Constant, ClockDomain
 
 
-class ADC(Module):
+class SDADC(Module):
     """
-    Implements an ADC.
+    Implements a sigma-delta ADC.
 
     Required circuit:
         * ADC Input to positive LVDS input
