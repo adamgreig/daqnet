@@ -74,7 +74,11 @@ _protoswitch_io = [
         Subsignal("crs_dv", Pins("L4")),
         Subsignal("clk", Pins("K4")),
         Subsignal("mdc", Pins("K3")),
-        Subsignal("mdio", Pins("L3"))),
+        Subsignal("mdio", Pins("L3")),
+        IOStandard("SB_LVCMOS")),
+
+    ("phy_rst", 0, Pins("K2"), IOStandard("SB_LVCMOS")),
+    ("eth_led", 0, Pins("J2"), IOStandard("SB_LVCMOS")),
 
     ("daqnet", 0,
         Subsignal("led1", Pins("C4"), IOStandard("SB_LVCMOS")),

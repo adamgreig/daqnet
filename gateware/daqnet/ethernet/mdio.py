@@ -275,6 +275,7 @@ def test_mdio_read():
             # Idle clocks at start
             for _ in range(10):
                 yield
+
             # Set up a register read
             yield (mdio.phy_addr.eq(phy_addr))
             yield (mdio.reg_addr.eq(reg_addr))

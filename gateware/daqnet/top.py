@@ -1,6 +1,6 @@
 from migen import Signal, Module, ClockDomain, Instance, If
 
-from .ethernet.mdio import MDIO
+from .ethernet.mac import MAC
 
 
 class PLL(Module):
@@ -59,23 +59,12 @@ class ProtoSwitchTop(Module):
         self.clock_domains.sys = ClockDomain("sys")
         clk25 = platform.request("clk25")
 
+        # Set up 100MHz PLL
         self.submodules.pll = PLL(divr=0, divf=31, divq=3, filter_range=2)
         self.comb += self.pll.clk_in.eq(clk25)
         self.comb += self.sys.clk.eq(self.pll.clk_out)
 
         rmii = platform.request("rmii")
-
-        self.submodules.mdio = MDIO(40, rmii.mdio, rmii.mdc)
-
-        self.comb += self.mdio.phy_addr.eq(0)
-        self.comb += self.mdio.reg_addr.eq(0)
-        self.comb += self.mdio.rw.eq(0)
-
-        divider = Signal(24)
-        self.sync += divider.eq(divider + 1)
-        self.sync += If(
-            divider == 0,
-            self.mdio.start.eq(1)
-        ).Else(
-            self.mdio.start.eq(0)
-        )
+        phy_rst = platform.request("phy_rst")
+        eth_led = platform.request("eth_led")
+        self.submodules.mac = MAC(100e6, 0, rmii, phy_rst, eth_led)
