@@ -35,7 +35,14 @@ class MAC(Module):
 
         self.submodules.phy_manager = PHYManager(
             clk_freq, phy_addr, phy_rst, rmii.mdio, rmii.mdc)
-        self.comb += self.link_up.eq(self.phy_manager.link_up)
+
+        self.comb += [
+            self.link_up.eq(self.phy_manager.link_up),
+            eth_led.eq(self.link_up),
+            rmii.txen.eq(0),
+            rmii.txd0.eq(0),
+            rmii.txd1.eq(0),
+        ]
 
 
 class PHYManager(Module):
@@ -76,26 +83,32 @@ class PHYManager(Module):
         self.submodules.mdio = MDIO(clk_div, mdio, mdc)
         self.mdio.phy_addr = Constant(phy_addr)
 
-        # Latches for BCR, BSR, LPA, which we'll poll to determine link status
-        bcr = Signal(16)
+        # Latches for registers we read
+        # bcr = Signal(16)
         bsr = Signal(16)
-        lpa = Signal(16)
+        # id1 = Signal(16)
+        # lpa = Signal(16)
+        # cn1 = Signal(16)
 
         # Compute output signal from registers
         self.comb += self.link_up.eq(
-            ~bcr[15] &     # Software reset must be off (also ensures MDIO
-                           # stuck high doesn't falsely indicate link)
-            bcr[12] &      # Autonegotiation must be on
-            bsr[2] &       # Link must be up
-            bsr[4] &       # No remote fault
-            bsr[5] &       # No autonegotiation incomplete
-            lpa[8]         # No link without 100Mbps full duplex
+            bsr[2] &        # Link must be up
+            ~bsr[4] &       # No remote fault
+            bsr[5] &        # Autonegotiation complete
+            bsr[14]         # 100Mbps full duplex
         )
 
+        registers_to_write = [
+            # Enable 100Mbps, autonegotiation, and full-duplex
+            # ("BCR", 0x00, (1 << 13) | (1 << 12) | (1 << 8)),
+        ]
+
         registers_to_read = [
-            ("BCR", 0x00, bcr),
+            # ("BCR", 0x00, bcr),
             ("BSR", 0x01, bsr),
-            ("LPA", 0x05, lpa),
+            # ("ID1", 0x02, id1),
+            # ("LPA", 0x05, lpa),
+            # ("CN1", 0x1E, cn1),
         ]
 
         # Controller FSM
@@ -117,10 +130,56 @@ class PHYManager(Module):
             phy_rst.eq(0),
             NextValue(counter, counter - 1),
             If(self.phy_reset == 1, NextState("RESET")),
-            If(counter == 0,
+            If(
+                counter == 0,
                 NextValue(counter, one_ms),
-                NextState("POLL_WAIT")),
+                NextState("WRITE_WAIT" if registers_to_write else "POLL_WAIT")
+            ),
         )
+
+        # Wait 1ms before writing
+        if registers_to_write:
+            self.fsm.act(
+                "WRITE_WAIT",
+                phy_rst.eq(1),
+                NextValue(counter, counter - 1),
+                If(self.phy_reset == 1, NextState("RESET")),
+                If(
+                    counter == 0,
+                    NextState(f"WRITE_{registers_to_write[0][0]}")
+                ),
+            )
+
+        for idx, (name, addr, val) in enumerate(registers_to_write):
+            if idx == len(registers_to_write) - 1:
+                next_state = "POLL_WAIT"
+            else:
+                next_state = f"WRITE_{registers_to_write[idx+1][0]}"
+
+            self.fsm.act(
+                f"WRITE_{name}",
+                phy_rst.eq(0),
+                self.mdio.reg_addr.eq(Constant(addr)),
+                self.mdio.rw.eq(1),
+                self.mdio.write_data.eq(Constant(val)),
+                self.mdio.start.eq(1),
+
+                If(self.phy_reset == 1, NextState("RESET")),
+                If(self.mdio.busy, NextState(f"WRITE_{name}_WAIT")),
+            )
+
+            self.fsm.act(
+                f"WRITE_{name}_WAIT",
+                phy_rst.eq(1),
+                self.mdio.reg_addr.eq(0),
+                self.mdio.rw.eq(0),
+                self.mdio.write_data.eq(0),
+                self.mdio.start.eq(0),
+                If(self.phy_reset == 1, NextState("RESET")),
+                If(~self.mdio.busy,
+                    NextValue(counter, one_ms),
+                    NextState(next_state)),
+            )
 
         # Wait 1ms between polls
         self.fsm.act(
@@ -154,13 +213,14 @@ class PHYManager(Module):
             self.fsm.act(
                 f"POLL_{name}_WAIT",
                 phy_rst.eq(1),
-                self.mdio.reg_addr.eq(Constant(addr)),
+                self.mdio.reg_addr.eq(0),
                 self.mdio.rw.eq(0),
                 self.mdio.start.eq(0),
 
                 If(self.phy_reset == 1, NextState("RESET")),
                 If(~self.mdio.busy,
                     NextValue(latch, self.mdio.read_data),
+                    NextValue(counter, one_ms),
                     NextState(next_state)),
             )
 
@@ -172,13 +232,12 @@ def test_phy_manager():
     mdio = None
     phy_rst = Signal()
 
-    # Specify a fake 5MHz clock frequency to reduce number of simulation steps
-    # (must be >2.5MHz to generate MDC divider).
-    phy_manager = PHYManager(5e6, 0, phy_rst, mdio, mdc)
+    # Specify a fake 10MHz clock frequency to reduce number of simulation steps
+    phy_manager = PHYManager(10e6, 0, phy_rst, mdio, mdc)
 
     def testbench():
-        # 1ms is 5000 ticks, so check we're still asserting phy_rst
-        for _ in range(5000):
+        # 1ms is 10000 ticks, so check we're still asserting phy_rst
+        for _ in range(10000):
             assert (yield phy_rst) == 0
             yield
 
@@ -189,49 +248,21 @@ def test_phy_manager():
             yield
 
         # Now we wait another 1ms for bring-up, without asserting reset
-        for _ in range(4900):
+        for _ in range(9900):
             assert (yield phy_rst) == 1
             yield
 
         assert (yield phy_manager.link_up) == 0
 
-        # Wait for the first register read to synchronise to MDIO
+        # Wait for the register read to synchronise to MDIO
         while True:
             if (yield phy_manager.mdio.mdio_t.o) == 1:
                 break
             yield
 
-        # Clock through BCR register read, setting bit 12
-        for clk in range(129):
-            if clk == 101:
-                yield (phy_manager.mdio.mdio_t.i.eq(1))
-            else:
-                yield (phy_manager.mdio.mdio_t.i.eq(0))
-            yield
-
-        # Wait for the second register read to synchronise to MDIO
-        while True:
-            if (yield phy_manager.mdio.mdio_t.o) == 1:
-                break
-            yield
-
-        # Clock through BSR read, setting bits 2, 4, 5
-        for clk in range(129):
-            if clk in (121, 117, 115):
-                yield (phy_manager.mdio.mdio_t.i.eq(1))
-            else:
-                yield (phy_manager.mdio.mdio_t.i.eq(0))
-            yield
-
-        # Wait for the third register read to synchronise to MDIO
-        while True:
-            if (yield phy_manager.mdio.mdio_t.o) == 1:
-                break
-            yield
-
-        # Clock through LPA register read, setting bit 8
-        for clk in range(129):
-            if clk == 109:
+        # Clock through BSR register read, setting bits 14, 5, 2
+        for clk in range(260):
+            if clk in (194, 230, 242):
                 yield (phy_manager.mdio.mdio_t.i.eq(1))
             else:
                 yield (phy_manager.mdio.mdio_t.i.eq(0))

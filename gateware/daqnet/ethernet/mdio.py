@@ -127,13 +127,17 @@ class MDIO(Module):
             # Output all 1s
             self.mdio_t.o.eq(1),
 
-            # Count falling edges of MDC
-            If(mdc_fall == 1, NextValue(bit_counter, bit_counter - 1)),
-
-            # Transition to ST on the falling edge after 32 rising edges
-            If(bit_counter == 0,
-               NextValue(bit_counter, 2),
-               NextState("ST"))
+            # Count falling edges of MDC, transition to ST after 32 MDC clocks
+            If(
+                mdc_fall == 1,
+                If(
+                    bit_counter == 1,
+                    NextValue(bit_counter, 2),
+                    NextState("ST")
+                ).Else(
+                    NextValue(bit_counter, bit_counter - 1)
+                )
+            )
         )
 
         # ST
@@ -144,10 +148,16 @@ class MDIO(Module):
             self.mdio_t.oe.eq(1),
             self.mdio_t.o.eq(bit_counter[0]),
 
-            If(mdc_fall == 1, NextValue(bit_counter, bit_counter - 1)),
-            If(bit_counter == 0,
-                NextValue(bit_counter, 2),
-                NextState("OP"))
+            If(
+                mdc_fall == 1,
+                If(
+                    bit_counter == 1,
+                    NextValue(bit_counter, 2),
+                    NextState("OP")
+                ).Else(
+                    NextValue(bit_counter, bit_counter - 1)
+                )
+            )
         )
 
         # OP
@@ -163,10 +173,16 @@ class MDIO(Module):
                 self.mdio_t.o.eq(~bit_counter[0]),
             ),
 
-            If(mdc_fall == 1, NextValue(bit_counter, bit_counter - 1)),
-            If(bit_counter == 0,
-                NextValue(bit_counter, 5),
-                NextState("PA5"))
+            If(
+                mdc_fall == 1,
+                If(
+                    bit_counter == 1,
+                    NextValue(bit_counter, 5),
+                    NextState("PA5")
+                ).Else(
+                    NextValue(bit_counter, bit_counter - 1)
+                )
+            )
         )
 
         # PA5
@@ -177,10 +193,16 @@ class MDIO(Module):
             self.mdio_t.oe.eq(1),
             self.mdio_t.o.eq(Array(_phy_addr)[bit_counter - 1]),
 
-            If(mdc_fall == 1, NextValue(bit_counter, bit_counter - 1)),
-            If(bit_counter == 0,
-                NextValue(bit_counter, 5),
-                NextState("RA5"))
+            If(
+                mdc_fall == 1,
+                If(
+                    bit_counter == 1,
+                    NextValue(bit_counter, 5),
+                    NextState("RA5")
+                ).Else(
+                    NextValue(bit_counter, bit_counter - 1)
+                )
+            )
         )
 
         # RA5
@@ -191,28 +213,41 @@ class MDIO(Module):
             self.mdio_t.oe.eq(1),
             self.mdio_t.o.eq(Array(_reg_addr)[bit_counter - 1]),
 
-            If(mdc_fall == 1, NextValue(bit_counter, bit_counter - 1)),
-            If(bit_counter == 0,
-                NextValue(bit_counter, 2),
+            If(
+                mdc_fall == 1,
                 If(
-                    _rw == 1,
-                    NextState("TA_W")
+                    bit_counter == 1,
+                    If(
+                        _rw == 1,
+                        NextValue(bit_counter, 2),
+                        NextState("TA_W")
+                    ).Else(
+                        NextValue(bit_counter, 1),
+                        NextState("TA_R")
+                    )
                 ).Else(
-                    NextState("TA_R")
-                ))
+                    NextValue(bit_counter, bit_counter - 1)
+                )
+            )
         )
 
         # TA
-        # Turnaround, 2 bits, OE released for read operations
+        # Turnaround, 1 bits, OE released for read operations
         self.fsm.act(
             "TA_R",
             mdc.eq(mdc_int),
             self.mdio_t.oe.eq(0),
 
-            If(mdc_fall == 1, NextValue(bit_counter, bit_counter - 1)),
-            If(bit_counter == 0,
-                NextValue(bit_counter, 16),
-                NextState("D16_R"))
+            If(
+                mdc_fall == 1,
+                If(
+                    bit_counter == 1,
+                    NextValue(bit_counter, 16),
+                    NextState("D16_R")
+                ).Else(
+                    NextValue(bit_counter, bit_counter - 1)
+                )
+            )
         )
 
         # TA
@@ -223,10 +258,16 @@ class MDIO(Module):
             self.mdio_t.oe.eq(1),
             self.mdio_t.o.eq(~bit_counter[0]),
 
-            If(mdc_fall == 1, NextValue(bit_counter, bit_counter - 1)),
-            If(bit_counter == 0,
-                NextValue(bit_counter, 16),
-                NextState("D16_W"))
+            If(
+                mdc_fall == 1,
+                If(
+                    bit_counter == 1,
+                    NextValue(bit_counter, 16),
+                    NextState("D16_W")
+                ).Else(
+                    NextValue(bit_counter, bit_counter - 1)
+                )
+            )
         )
 
         # D16
@@ -236,11 +277,17 @@ class MDIO(Module):
             mdc.eq(mdc_int),
             self.mdio_t.oe.eq(0),
 
-            If(mdc_rise == 1,
+            If(
+                mdc_fall == 1,
                 NextValue(Array(self.read_data)[bit_counter - 1],
-                          self.mdio_t.i)),
-            If(mdc_fall == 1, NextValue(bit_counter, bit_counter - 1)),
-            If(bit_counter == 0, NextState("IDLE"))
+                          self.mdio_t.i),
+                If(
+                    bit_counter == 1,
+                    NextState("IDLE")
+                ).Else(
+                    NextValue(bit_counter, bit_counter - 1),
+                )
+            )
         )
 
         # D16
@@ -251,8 +298,15 @@ class MDIO(Module):
             self.mdio_t.oe.eq(1),
             self.mdio_t.o.eq(Array(_write_data)[bit_counter - 1]),
 
-            If(mdc_fall == 1, NextValue(bit_counter, bit_counter - 1)),
-            If(bit_counter == 0, NextState("IDLE"))
+            If(
+                mdc_fall == 1,
+                If(
+                    bit_counter == 0,
+                    NextState("IDLE")
+                ).Else(
+                    NextValue(bit_counter, bit_counter - 1)
+                )
+            )
         )
 
 
@@ -300,10 +354,10 @@ def test_mdio_read():
                     mdio_clk += 1
                     obits.append((yield mdio.mdio_t.o))
                     oebits.append((yield mdio.mdio_t.oe))
-                    if mdio_clk == 64:
-                        break
                     if mdio_clk >= 48:
                         yield (mdio.mdio_t.i.eq(ibits[mdio_clk - 48]))
+                    if mdio_clk == 63:
+                        break
                 last_mdc = new_mdc
 
             for _ in range(100):
@@ -322,7 +376,7 @@ def test_mdio_read():
             assert obits[:46] == expected
 
             # Check OE transitioned correctly
-            expected = [1]*46 + [0]*18
+            expected = [1]*46 + [0]*17
             assert oebits == expected
 
             # Check we read the correct value in the end
@@ -330,7 +384,7 @@ def test_mdio_read():
             assert read_data == expected
             assert not was_busy
 
-    run_simulation(mdio, testbench(), vcd_name="mdio.vcd")
+    run_simulation(mdio, testbench(), vcd_name="mdio_read.vcd")
 
 
 def test_mdio_write():
@@ -405,4 +459,4 @@ def test_mdio_write():
             assert oebits == expected
             assert not was_busy
 
-    run_simulation(mdio, testbench(), vcd_name="mdio.vcd")
+    run_simulation(mdio, testbench(), vcd_name="mdio_write.vcd")

@@ -64,7 +64,18 @@ class ProtoSwitchTop(Module):
         self.comb += self.pll.clk_in.eq(clk25)
         self.comb += self.sys.clk.eq(self.pll.clk_out)
 
+        # MAC
         rmii = platform.request("rmii")
         phy_rst = platform.request("phy_rst")
         eth_led = platform.request("eth_led")
         self.submodules.mac = MAC(100e6, 0, rmii, phy_rst, eth_led)
+
+        # Output MDIO and MDC on the UART for debugging
+        uart = platform.request("uart")
+        self.comb += uart.tx.eq(rmii.mdc)
+        self.comb += If(
+            self.mac.phy_manager.mdio.mdio_t.oe,
+            uart.rx.eq(self.mac.phy_manager.mdio.mdio_t.o),
+        ).Else(
+            uart.rx.eq(self.mac.phy_manager.mdio.mdio_t.i),
+        )
