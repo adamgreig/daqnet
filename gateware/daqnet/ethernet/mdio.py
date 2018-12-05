@@ -283,11 +283,21 @@ class MDIO(Module):
                           self.mdio_t.i),
                 If(
                     bit_counter == 1,
-                    NextState("IDLE")
+                    NextState("READ_LAST_CLOCK")
                 ).Else(
                     NextValue(bit_counter, bit_counter - 1),
                 )
             )
+        )
+
+        # Because we sample MDIO on the falling edge, the final clock pulse
+        # is not used for data, but should probably be emitted to stop things
+        # getting confused.
+        self.fsm.act(
+            "READ_LAST_CLOCK",
+            mdc.eq(mdc_int),
+            self.mdio_t.oe.eq(0),
+            If(mdc_fall == 1, NextState("IDLE")),
         )
 
         # D16

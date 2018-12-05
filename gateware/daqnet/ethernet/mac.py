@@ -84,11 +84,7 @@ class PHYManager(Module):
         self.mdio.phy_addr = Constant(phy_addr)
 
         # Latches for registers we read
-        # bcr = Signal(16)
         bsr = Signal(16)
-        # id1 = Signal(16)
-        # lpa = Signal(16)
-        # cn1 = Signal(16)
 
         # Compute output signal from registers
         self.comb += self.link_up.eq(
@@ -100,15 +96,12 @@ class PHYManager(Module):
 
         registers_to_write = [
             # Enable 100Mbps, autonegotiation, and full-duplex
-            # ("BCR", 0x00, (1 << 13) | (1 << 12) | (1 << 8)),
+            ("BCR", 0x00, (1 << 13) | (1 << 12) | (1 << 8)),
         ]
 
         registers_to_read = [
-            # ("BCR", 0x00, bcr),
+            # Basic status register contains everything we need to know
             ("BSR", 0x01, bsr),
-            # ("ID1", 0x02, id1),
-            # ("LPA", 0x05, lpa),
-            # ("CN1", 0x1E, cn1),
         ]
 
         # Controller FSM
