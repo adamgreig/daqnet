@@ -1,6 +1,7 @@
-from migen import Signal, Module, ClockDomain, Instance, If
+from migen import Signal, Module, ClockDomain, Instance, If, Memory
 
 from .ethernet.mac import MAC
+from .uart import UARTTxFromMemory, UARTTx
 
 
 class PLL(Module):
@@ -64,18 +65,30 @@ class ProtoSwitchTop(Module):
         self.comb += self.pll.clk_in.eq(clk25)
         self.comb += self.sys.clk.eq(self.pll.clk_out)
 
-        # MAC
+        # Instantiate Ethernet MAC
+        rx_mem = Memory(8, 2048, [0x55 for _ in range(2048)])
+        rx_port = rx_mem.get_port(write_capable=True)
+        rx_port_r = rx_mem.get_port()
+        self.specials += [rx_mem, rx_port, rx_port_r]
         rmii = platform.request("rmii")
         phy_rst = platform.request("phy_rst")
         eth_led = platform.request("eth_led")
-        self.submodules.mac = MAC(100e6, 0, rmii, phy_rst, eth_led)
+        self.submodules.mac = MAC(100e6, 0, rx_port, rmii, phy_rst, eth_led)
 
-        # Output MDIO and MDC on the UART for debugging
+        # Debug outputs
         uart = platform.request("uart")
-        self.comb += uart.tx.eq(rmii.mdc)
-        self.comb += If(
-            self.mac.phy_manager.mdio.mdio_t.oe,
-            uart.rx.eq(self.mac.phy_manager.mdio.mdio_t.o),
-        ).Else(
-            uart.rx.eq(self.mac.phy_manager.mdio.mdio_t.i),
-        )
+        led1 = platform.request("user_led")
+        led2 = platform.request("user_led")
+
+        self.submodules.uarttx = UARTTxFromMemory(100, 11, rx_port_r)
+        stopadr = Signal(11)
+        self.sync += If(self.mac.rx_valid, stopadr.eq(self.mac.rx_len))
+        self.comb += [
+            uart.tx.eq(self.uarttx.tx_out),
+            self.uarttx.startadr.eq(0),
+            self.uarttx.stopadr.eq(stopadr),
+            self.mac.rx_ack.eq(self.uarttx.ready),
+            self.uarttx.trigger.eq(self.mac.rx_valid),
+            led1.eq(self.mac.rx_valid),
+            led2.eq(0),
+        ]

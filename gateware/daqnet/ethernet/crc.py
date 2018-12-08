@@ -21,7 +21,7 @@ class CRC32(Module):
 
     Outputs:
         * `crc_out`: complement of current 32-bit CRC value
-        * `magic_match`: high if crc residual is currently 0xC704DD7B
+        * `crc_match`: high if crc residual is currently 0xC704DD7B
 
     When using for transmission, note that `crc_out` must be sent in little
     endian (i.e. if `crc_out` is 0xAABBCCDD then transmit 0xDD 0xCC 0xBB 0xAA).
@@ -34,7 +34,7 @@ class CRC32(Module):
 
         # Outputs
         self.crc_out = Signal(32)
-        self.magic_match = Signal()
+        self.crc_match = Signal()
 
         ###
 
@@ -46,7 +46,7 @@ class CRC32(Module):
 
         self.comb += [
             self.crc_out.eq(crc ^ 0xFFFFFFFF),
-            self.magic_match.eq(crc == 0xDEBB20E3),
+            self.crc_match.eq(crc == 0xDEBB20E3),
             table_port.adr.eq(crc ^ self.data),
         ]
 
@@ -109,7 +109,7 @@ def test_crc32():
     run_simulation(crc, testbench(), vcd_name="crc32.vcd")
 
 
-def test_crc32_magic():
+def test_crc32_match():
     from migen.sim import run_simulation
     crc = CRC32()
 
@@ -135,10 +135,10 @@ def test_crc32_magic():
         yield
         # out = yield (crc.crc_out)
         # assert out == 0xFADE055A
-        magic = yield (crc.magic_match)
-        assert magic == 1
+        match = yield (crc.crc_match)
+        assert match == 1
 
-    run_simulation(crc, testbench(), vcd_name="crc32_magic.vcd")
+    run_simulation(crc, testbench(), vcd_name="crc32_match.vcd")
 
 
 def test_crc32_py():

@@ -6,6 +6,7 @@ Copyright 2018 Adam Greig
 
 from migen import (Module, Signal, Constant, If, FSM, NextValue, NextState)
 from .mdio import MDIO
+from .rmii import RMIIRx
 
 
 class MAC(Module):
@@ -16,29 +17,46 @@ class MAC(Module):
         * `clk_freq`: MAC's clock frequency
         * `phy_addr`: 5-bit address of the PHY
 
+    Ports:
+        * `rx_port`: Write-capable port, 8x2048, filled with received packet
+
     Pins:
         * `rmii`: signal group containing txd0, txd1, txen, rxd0, rxd1, crs_dv,
-                  clk, mdc, mdio
+                  ref_clk, mdc, mdio
         * `phy_rst`: PHY RST pin (output, active low)
         * `eth_led`: Ethernet LED, active high, pulsed on packet traffic
 
+    Inputs:
+        * `rx_ack`: Pulse high to acknowledge received packet
+
     Outputs:
         * `link_up`: High while link is established
+        * `rx_valid`: Received a valid packet into Rx RAM
+        * `rx_len`: Received packet length
     """
-    def __init__(self, clk_freq, phy_addr, rmii, phy_rst, eth_led):
+    def __init__(self, clk_freq, phy_addr, rx_port, rmii, phy_rst, eth_led):
         # Inputs
+        self.rx_ack = Signal()
 
         # Outputs
         self.link_up = Signal()
+        self.rx_valid = Signal()
+        self.rx_len = Signal(11)
 
         ###
 
         self.submodules.phy_manager = PHYManager(
             clk_freq, phy_addr, phy_rst, rmii.mdio, rmii.mdc)
 
+        self.submodules.rmii_rx = RMIIRx(rx_port, rmii.ref_clk, rmii.crs_dv,
+                                         rmii.rxd0, rmii.rxd1)
+
         self.comb += [
             self.link_up.eq(self.phy_manager.link_up),
             eth_led.eq(self.link_up),
+            self.rmii_rx.rx_ack.eq(self.rx_ack),
+            self.rx_valid.eq(self.rmii_rx.rx_valid),
+            self.rx_len.eq(self.rmii_rx.rx_len),
             rmii.txen.eq(0),
             rmii.txd0.eq(0),
             rmii.txd1.eq(0),
@@ -96,7 +114,7 @@ class PHYManager(Module):
 
         registers_to_write = [
             # Enable 100Mbps, autonegotiation, and full-duplex
-            ("BCR", 0x00, (1 << 13) | (1 << 12) | (1 << 8)),
+            # ("BCR", 0x00, (1 << 13) | (1 << 12) | (1 << 8)),
         ]
 
         registers_to_read = [

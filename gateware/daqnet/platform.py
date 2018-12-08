@@ -72,7 +72,7 @@ _protoswitch_io = [
         Subsignal("rxd0", Pins("K5")),
         Subsignal("rxd1", Pins("J5")),
         Subsignal("crs_dv", Pins("L4")),
-        Subsignal("clk", Pins("K4")),
+        Subsignal("ref_clk", Pins("K4")),
         Subsignal("mdc", Pins("K3")),
         Subsignal("mdio", Pins("L3")),
         IOStandard("SB_LVCMOS")),

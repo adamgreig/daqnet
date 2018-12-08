@@ -1,4 +1,5 @@
 import argparse
+import subprocess
 from .platform import ProtoSensorPlatform, ProtoSwitchPlatform
 from .top import ProtoSensorTop, ProtoSwitchTop
 
@@ -18,5 +19,7 @@ def main():
     if args.build:
         plat.build(top)
     if args.program:
-        prog = plat.create_programmer()
-        prog.load_bitstream("build/top.bin")
+        subprocess.run(["/home/adam/Projects/amp_flashprog/prog.py",
+                        "--fpga", "build/top.bin"])
+        # prog = plat.create_programmer()
+        # prog.load_bitstream("build/top.bin")
