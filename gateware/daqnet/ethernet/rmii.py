@@ -59,6 +59,7 @@ class RMIIRx(Module):
         self.fsm.act(
             "IDLE",
             write_port.we.eq(0),
+            self.crc.reset.eq(1),
             self.crc.data_valid.eq(0),
             self.rx_valid.eq(0),
             NextValue(self.rx_len, 0),

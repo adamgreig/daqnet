@@ -90,5 +90,5 @@ class ProtoSwitchTop(Module):
             self.mac.rx_ack.eq(self.uarttx.ready),
             self.uarttx.trigger.eq(self.mac.rx_valid),
             led1.eq(self.mac.rx_valid),
-            led2.eq(0),
+            led2.eq(self.mac.rmii_rx.crc.crc_match),
         ]
