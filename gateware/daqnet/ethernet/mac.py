@@ -4,7 +4,8 @@ Ethernet RMII MAC
 Copyright 2018 Adam Greig
 """
 
-from migen import (Module, Signal, Constant, If, FSM, NextValue, NextState)
+from migen import (Module, Signal, Constant, If, FSM, NextValue, NextState,
+                   Memory, ClockDomain, ClockDomainsRenamer)
 from .mdio import MDIO
 from .rmii import RMIIRx
 
@@ -13,12 +14,17 @@ class MAC(Module):
     """
     Ethernet RMII MAC.
 
+    This module is clocked at the system clock frequency and generates an RMII
+    clock domain internally. All its inputs and outputs are in the system clock
+    domain.
+
     Parameters:
         * `clk_freq`: MAC's clock frequency
         * `phy_addr`: 5-bit address of the PHY
+        * `mac_addr`: 6-byte MAC address (list of ints)
 
     Ports:
-        * `rx_port`: Write-capable port, 8x2048, filled with received packet
+        * `rx_port`: Read port into RX packet memory, 8 bytes by 2048 cells.
 
     Pins:
         * `rmii`: signal group containing txd0, txd1, txen, rxd0, rxd1, crs_dv,
@@ -27,14 +33,20 @@ class MAC(Module):
         * `eth_led`: Ethernet LED, active high, pulsed on packet traffic
 
     Inputs:
-        * `rx_ack`: Pulse high to acknowledge received packet
+        * `rx_ack`: Assert to acknowledge packet reception and restart
+                    listening for new packets, ideally within 48 RMII
+                    ref_clk cycles.
 
     Outputs:
         * `link_up`: High while link is established
-        * `rx_valid`: Received a valid packet into Rx RAM
-        * `rx_len`: Received packet length
+        * `rx_valid`: Asserted when a valid packet is in RX memory.
+                      Acknowledge by asserting `rx_ack`.
+        * `rx_len`: Received packet length. Valid while `rx_valid` is asserted.
     """
-    def __init__(self, clk_freq, phy_addr, rx_port, rmii, phy_rst, eth_led):
+    def __init__(self, clk_freq, phy_addr, mac_addr, rmii, phy_rst, eth_led):
+        # Ports
+        self.rx_port = None  # Assigned below
+
         # Inputs
         self.rx_ack = Signal()
 
@@ -45,21 +57,39 @@ class MAC(Module):
 
         ###
 
+        self.clock_domains.rmii = ClockDomain("rmii")
+        self.comb += self.rmii.clk.eq(rmii.ref_clk)
+
+        rx_mem = Memory(8, 2048)
+        self.rx_port = rx_mem.get_port()
+        rx_port_w = rx_mem.get_port(write_capable=True, clock_domain="rmii")
+        self.specials += [rx_mem, self.rx_port, rx_port_w]
+
         self.submodules.phy_manager = PHYManager(
             clk_freq, phy_addr, phy_rst, rmii.mdio, rmii.mdc)
 
-        self.submodules.rmii_rx = RMIIRx(rx_port, rmii.ref_clk, rmii.crs_dv,
-                                         rmii.rxd0, rmii.rxd1)
+        self.submodules.rmii_rx = ClockDomainsRenamer("rmii")(
+            RMIIRx(mac_addr, rx_port_w, rmii.crs_dv, rmii.rxd0, rmii.rxd1))
+
+        # Double register RMIIRx inputs/outputs for CDC
+        rx_valid_latch = Signal()
+        rx_len_latch = Signal(11)
+        rx_ack_latch = Signal()
+        self.sync += [
+            rx_valid_latch.eq(self.rmii_rx.rx_valid),
+            self.rx_valid.eq(rx_valid_latch),
+            rx_len_latch.eq(self.rmii_rx.rx_len),
+            self.rx_len.eq(rx_len_latch),
+            rx_ack_latch.eq(self.rx_ack),
+            self.rmii_rx.rx_ack.eq(rx_ack_latch),
+        ]
 
         self.comb += [
             self.link_up.eq(self.phy_manager.link_up),
-            eth_led.eq(self.link_up),
-            self.rmii_rx.rx_ack.eq(self.rx_ack),
-            self.rx_valid.eq(self.rmii_rx.rx_valid),
-            self.rx_len.eq(self.rmii_rx.rx_len),
             rmii.txen.eq(0),
             rmii.txd0.eq(0),
             rmii.txd1.eq(0),
+            eth_led.eq(self.link_up & ~self.rx_valid),
         ]
 
 

@@ -66,29 +66,25 @@ class ProtoSwitchTop(Module):
         self.comb += self.sys.clk.eq(self.pll.clk_out)
 
         # Instantiate Ethernet MAC
-        rx_mem = Memory(8, 2048, [0x55 for _ in range(2048)])
-        rx_port = rx_mem.get_port(write_capable=True)
-        rx_port_r = rx_mem.get_port()
-        self.specials += [rx_mem, rx_port, rx_port_r]
         rmii = platform.request("rmii")
         phy_rst = platform.request("phy_rst")
         eth_led = platform.request("eth_led")
-        self.submodules.mac = MAC(100e6, 0, rx_port, rmii, phy_rst, eth_led)
+        self.submodules.mac = MAC(100e6, 0, rmii, phy_rst, eth_led)
 
         # Debug outputs
         uart = platform.request("uart")
         led1 = platform.request("user_led")
         led2 = platform.request("user_led")
 
-        self.submodules.uarttx = UARTTxFromMemory(100, 11, rx_port_r)
+        self.submodules.uarttx = UARTTxFromMemory(100, 11, self.mac.rx_port)
         stopadr = Signal(11)
         self.sync += If(self.mac.rx_valid, stopadr.eq(self.mac.rx_len))
         self.comb += [
+            self.mac.rx_ack.eq(1),
             uart.tx.eq(self.uarttx.tx_out),
             self.uarttx.startadr.eq(0),
             self.uarttx.stopadr.eq(stopadr),
-            self.mac.rx_ack.eq(self.uarttx.ready),
-            self.uarttx.trigger.eq(self.mac.rx_valid),
+            self.uarttx.trigger.eq(0),
             led1.eq(self.mac.rx_valid),
-            led2.eq(self.mac.rmii_rx.crc.crc_match),
+            led2.eq(0),
         ]

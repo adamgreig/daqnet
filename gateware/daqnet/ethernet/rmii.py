@@ -4,8 +4,7 @@ Ethernet RMII Interface
 Copyright 2018 Adam Greig
 """
 
-from migen import (Module, Signal, If, Cat, FSM, NextValue, NextState,
-                   ClockDomain)
+from migen import Module, Signal, If, Cat, FSM, NextValue, NextState
 from .crc import CRC32
 
 
@@ -17,24 +16,32 @@ class RMIIRx(Module):
     frame check sequence and only asserts `rx_valid` when an entire valid
     packet has been saved to the port.
 
+    This module must be run in the RMII ref_clk domain, and the memory port
+    and inputs and outputs must be in the same clock domain.
+
+    Parameters:
+        * `mac_addr`: 6-byte MAC address (list of ints)
+
     Ports:
-        * `write_port`: a write-capable memory port, 8 bits wide by 2048
+        * `write_port`: a write-capable memory port, 8 bits wide by 2048,
+                        running in the RMII ref_clk domain
 
     Pins:
-        * `ref_clk`: RMII reference clock, input
         * `crs_dv`: Data valid, input
         * `rxd0`: RX data 0, input
         * `rxd1`: RX data 1, input
 
     Inputs:
-        * `rx_ack`: acknowledge packet recepton and restart listening
+        * `rx_ack`: assert when packet has been read from memory and reception
+                    can restart
 
     Outputs:
-        * `rx_valid`: pulses high when a valid packet has been saved to memory
-        * `rx_len`: 11-bit wide length of received packet, valid when
-          packet_rx is high
+        * `rx_valid`: asserted when a valid packet is in memory, until `rx_ack`
+                      is asserted
+        * `rx_len`: 11-bit wide length of received packet, valid while
+                    packet_rx is high
     """
-    def __init__(self, write_port, ref_clk, crs_dv, rxd0, rxd1, sim=False):
+    def __init__(self, mac_addr, write_port, crs_dv, rxd0, rxd1):
         # Inputs
         self.rx_ack = Signal()
 
@@ -44,23 +51,23 @@ class RMIIRx(Module):
 
         ###
 
-        self.submodules.rxbyte = RMIIRxByte(ref_clk, crs_dv, rxd0, rxd1, sim)
+        self.submodules.rxbyte = RMIIRxByte(crs_dv, rxd0, rxd1)
         self.submodules.crc = CRC32()
 
         self.comb += [
             write_port.adr.eq(self.rx_len),
             write_port.dat_w.eq(self.rxbyte.data),
+            write_port.we.eq(self.rxbyte.data_valid),
             self.crc.data.eq(self.rxbyte.data),
+            self.crc.data_valid.eq(self.rxbyte.data_valid),
         ]
 
         self.submodules.fsm = FSM(reset_state="IDLE")
 
-        # Idle until we see carrier sense
+        # Idle until we see data valid
         self.fsm.act(
             "IDLE",
-            write_port.we.eq(0),
             self.crc.reset.eq(1),
-            self.crc.data_valid.eq(0),
             self.rx_valid.eq(0),
             NextValue(self.rx_len, 0),
             If(
@@ -72,8 +79,6 @@ class RMIIRx(Module):
         # Save incoming data to memory
         self.fsm.act(
             "DATA",
-            self.crc.data_valid.eq(self.rxbyte.data_valid),
-            write_port.we.eq(self.rxbyte.data_valid),
             self.rx_valid.eq(0),
             If(
                 self.rxbyte.data_valid,
@@ -86,14 +91,13 @@ class RMIIRx(Module):
 
         self.fsm.act(
             "EOF",
-            write_port.we.eq(0),
             self.rx_valid.eq(0),
             self.crc.data_valid.eq(0),
             If(
                 self.crc.crc_match,
                 NextState("ACK"),
             ).Else(
-                NextState("ACK"),
+                NextState("IDLE"),
             ),
         )
 
@@ -107,107 +111,148 @@ class RMIIRx(Module):
         )
 
 
+class MACAddressMatch(Module):
+    """
+    MAC Address Matcher
+
+    Parameters:
+        * `mac_addr`: 6-byte MAC address (list of ints)
+
+    Inputs:
+        * `reset`: Restart address matching
+        * `data`: 8-bit input data
+        * `data_valid`: Pulsed high when new data is ready at `data`.
+
+    Outputs:
+        * `mac_match`: High if destination MAC address matches or is broadcast.
+                       Remains high until `reset` is asserted.
+    """
+    def __init__(self, mac_address):
+        # Inputs
+        self.reset = Signal()
+        self.data = Signal(8)
+        self.data_valid = Signal()
+
+        # Outputs
+        self.mac_match = Signal()
+
+        ###
+
+        mac = Signal(48)
+        mac_int = (
+            mac_address[0] << 40 |
+            mac_address[1] << 32 |
+            mac_address[2] << 24 |
+            mac_address[3] << 16 |
+            mac_address[4] << 8 |
+            mac_address[5])
+
+        data_reg = Signal(8)
+
+        self.sync += [
+            self.mac_match.eq((mac == mac_int) | (mac == 0xFFFFFF)),
+            self.data_reg.eq(self.data),
+        ]
+
+        self.submodules.fsm = FSM(reset_state="RESET")
+
+        self.fsm.act(
+            "RESET",
+            NextValue(mac, 0),
+            NextState("IDLE"),
+        )
+
+        self.fsm.act(
+            "IDLE",
+            If(
+                self.reset == 1,
+                NextState("RESET")
+            ).Elif(
+                self.data_valid,
+                NextState("BYTE0"),
+            )
+        )
+
+        for idx in range(6):
+            self.fsm.act(
+                f"BYTE{idx}",
+                If(
+                    self.data_valid,
+
+
 class RMIIRxByte(Module):
     """
-    RMII Receive Byte module
+    RMII Receive Byte De-muxer
 
     Handles receiving a byte dibit-by-dibit.
 
+    Clock this submodule off the RMII ref_clk signal.
+    No clock domain crossing is implemented in this module;
+    only interface to it on the RMII ref_clk domain.
+
     Pins:
-        * `ref_clk`: RMII reference clock, input
         * `crs_dv`: Data valid, input
         * `rxd0`: RX data 0, input
         * `rxd1`: RX data 1, input
 
     Outputs:
         * `data`: 8-bit wide output data
-        * `data_valid`: pulsed high when `data` is a valid byte
-        * `crs`: RMII Carrier Sense recovered signal
+        * `data_valid`: Asserted for one cycle when `data` is valid
         * `dv`: RMII Data valid recovered signal
+        * `crs`: RMII Carrier sense recovered signal
     """
-    def __init__(self, ref_clk, crs_dv, rxd0, rxd1, sim=False):
+    def __init__(self, crs_dv, rxd0, rxd1):
         # Outputs
         self.data = Signal(8)
         self.data_valid = Signal()
-        self.crs = Signal()
         self.dv = Signal()
+        self.crs = Signal()
 
         ###
 
-        self.clock_domains.rmii = ClockDomain("rmii")
-
-        if sim:
-            self.comb += ref_clk.eq(self.rmii.clk)
-        else:
-            self.comb += self.rmii.clk.eq(ref_clk)
-
         # Sample RMII signals on rising edge of ref_clk
-        crs_dv_ext = Signal()
-        rxd_ext = Signal(2)
-        self.sync.rmii += [
-            crs_dv_ext.eq(crs_dv),
-            rxd_ext.eq(Cat(rxd0, rxd1)),
-        ]
-
-        # Synchronise RMII signals to system clock domain
-        ref_clk_latch = Signal()
-        ref_clk_int = Signal()
-        crs_dv_latch = Signal()
-        crs_dv_int = Signal()
-        rxd_latch = Signal(2)
-        rxd_int = Signal(2)
+        crs_dv_reg = Signal()
+        rxd_reg = Signal(2)
         self.sync += [
-            ref_clk_latch.eq(ref_clk),
-            ref_clk_int.eq(ref_clk_latch),
-            crs_dv_latch.eq(crs_dv_ext),
-            crs_dv_int.eq(crs_dv_latch),
-            rxd_latch.eq(rxd_ext),
-            rxd_int.eq(rxd_latch),
+            crs_dv_reg.eq(crs_dv),
+            rxd_reg.eq(Cat(rxd0, rxd1)),
         ]
 
-        self.crs_dv_int = Signal()
-        self.comb += self.crs_dv_int.eq(crs_dv_int)
-
-        # Detect rising edge of synchronised ref_clk
-        clk_last = Signal()
-        clk_rise = Signal()
-        self.sync += clk_last.eq(ref_clk_int)
-        self.comb += clk_rise.eq(~clk_last & ref_clk_int)
-
+        # Run byte-recovery FSM on RMII clock domain
         self.submodules.fsm = FSM(reset_state="IDLE")
 
         self.fsm.act(
             "IDLE",
-            self.data_valid.eq(0),
             NextValue(self.crs, 0),
             NextValue(self.dv, 0),
+            NextValue(self.data_valid, 0),
             If(
-                clk_rise & crs_dv_int & (rxd_int == 0b01),
+                crs_dv_reg & (rxd_reg == 0b01),
                 NextState("PREAMBLE_SFD"),
             )
         )
 
         self.fsm.act(
             "PREAMBLE_SFD",
-            self.data_valid.eq(0),
             NextValue(self.crs, 1),
             NextValue(self.dv, 1),
+            NextValue(self.data_valid, 0),
             If(
-                rxd_int == 0b11,
+                rxd_reg == 0b11,
                 NextState("NIBBLE1"),
             ).Elif(
-                rxd_int != 0b01,
+                rxd_reg != 0b01,
                 NextState("IDLE"),
             )
         )
 
         self.fsm.act(
             "NIBBLE1",
-            self.data_valid.eq(0),
-            NextValue(self.data[0:2], rxd_int),
+            NextValue(self.data[0:2], rxd_reg),
+            NextValue(self.data_valid, 0),
             If(
-                clk_rise & self.dv,
-                NextValue(self.crs, crs_dv_int),
+                self.dv,
+                NextValue(self.crs, crs_dv_reg),
                 NextState("NIBBLE2"),
             ).Elif(
                 ~self.dv,
@@ -217,11 +262,11 @@ class RMIIRxByte(Module):
 
         self.fsm.act(
             "NIBBLE2",
-            self.data_valid.eq(0),
-            NextValue(self.data[2:4], rxd_int),
+            NextValue(self.data[2:4], rxd_reg),
+            NextValue(self.data_valid, 0),
             If(
-                clk_rise & self.dv,
-                NextValue(self.dv, crs_dv_int),
+                self.dv,
+                NextValue(self.dv, crs_dv_reg),
                 NextState("NIBBLE3"),
             ).Elif(
                 ~self.dv,
@@ -231,11 +276,11 @@ class RMIIRxByte(Module):
 
         self.fsm.act(
             "NIBBLE3",
-            self.data_valid.eq(0),
-            NextValue(self.data[4:6], rxd_int),
+            NextValue(self.data[4:6], rxd_reg),
+            NextValue(self.data_valid, 0),
             If(
-                clk_rise & self.dv,
-                NextValue(self.crs, crs_dv_int),
+                self.dv,
+                NextValue(self.crs, crs_dv_reg),
                 NextState("NIBBLE4"),
             ).Elif(
                 ~self.dv,
@@ -245,22 +290,17 @@ class RMIIRxByte(Module):
 
         self.fsm.act(
             "NIBBLE4",
-            self.data_valid.eq(0),
-            NextValue(self.data[6:8], rxd_int),
+            NextValue(self.data[6:8], rxd_reg),
             If(
-                clk_rise & self.dv,
-                NextValue(self.dv, crs_dv_int),
-                NextState("EOB"),
+                self.dv,
+                NextValue(self.dv, crs_dv_reg),
+                NextValue(self.data_valid, 1),
+                NextState("NIBBLE1"),
             ).Elif(
                 ~self.dv,
+                NextValue(self.data_valid, 0),
                 NextState("IDLE"),
             )
-        )
-
-        self.fsm.act(
-            "EOB",
-            self.data_valid.eq(1),
-            NextState("NIBBLE1"),
         )
 
 
@@ -269,7 +309,6 @@ def test_rmii_rx():
     from migen.sim import run_simulation
     from migen import Memory
 
-    ref_clk = Signal()
     crs_dv = Signal()
     rxd0 = Signal()
     rxd1 = Signal()
@@ -277,8 +316,7 @@ def test_rmii_rx():
     mem = Memory(8, 128)
     mem_port = mem.get_port(write_capable=True)
 
-    rmii_rx = RMIIRx(mem_port, ref_clk, crs_dv, rxd0, rxd1, sim=True)
-
+    rmii_rx = RMIIRx(mem_port, crs_dv, rxd0, rxd1)
     rmii_rx.specials += [mem, mem_port]
 
     def testbench():
@@ -304,18 +342,15 @@ def test_rmii_rx():
             yield (rxd0.eq(1))
             yield (rxd1.eq(0))
             yield
-            yield
         # SFD
         yield (rxd0.eq(1))
         yield (rxd1.eq(1))
-        yield
         yield
         # Data
         for txbyte in txbytes:
             for dibit in range(0, 8, 2):
                 yield (rxd0.eq((txbyte >> (dibit + 0)) & 1))
                 yield (rxd1.eq((txbyte >> (dibit + 1)) & 1))
-                yield
                 yield
         yield (crs_dv.eq(0))
 
@@ -335,16 +370,16 @@ def test_rmii_rx():
         for _ in range(10):
             yield
 
+        assert (yield rmii_rx.rx_valid) == 0
+
     run_simulation(rmii_rx, testbench(),
-                   clocks={"sys": (10, 0), "rmii": (20, 3)},
-                   vcd_name="rmii_rx.vcd")
+                   clocks={"sys": (20, 0)}, vcd_name="rmii_rx.vcd")
 
 
 def test_rmii_rx_byte():
     import random
     from migen.sim import run_simulation
 
-    ref_clk = Signal()
     crs_dv = Signal()
     rxd0 = Signal()
     rxd1 = Signal()
@@ -355,19 +390,21 @@ def test_rmii_rx_byte():
 
         txbytes = [random.randint(0, 255) for _ in range(8)]
         rxbytes = []
+
         yield (crs_dv.eq(1))
+
         # Preamble
         for _ in range(random.randint(10, 40)):
             yield (rxd0.eq(1))
             yield (rxd1.eq(0))
             yield
-            yield
+
         # SFD
         yield (rxd0.eq(1))
         yield (rxd1.eq(1))
         yield
-        yield
-        # Data (except last two bytes)
+
+        # Data (except last two bytes), with CRS=1 DV=1
         for txbyte in txbytes[:-2]:
             for dibit in range(0, 8, 2):
                 yield (rxd0.eq((txbyte >> (dibit + 0)) & 1))
@@ -375,25 +412,24 @@ def test_rmii_rx_byte():
                 yield
                 if (yield rmii_rx_byte.data_valid):
                     rxbytes.append((yield rmii_rx_byte.data))
-                yield
-                if (yield rmii_rx_byte.data_valid):
-                    rxbytes.append((yield rmii_rx_byte.data))
-        # Data (last two bytes)
+
+        # Data (last two bytes), with CRS=0 DV=1
         for txbyte in txbytes[-2:]:
             for dibit in range(0, 8, 2):
                 yield (rxd0.eq((txbyte >> (dibit + 0)) & 1))
                 yield (rxd1.eq((txbyte >> (dibit + 1)) & 1))
                 if dibit in (0, 4):
+                    # CRS=0
                     yield (crs_dv.eq(0))
                 else:
+                    # DV=1
                     yield (crs_dv.eq(1))
                 yield
                 if (yield rmii_rx_byte.data_valid):
                     rxbytes.append((yield rmii_rx_byte.data))
-                yield
-                if (yield rmii_rx_byte.data_valid):
-                    rxbytes.append((yield rmii_rx_byte.data))
+
         yield (crs_dv.eq(0))
+
         for _ in range(10):
             yield
             if (yield rmii_rx_byte.data_valid):
@@ -401,8 +437,7 @@ def test_rmii_rx_byte():
 
         assert rxbytes == txbytes
 
-    for phase in range(0, 20):
-        rmii_rx_byte = RMIIRxByte(ref_clk, crs_dv, rxd0, rxd1, sim=True)
+    for phase in range(20):
+        rmii_rx_byte = RMIIRxByte(crs_dv, rxd0, rxd1)
         run_simulation(rmii_rx_byte, testbench(rmii_rx_byte),
-                       clocks={"sys": (10, 0), "rmii": (20, phase)},
-                       vcd_name="rmii_rx_byte.vcd")
+                       clocks={"sys": (20, 0)}, vcd_name="rmii_rx_byte.vcd")
