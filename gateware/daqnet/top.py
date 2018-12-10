@@ -70,7 +70,8 @@ class ProtoSwitchTop(Module):
         rmii = platform.request("rmii")
         phy_rst = platform.request("phy_rst")
         eth_led = platform.request("eth_led")
-        mac_addr = [0x02, 0x44, 0x4E, 0x30, 0x76, 0x9e]
+        mac_addr = "02:44:4E:30:76:9E"
+        mac_addr = [int(x, 16) for x in mac_addr.split(":")]
         self.submodules.mac = MAC(100e6, 0, mac_addr, rmii, phy_rst, eth_led)
 
         # Debug outputs
@@ -89,4 +90,11 @@ class ProtoSwitchTop(Module):
             self.uarttx.trigger.eq(0),
             led1.eq(eth_led),
             led2.eq(self.mac.link_up),
+            self.mac.tx_len.eq(61),
+            self.mac.tx_start.eq(self.mac.link_up),
         ]
+
+        # self.sync += [
+            # self.mac.tx_start.eq(
+                # self.mac.tx_ready & self.mac.rx_valid)
+        # ]

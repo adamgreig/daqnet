@@ -7,16 +7,17 @@ Copyright 2018 Adam Greig
 from migen import (Module, Signal, Constant, If, FSM, NextValue, NextState,
                    Memory, ClockDomain, ClockDomainsRenamer)
 from .mdio import MDIO
-from .rmii import RMIIRx
+from .rmii import RMIIRx, RMIITx
 
 
 class MAC(Module):
     """
     Ethernet RMII MAC.
 
-    This module is clocked at the system clock frequency and generates an RMII
-    clock domain internally. All its inputs and outputs are in the system clock
-    domain.
+    Clock domain:
+        This module is clocked at the system clock frequency and generates an
+        RMII clock domain internally. All its inputs and outputs are in the
+        system clock domain.
 
     Parameters:
         * `clk_freq`: MAC's clock frequency
@@ -25,6 +26,7 @@ class MAC(Module):
 
     Ports:
         * `rx_port`: Read port into RX packet memory, 8 bytes by 2048 cells.
+        * `tx_port`: Write port into TX packet memory, 8 bytes by 2048 cells.
 
     Pins:
         * `rmii`: signal group containing txd0, txd1, txen, rxd0, rxd1, crs_dv,
@@ -36,12 +38,15 @@ class MAC(Module):
         * `rx_ack`: Assert to acknowledge packet reception and restart
                     listening for new packets, ideally within 48 RMII
                     ref_clk cycles.
+        * `tx_start`: Assert to begin transmission of a packet from memory
+        * `tx_len`: 11-bit wide length of packet to transmit
 
     Outputs:
         * `link_up`: High while link is established
         * `rx_valid`: Asserted when a valid packet is in RX memory.
                       Acknowledge by asserting `rx_ack`.
-        * `rx_len`: Received packet length. Valid while `rx_valid` is asserted.
+        * `rx_len`: Received packet length. Valid while `rx_valid` is asserted
+        * `tx_ready`: Asserted while ready to transmit a new packet
     """
     def __init__(self, clk_freq, phy_addr, mac_addr, rmii, phy_rst, eth_led):
         # Ports
@@ -49,11 +54,14 @@ class MAC(Module):
 
         # Inputs
         self.rx_ack = Signal()
+        self.tx_start = Signal()
+        self.tx_len = Signal(11)
 
         # Outputs
         self.link_up = Signal()
         self.rx_valid = Signal()
         self.rx_len = Signal(11)
+        self.tx_ready = Signal()
 
         ###
 
@@ -65,11 +73,28 @@ class MAC(Module):
         rx_port_w = rx_mem.get_port(write_capable=True, clock_domain="rmii")
         self.specials += [rx_mem, self.rx_port, rx_port_w]
 
+        tx_pkt = [
+            0x18, 0x31, 0xbf, 0xcb, 0x8e, 0xa4, 0x02, 0x44, 0x4e, 0x30, 0x76,
+            0x9e, 0x08, 0x00, 0x45, 0x00, 0x00, 0x2f, 0x12, 0x34, 0x40, 0x00,
+            0xff, 0x11, 0xe3, 0x6e, 0xc0, 0xa8, 0x02, 0xc8, 0xc0, 0xa8, 0x02,
+            0x02, 0x00, 0x00, 0x00, 0x00, 0x03, 0xe8, 0x07, 0xd0, 0x00, 0x17,
+            0xfb, 0xd2, 0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x2c, 0x20, 0x44, 0x41,
+            0x51, 0x6e, 0x65, 0x74, 0x21, 0x0a
+        ]
+
+        tx_mem = Memory(8, 2048, tx_pkt)
+        self.tx_port = tx_mem.get_port(write_capable=True)
+        tx_port_r = tx_mem.get_port(clock_domain="rmii")
+        self.specials += [tx_mem, self.tx_port, tx_port_r]
+
         self.submodules.phy_manager = PHYManager(
             clk_freq, phy_addr, phy_rst, rmii.mdio, rmii.mdc)
 
         self.submodules.rmii_rx = ClockDomainsRenamer("rmii")(
             RMIIRx(mac_addr, rx_port_w, rmii.crs_dv, rmii.rxd0, rmii.rxd1))
+
+        self.submodules.rmii_tx = ClockDomainsRenamer("rmii")(
+            RMIITx(tx_port_r, rmii.txen, rmii.txd0, rmii.txd1))
 
         self.submodules.stretch = PulseStretch(int(clk_freq/1000))
 
@@ -77,6 +102,9 @@ class MAC(Module):
         rx_valid_latch = Signal()
         rx_len_latch = Signal(11)
         rx_ack_latch = Signal()
+        tx_start_latch = Signal()
+        tx_len_latch = Signal(11)
+        tx_ready_latch = Signal()
         self.sync += [
             rx_valid_latch.eq(self.rmii_rx.rx_valid),
             self.rx_valid.eq(rx_valid_latch),
@@ -84,14 +112,17 @@ class MAC(Module):
             self.rx_len.eq(rx_len_latch),
             rx_ack_latch.eq(self.rx_ack),
             self.rmii_rx.rx_ack.eq(rx_ack_latch),
+            tx_start_latch.eq(self.tx_start),
+            self.rmii_tx.tx_start.eq(tx_start_latch),
+            tx_len_latch.eq(self.tx_len),
+            self.rmii_tx.tx_len.eq(tx_len_latch),
+            tx_ready_latch.eq(self.rmii_tx.tx_ready),
+            self.tx_ready.eq(tx_ready_latch),
         ]
 
         self.comb += [
             self.link_up.eq(self.phy_manager.link_up),
-            rmii.txen.eq(0),
-            rmii.txd0.eq(0),
-            rmii.txd1.eq(0),
-            self.stretch.input.eq(self.rx_valid),
+            self.stretch.input.eq(self.rx_valid | ~self.tx_ready),
             eth_led.eq(self.stretch.output),
         ]
 

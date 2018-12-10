@@ -286,7 +286,8 @@ class RMIITx(Module):
             self.crc.data_valid.eq(
                 self.fsm.ongoing("DATA") & self.txbyte.ready),
             self.tx_ready.eq(self.fsm.ongoing("IDLE")),
-            self.txbyte.data_valid.eq(~self.fsm.ongoing("IDLE")),
+            self.txbyte.data_valid.eq(
+                ~(self.fsm.ongoing("IDLE") | self.fsm.ongoing("IPG"))),
         ]
 
         self.fsm.act(
@@ -363,7 +364,18 @@ class RMIITx(Module):
             self.txbyte.data.eq(self.crc.crc_out[24:32]),
             If(
                 self.txbyte.ready,
+                NextValue(tx_idx, 0),
+                NextState("IPG"),
+            )
+        )
+
+        self.fsm.act(
+            "IPG",
+            If(
+                tx_idx == 48,
                 NextState("IDLE"),
+            ).Else(
+                NextValue(tx_idx, tx_idx + 1)
             )
         )
 
@@ -597,7 +609,6 @@ def test_rmii_rx_byte():
 
 
 def test_rmii_tx():
-    import random
     from migen.sim import run_simulation
     from migen import Memory
 
@@ -617,8 +628,18 @@ def test_rmii_tx():
         0x64, 0x48,
     ]
 
+    txbytes = [
+        0x18, 0x31, 0xBF, 0xCB, 0x8E, 0xA4, 0x02, 0x44, 0x4E, 0x30, 0x76, 0x9E,
+        0x08, 0x00, 0x45, 0x00, 0x00, 0x2F, 0x12, 0x34, 0x40, 0x00, 0xFF, 0x11,
+        0xE3, 0x6E, 0xC0, 0xA8, 0x02, 0xC8, 0xC0, 0xA8, 0x02, 0x02, 0x00, 0x00,
+        0x00, 0x00, 0x03, 0xE8, 0x07, 0xD0, 0x00, 0x17, 0xFB, 0xD2, 0x48, 0x65,
+        0x6C, 0x6C, 0x6F, 0x2C, 0x20, 0x44, 0x41, 0x51, 0x6E, 0x65, 0x74, 0x21,
+        0x0A
+    ]
+
     preamblebytes = [0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x5D]
     crcbytes = [0x52, 0x32, 0x1F, 0x9E]
+    crcbytes = [0x2F, 0x15, 0x10, 0x22]
 
     txnibbles = []
     rxnibbles = []
@@ -658,7 +679,6 @@ def test_rmii_tx():
 
     run_simulation(rmii_tx, testbench(), clocks={"sys": (20, 0)},
                    vcd_name="rmii_tx.vcd")
-
 
 
 def test_rmii_tx_byte():
