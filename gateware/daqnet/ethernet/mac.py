@@ -71,6 +71,8 @@ class MAC(Module):
         self.submodules.rmii_rx = ClockDomainsRenamer("rmii")(
             RMIIRx(mac_addr, rx_port_w, rmii.crs_dv, rmii.rxd0, rmii.rxd1))
 
+        self.submodules.stretch = PulseStretch(int(clk_freq/1000))
+
         # Double register RMIIRx inputs/outputs for CDC
         rx_valid_latch = Signal()
         rx_len_latch = Signal(11)
@@ -89,7 +91,8 @@ class MAC(Module):
             rmii.txen.eq(0),
             rmii.txd0.eq(0),
             rmii.txd1.eq(0),
-            eth_led.eq(self.link_up & ~self.rx_valid),
+            self.stretch.input.eq(self.rx_valid),
+            eth_led.eq(self.stretch.output),
         ]
 
 
@@ -264,6 +267,38 @@ class PHYManager(Module):
                     NextValue(counter, one_ms),
                     NextState(next_state)),
             )
+
+
+class PulseStretch(Module):
+    def __init__(self, nclks):
+        # Inputs
+        self.input = Signal()
+
+        # Outputs
+        self.output = Signal()
+
+        ###
+
+        counter = Signal(max=nclks)
+        self.submodules.fsm = FSM(reset_state="WAIT")
+
+        self.comb += self.output.eq(self.fsm.ongoing("STRETCH"))
+
+        self.fsm.act(
+            "WAIT",
+            NextValue(counter, 0),
+            If(self.input == 1, NextState("STRETCH")),
+        )
+
+        self.fsm.act(
+            "STRETCH",
+            If(
+                counter == nclks-1,
+                NextState("WAIT"),
+            ).Else(
+                NextValue(counter, counter + 1)
+            )
+        )
 
 
 def test_phy_manager():

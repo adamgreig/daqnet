@@ -1,4 +1,5 @@
-from migen import Signal, Module, ClockDomain, Instance, If, Memory
+from migen import (Signal, Module, ClockDomain, Instance, If, Memory,
+                   FSM, NextValue, NextState)
 
 from .ethernet.mac import MAC
 from .uart import UARTTxFromMemory, UARTTx
@@ -69,7 +70,8 @@ class ProtoSwitchTop(Module):
         rmii = platform.request("rmii")
         phy_rst = platform.request("phy_rst")
         eth_led = platform.request("eth_led")
-        self.submodules.mac = MAC(100e6, 0, rmii, phy_rst, eth_led)
+        mac_addr = [0x02, 0x44, 0x4E, 0x30, 0x76, 0x9e]
+        self.submodules.mac = MAC(100e6, 0, mac_addr, rmii, phy_rst, eth_led)
 
         # Debug outputs
         uart = platform.request("uart")
@@ -85,6 +87,6 @@ class ProtoSwitchTop(Module):
             self.uarttx.startadr.eq(0),
             self.uarttx.stopadr.eq(stopadr),
             self.uarttx.trigger.eq(0),
-            led1.eq(self.mac.rx_valid),
-            led2.eq(0),
+            led1.eq(eth_led),
+            led2.eq(self.mac.link_up),
         ]
