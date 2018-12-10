@@ -18,7 +18,7 @@ class RMIIRx(Module):
     packet has been saved to the port.
 
     This module must be run in the RMII ref_clk domain, and the memory port
-    and inputs and outputs must be in the same clock domain.
+    and inputs and outputs must also be in that clock domain.
 
     Parameters:
         * `mac_addr`: 6-byte MAC address (list of ints)
@@ -28,9 +28,9 @@ class RMIIRx(Module):
                         running in the RMII ref_clk domain
 
     Pins:
-        * `crs_dv`: Data valid, input
-        * `rxd0`: RX data 0, input
-        * `rxd1`: RX data 1, input
+        * `crs_dv`: RMII carrier sense/data valid
+        * `rxd0`: RMII receive data 0
+        * `rxd1`: RMII receive data 1
 
     Inputs:
         * `rx_ack`: assert when packet has been read from memory and reception
@@ -117,9 +117,8 @@ class RMIIRxByte(Module):
 
     Handles receiving a byte dibit-by-dibit.
 
-    Clock this submodule off the RMII ref_clk signal.
-    No clock domain crossing is implemented in this module;
-    only interface to it on the RMII ref_clk domain.
+    This submodule must be in the RMII ref_clk clock domain,
+    and its outputs are likewise in that domain.
 
     Pins:
         * `crs_dv`: Data valid, input
@@ -149,7 +148,6 @@ class RMIIRxByte(Module):
             rxd_reg.eq(Cat(rxd0, rxd1)),
         ]
 
-        # Run byte-recovery FSM on RMII clock domain
         self.submodules.fsm = FSM(reset_state="IDLE")
 
         self.fsm.act(
@@ -235,6 +233,229 @@ class RMIIRxByte(Module):
         )
 
 
+class RMIITx(Module):
+    """
+    RMII transmit module
+
+    Transmits outgoing packets from a memory. Adds preamble, start of frame
+    delimiter, and frame check sequence (CRC32) automatically.
+
+    This module must be run in the RMII ref_clk domain, and the memory port
+    and inputs and outputs must also be in that clock domain.
+
+    Ports:
+        * `read_port`: a read memory port, 8 bits wide by 2048,
+          running in the RMII ref_clk domain
+
+    Pins:
+        * `txen`: RMII transmit enable
+        * `txd0`: RMII transmit data 0
+        * `txd1`: RMII transmit data 1
+
+    Inputs:
+        * `tx_start`: Assert to begin transmission of a packet
+        * `tx_len`: 11-bit wide length of packet to transmit, read
+          when `tx_start` is asserted.
+
+    Outputs:
+        * `tx_ready`: Asserted while ready to transmit a new packet
+    """
+    def __init__(self, read_port, txen, txd0, txd1):
+        # Inputs
+        self.tx_start = Signal()
+        self.tx_len = Signal(11)
+
+        # Outputs
+        self.tx_ready = Signal()
+
+        ###
+
+        # Transmit byte counter
+        tx_idx = Signal(11)
+        # Transmit length latch
+        tx_len = Signal(11)
+
+        self.submodules.txbyte = RMIITxByte(txen, txd0, txd1)
+        self.submodules.crc = CRC32()
+        self.submodules.fsm = FSM(reset_state="IDLE")
+
+        self.comb += [
+            read_port.adr.eq(tx_idx),
+            self.crc.data.eq(read_port.dat_r),
+            self.crc.reset.eq(self.fsm.ongoing("IDLE")),
+            self.crc.data_valid.eq(
+                self.fsm.ongoing("DATA") & self.txbyte.ready),
+            self.tx_ready.eq(self.fsm.ongoing("IDLE")),
+            self.txbyte.data_valid.eq(~self.fsm.ongoing("IDLE")),
+        ]
+
+        self.fsm.act(
+            "IDLE",
+            self.txbyte.data.eq(0),
+            NextValue(tx_idx, 0),
+            NextValue(tx_len, self.tx_len),
+            If(self.tx_start, NextState("PREAMBLE"))
+        )
+
+        self.fsm.act(
+            "PREAMBLE",
+            self.txbyte.data.eq(0x55),
+            If(
+                tx_idx == 7,
+                NextState("SFD"),
+            ).Elif(
+                self.txbyte.ready,
+                NextValue(tx_idx, tx_idx + 1),
+            )
+        )
+
+        self.fsm.act(
+            "SFD",
+            self.txbyte.data.eq(0x5D),
+            If(
+                self.txbyte.ready,
+                NextValue(tx_idx, 0),
+                NextState("DATA"),
+            )
+        )
+
+        self.fsm.act(
+            "DATA",
+            self.txbyte.data.eq(read_port.dat_r),
+            If(
+                tx_idx == tx_len,
+                NextState("FCS1"),
+            ).Elif(
+                self.txbyte.ready,
+                NextValue(tx_idx, tx_idx + 1),
+            )
+        )
+
+        self.fsm.act(
+            "FCS1",
+            self.txbyte.data.eq(self.crc.crc_out[0:8]),
+            If(
+                self.txbyte.ready,
+                NextState("FCS2"),
+            )
+        )
+
+        self.fsm.act(
+            "FCS2",
+            self.txbyte.data.eq(self.crc.crc_out[8:16]),
+            If(
+                self.txbyte.ready,
+                NextState("FCS3"),
+            )
+        )
+
+        self.fsm.act(
+            "FCS3",
+            self.txbyte.data.eq(self.crc.crc_out[16:24]),
+            If(
+                self.txbyte.ready,
+                NextState("FCS4"),
+            )
+        )
+
+        self.fsm.act(
+            "FCS4",
+            self.txbyte.data.eq(self.crc.crc_out[24:32]),
+            If(
+                self.txbyte.ready,
+                NextState("IDLE"),
+            )
+        )
+
+
+class RMIITxByte(Module):
+    """
+    RMII Transmit Byte Muxer
+
+    Handles transmitting a byte dibit-by-dibit.
+
+    This submodule must be in the RMII ref_clk clock domain,
+    and its inputs and outputs are likewise in that domain.
+
+    Pins:
+        * `txen`: RMII Transmit enable
+        * `txd0`: TMII Transmit data 0
+        * `txd1`: TMII Transmit data 1
+
+    Inputs:
+        * `data`: 8-bit wide data to transmit. Latched internally so you may
+          update it to the next word after asserting `data_valid`.
+        * `data_valid`: Assert while valid data is present at `data`.
+
+    Outputs:
+        * `ready`: Asserted when ready to receive new data. This is asserted
+                   while the final dibit is being transmitted so that new data
+                   can be produced on the next clock cycle.
+    """
+    def __init__(self, txen, txd0, txd1):
+        # Inputs
+        self.data = Signal(8)
+        self.data_valid = Signal()
+
+        # Outputs
+        self.ready = Signal()
+
+        ###
+
+        # Register input data on the data_valid signal
+        data_reg = Signal(8)
+
+        self.submodules.fsm = FSM(reset_state="IDLE")
+
+        self.comb += [
+            self.ready.eq(
+                self.fsm.ongoing("IDLE") | self.fsm.ongoing("NIBBLE4")),
+            txen.eq(~self.fsm.ongoing("IDLE")),
+        ]
+
+        self.fsm.act(
+            "IDLE",
+            txd0.eq(0),
+            txd1.eq(0),
+            NextValue(data_reg, self.data),
+            If(self.data_valid, NextState("NIBBLE1"))
+        )
+
+        self.fsm.act(
+            "NIBBLE1",
+            txd0.eq(data_reg[0]),
+            txd1.eq(data_reg[1]),
+            NextState("NIBBLE2"),
+        )
+
+        self.fsm.act(
+            "NIBBLE2",
+            txd0.eq(data_reg[2]),
+            txd1.eq(data_reg[3]),
+            NextState("NIBBLE3"),
+        )
+
+        self.fsm.act(
+            "NIBBLE3",
+            txd0.eq(data_reg[4]),
+            txd1.eq(data_reg[5]),
+            NextState("NIBBLE4"),
+        )
+
+        self.fsm.act(
+            "NIBBLE4",
+            txd0.eq(data_reg[6]),
+            txd1.eq(data_reg[7]),
+            NextValue(data_reg, self.data),
+            If(
+                self.data_valid,
+                NextState("NIBBLE1")
+            ).Else(
+                NextState("IDLE")
+            )
+        )
+
+
 def test_rmii_rx():
     import random
     from migen.sim import run_simulation
@@ -316,7 +537,9 @@ def test_rmii_rx_byte():
     rxd0 = Signal()
     rxd1 = Signal()
 
-    def testbench(rmii_rx_byte):
+    rmii_rx_byte = RMIIRxByte(crs_dv, rxd0, rxd1)
+
+    def testbench():
         for _ in range(10):
             yield
 
@@ -369,7 +592,127 @@ def test_rmii_rx_byte():
 
         assert rxbytes == txbytes
 
-    for phase in range(20):
-        rmii_rx_byte = RMIIRxByte(crs_dv, rxd0, rxd1)
-        run_simulation(rmii_rx_byte, testbench(rmii_rx_byte),
-                       clocks={"sys": (20, 0)}, vcd_name="rmii_rx_byte.vcd")
+    run_simulation(rmii_rx_byte, testbench(),
+                   clocks={"sys": (20, 0)}, vcd_name="rmii_rx_byte.vcd")
+
+
+def test_rmii_tx():
+    import random
+    from migen.sim import run_simulation
+    from migen import Memory
+
+    txen = Signal()
+    txd0 = Signal()
+    txd1 = Signal()
+
+    txbytes = [
+        0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xF0, 0xDE, 0xF1, 0x38, 0x89, 0x40,
+        0x08, 0x00, 0x45, 0x00, 0x00, 0x54, 0x00, 0x00, 0x40, 0x00, 0x40, 0x01,
+        0xB6, 0xD0, 0xC0, 0xA8, 0x01, 0x88, 0xC0, 0xA8, 0x01, 0x00, 0x08, 0x00,
+        0x0D, 0xD9, 0x12, 0x1E, 0x00, 0x07, 0x3B, 0x3E, 0x0C, 0x5C, 0x00, 0x00,
+        0x00, 0x00, 0x13, 0x03, 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x57,
+        0x6F, 0x72, 0x6C, 0x64, 0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x20, 0x57, 0x6F,
+        0x72, 0x6C, 0x64, 0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x20, 0x57, 0x6F, 0x72,
+        0x6C, 0x64, 0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x20, 0x57, 0x6F, 0x72, 0x6C,
+        0x64, 0x48,
+    ]
+
+    preamblebytes = [0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x5D]
+    crcbytes = [0x52, 0x32, 0x1F, 0x9E]
+
+    txnibbles = []
+    rxnibbles = []
+
+    for txbyte in preamblebytes + txbytes + crcbytes:
+        txnibbles += [
+            (txbyte & 0b11),
+            ((txbyte >> 2) & 0b11),
+            ((txbyte >> 4) & 0b11),
+            ((txbyte >> 6) & 0b11),
+        ]
+
+    mem = Memory(8, 128, txbytes)
+    mem_port = mem.get_port()
+
+    rmii_tx = RMIITx(mem_port, txen, txd0, txd1)
+    rmii_tx.specials += [mem, mem_port]
+
+    def testbench():
+        for _ in range(10):
+            yield
+
+        yield (rmii_tx.tx_start.eq(1))
+        yield (rmii_tx.tx_len.eq(len(txbytes)))
+
+        yield
+
+        yield (rmii_tx.tx_start.eq(0))
+        yield (rmii_tx.tx_len.eq(0))
+
+        for _ in range((len(txbytes) + 12) * 4 + 10):
+            if (yield txen):
+                rxnibbles.append((yield txd0) | ((yield txd1) << 1))
+            yield
+
+        assert txnibbles == rxnibbles
+
+    run_simulation(rmii_tx, testbench(), clocks={"sys": (20, 0)},
+                   vcd_name="rmii_tx.vcd")
+
+
+
+def test_rmii_tx_byte():
+    import random
+    from migen.sim import run_simulation
+
+    data = Signal(8)
+    data_valid = Signal()
+
+    txen = Signal()
+    txd0 = Signal()
+    txd1 = Signal()
+
+    rmii_tx_byte = RMIITxByte(txen, txd0, txd1)
+    rmii_tx_byte.comb += [
+        rmii_tx_byte.data.eq(data),
+        rmii_tx_byte.data_valid.eq(data_valid),
+    ]
+
+    def testbench():
+        for _ in range(10):
+            yield
+
+        txbytes = [random.randint(0, 255) for _ in range(8)]
+        txnibbles = []
+        rxnibbles = []
+
+        yield (data_valid.eq(1))
+        for txbyte in txbytes:
+            txnibbles += [
+                (txbyte & 0b11),
+                ((txbyte >> 2) & 0b11),
+                ((txbyte >> 4) & 0b11),
+                ((txbyte >> 6) & 0b11),
+            ]
+            yield (data.eq(txbyte))
+            yield
+            rxnibbles.append((yield txd0) | ((yield txd1) << 1))
+            yield
+            rxnibbles.append((yield txd0) | ((yield txd1) << 1))
+            yield
+            rxnibbles.append((yield txd0) | ((yield txd1) << 1))
+            yield
+            rxnibbles.append((yield txd0) | ((yield txd1) << 1))
+
+        yield (data_valid.eq(0))
+
+        yield
+        rxnibbles.append((yield txd0) | ((yield txd1) << 1))
+        rxnibbles = rxnibbles[1:]
+        assert txnibbles == rxnibbles
+
+        for _ in range(10):
+            yield
+
+    run_simulation(rmii_tx_byte, testbench(), clocks={"sys": (20, 0)},
+                   vcd_name="rmii_tx_byte.vcd")
