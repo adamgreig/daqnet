@@ -284,7 +284,8 @@ class RMIITx(Module):
             self.crc.data.eq(read_port.dat_r),
             self.crc.reset.eq(self.fsm.ongoing("IDLE")),
             self.crc.data_valid.eq(
-                self.fsm.ongoing("DATA") & self.txbyte.ready),
+                (self.fsm.ongoing("DATA") | self.fsm.ongoing("PAD"))
+                & self.txbyte.ready),
             self.tx_ready.eq(self.fsm.ongoing("IDLE")),
             self.txbyte.data_valid.eq(
                 ~(self.fsm.ongoing("IDLE") | self.fsm.ongoing("IPG"))),
@@ -302,20 +303,22 @@ class RMIITx(Module):
             "PREAMBLE",
             self.txbyte.data.eq(0x55),
             If(
-                tx_idx == 7,
-                NextState("SFD"),
-            ).Elif(
                 self.txbyte.ready,
-                NextValue(tx_idx, tx_idx + 1),
+                If(
+                    tx_idx == 6,
+                    NextValue(tx_idx, 0),
+                    NextState("SFD"),
+                ).Else(
+                    NextValue(tx_idx, tx_idx + 1),
+                )
             )
         )
 
         self.fsm.act(
             "SFD",
-            self.txbyte.data.eq(0x5D),
+            self.txbyte.data.eq(0xD5),
             If(
                 self.txbyte.ready,
-                NextValue(tx_idx, 0),
                 NextState("DATA"),
             )
         )
@@ -324,11 +327,30 @@ class RMIITx(Module):
             "DATA",
             self.txbyte.data.eq(read_port.dat_r),
             If(
-                tx_idx == tx_len,
-                NextState("FCS1"),
-            ).Elif(
                 self.txbyte.ready,
                 NextValue(tx_idx, tx_idx + 1),
+                If(
+                    tx_idx == tx_len - 1,
+                    If(
+                        tx_len < 60,
+                        NextState("PAD"),
+                    ).Else(
+                        NextState("FCS1"),
+                    )
+                )
+            )
+        )
+
+        self.fsm.act(
+            "PAD",
+            self.txbyte.data.eq(0x00),
+            If(
+                self.txbyte.ready,
+                NextValue(tx_idx, tx_idx + 1),
+                If(
+                    tx_idx == 59,
+                    NextState("FCS1"),
+                )
             )
         )
 
@@ -371,11 +393,10 @@ class RMIITx(Module):
 
         self.fsm.act(
             "IPG",
+            NextValue(tx_idx, tx_idx + 1),
             If(
                 tx_idx == 48,
                 NextState("IDLE"),
-            ).Else(
-                NextValue(tx_idx, tx_idx + 1)
             )
         )
 
@@ -617,34 +638,20 @@ def test_rmii_tx():
     txd1 = Signal()
 
     txbytes = [
-        0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xF0, 0xDE, 0xF1, 0x38, 0x89, 0x40,
-        0x08, 0x00, 0x45, 0x00, 0x00, 0x54, 0x00, 0x00, 0x40, 0x00, 0x40, 0x01,
-        0xB6, 0xD0, 0xC0, 0xA8, 0x01, 0x88, 0xC0, 0xA8, 0x01, 0x00, 0x08, 0x00,
-        0x0D, 0xD9, 0x12, 0x1E, 0x00, 0x07, 0x3B, 0x3E, 0x0C, 0x5C, 0x00, 0x00,
-        0x00, 0x00, 0x13, 0x03, 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x57,
-        0x6F, 0x72, 0x6C, 0x64, 0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x20, 0x57, 0x6F,
-        0x72, 0x6C, 0x64, 0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x20, 0x57, 0x6F, 0x72,
-        0x6C, 0x64, 0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x20, 0x57, 0x6F, 0x72, 0x6C,
-        0x64, 0x48,
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x02, 0x44, 0x4e, 0x30, 0x76,
+        0x9e, 0x08, 0x06, 0x00, 0x01, 0x08, 0x00, 0x06, 0x04, 0x00, 0x01,
+        0x02, 0x44, 0x4e, 0x30, 0x76, 0x9e, 0xc0, 0xa8, 0x02, 0xc8, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0xc0, 0xa8, 0x02, 0xc8
     ]
 
-    txbytes = [
-        0x18, 0x31, 0xBF, 0xCB, 0x8E, 0xA4, 0x02, 0x44, 0x4E, 0x30, 0x76, 0x9E,
-        0x08, 0x00, 0x45, 0x00, 0x00, 0x2F, 0x12, 0x34, 0x40, 0x00, 0xFF, 0x11,
-        0xE3, 0x6E, 0xC0, 0xA8, 0x02, 0xC8, 0xC0, 0xA8, 0x02, 0x02, 0x00, 0x00,
-        0x00, 0x00, 0x03, 0xE8, 0x07, 0xD0, 0x00, 0x17, 0xFB, 0xD2, 0x48, 0x65,
-        0x6C, 0x6C, 0x6F, 0x2C, 0x20, 0x44, 0x41, 0x51, 0x6E, 0x65, 0x74, 0x21,
-        0x0A
-    ]
-
-    preamblebytes = [0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x5D]
-    crcbytes = [0x52, 0x32, 0x1F, 0x9E]
-    crcbytes = [0x2F, 0x15, 0x10, 0x22]
+    preamblebytes = [0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0xD5]
+    padbytes = [0x00] * (60 - len(txbytes))
+    crcbytes = [0x44, 0x5E, 0xB4, 0xD2]
 
     txnibbles = []
     rxnibbles = []
 
-    for txbyte in preamblebytes + txbytes + crcbytes:
+    for txbyte in preamblebytes + txbytes + padbytes + crcbytes:
         txnibbles += [
             (txbyte & 0b11),
             ((txbyte >> 2) & 0b11),
@@ -670,7 +677,7 @@ def test_rmii_tx():
         yield (rmii_tx.tx_start.eq(0))
         yield (rmii_tx.tx_len.eq(0))
 
-        for _ in range((len(txbytes) + 12) * 4 + 10):
+        for _ in range((len(txbytes) + 12) * 4 + 120):
             if (yield txen):
                 rxnibbles.append((yield txd0) | ((yield txd1) << 1))
             yield

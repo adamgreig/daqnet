@@ -90,11 +90,17 @@ class ProtoSwitchTop(Module):
             self.uarttx.trigger.eq(0),
             led1.eq(eth_led),
             led2.eq(self.mac.link_up),
-            self.mac.tx_len.eq(61),
-            self.mac.tx_start.eq(self.mac.link_up),
+            self.mac.tx_len.eq(len(self.mac.tx_pkt)),
+            # self.mac.tx_start.eq(self.mac.link_up),
         ]
 
-        # self.sync += [
-            # self.mac.tx_start.eq(
-                # self.mac.tx_ready & self.mac.rx_valid)
-        # ]
+        counter = Signal(20)
+        self.sync += [
+            If(
+                counter == 0 & self.mac.link_up,
+                self.mac.tx_start.eq(1),
+            ).Else(
+                self.mac.tx_start.eq(0),
+            ),
+            counter.eq(counter + 1),
+        ]
