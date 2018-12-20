@@ -2,6 +2,7 @@ from migen import (Signal, Module, ClockDomain, Instance, If, Memory,
                    FSM, NextValue, NextState)
 
 from .ethernet.mac import MAC
+from .ethernet.ip import IPStack
 from .uart import UARTTxFromMemory, UARTTx
 
 
@@ -71,36 +72,26 @@ class ProtoSwitchTop(Module):
         phy_rst = platform.request("phy_rst")
         eth_led = platform.request("eth_led")
         mac_addr = "02:44:4E:30:76:9E"
-        mac_addr = [int(x, 16) for x in mac_addr.split(":")]
         self.submodules.mac = MAC(100e6, 0, mac_addr, rmii, phy_rst, eth_led)
 
+        # Instantiate IP stack
+        ip4_addr = "10.1.1.5"
+        self.submodules.ipstack = IPStack(
+            ip4_addr, mac_addr, self.mac.rx_port, self.mac.tx_port)
+        self.comb += [
+            self.ipstack.rx_valid.eq(self.mac.rx_valid),
+            self.ipstack.rx_len.eq(self.mac.rx_len),
+            self.ipstack.tx_ready.eq(self.mac.tx_ready),
+            self.mac.rx_ack.eq(self.ipstack.rx_ack),
+            self.mac.tx_start.eq(self.ipstack.tx_start),
+            self.mac.tx_len.eq(self.ipstack.tx_len),
+        ]
+
         # Debug outputs
-        uart = platform.request("uart")
         led1 = platform.request("user_led")
         led2 = platform.request("user_led")
 
-        self.submodules.uarttx = UARTTxFromMemory(100, 11, self.mac.rx_port)
-        stopadr = Signal(11)
-        self.sync += If(self.mac.rx_valid, stopadr.eq(self.mac.rx_len))
         self.comb += [
-            self.mac.rx_ack.eq(1),
-            uart.tx.eq(self.uarttx.tx_out),
-            self.uarttx.startadr.eq(0),
-            self.uarttx.stopadr.eq(stopadr),
-            self.uarttx.trigger.eq(0),
             led1.eq(eth_led),
             led2.eq(self.mac.link_up),
-            self.mac.tx_len.eq(len(self.mac.tx_pkt)),
-            # self.mac.tx_start.eq(self.mac.link_up),
-        ]
-
-        counter = Signal(20)
-        self.sync += [
-            If(
-                counter == 0 & self.mac.link_up,
-                self.mac.tx_start.eq(1),
-            ).Else(
-                self.mac.tx_start.eq(0),
-            ),
-            counter.eq(counter + 1),
         ]

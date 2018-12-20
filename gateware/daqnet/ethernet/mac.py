@@ -8,6 +8,7 @@ from migen import (Module, Signal, Constant, If, FSM, NextValue, NextState,
                    Memory, ClockDomain, ClockDomainsRenamer)
 from .mdio import MDIO
 from .rmii import RMIIRx, RMIITx
+from ..utils import PulseStretch
 
 
 class MAC(Module):
@@ -22,7 +23,7 @@ class MAC(Module):
     Parameters:
         * `clk_freq`: MAC's clock frequency
         * `phy_addr`: 5-bit address of the PHY
-        * `mac_addr`: 6-byte MAC address (list of ints)
+        * `mac_addr`: MAC address in standard XX:XX:XX:XX:XX:XX format
 
     Ports:
         * `rx_port`: Read port into RX packet memory, 8 bytes by 2048 cells.
@@ -51,6 +52,7 @@ class MAC(Module):
     def __init__(self, clk_freq, phy_addr, mac_addr, rmii, phy_rst, eth_led):
         # Ports
         self.rx_port = None  # Assigned below
+        self.tx_port = None  # Assigned below
 
         # Inputs
         self.rx_ack = Signal()
@@ -65,36 +67,33 @@ class MAC(Module):
 
         ###
 
+        # Turn MAC address into list-of-ints
+        self.mac_addr = [int(x, 16) for x in mac_addr.split(":")]
+
+        # Create RMII clock domain from RMII clock input
         self.clock_domains.rmii = ClockDomain("rmii")
         self.comb += self.rmii.clk.eq(rmii.ref_clk)
 
+        # Create RX packet memory and read/write ports
         rx_mem = Memory(8, 2048)
         self.rx_port = rx_mem.get_port()
         rx_port_w = rx_mem.get_port(write_capable=True, clock_domain="rmii")
         self.specials += [rx_mem, self.rx_port, rx_port_w]
 
-        # ARP broadcast packet example
-        self.tx_pkt = [
-            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x02, 0x44, 0x4e, 0x30, 0x76,
-            0x9e, 0x08, 0x06, 0x00, 0x01, 0x08, 0x00, 0x06, 0x04, 0x00, 0x01,
-            0x02, 0x44, 0x4e, 0x30, 0x76, 0x9e, 0xc0, 0xa8, 0x02, 0xc8, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0xc0, 0xa8, 0x02, 0xc8,
-        ]
-
-        tx_mem = Memory(8, 2048, self.tx_pkt)
+        # Create TX packet memory and read/write ports
+        tx_mem = Memory(8, 2048)
         self.tx_port = tx_mem.get_port(write_capable=True)
         tx_port_r = tx_mem.get_port(clock_domain="rmii")
         self.specials += [tx_mem, self.tx_port, tx_port_r]
 
+        # Create submodules for PHY and RMII
         self.submodules.phy_manager = PHYManager(
             clk_freq, phy_addr, phy_rst, rmii.mdio, rmii.mdc)
-
         self.submodules.rmii_rx = ClockDomainsRenamer("rmii")(
-            RMIIRx(mac_addr, rx_port_w, rmii.crs_dv, rmii.rxd0, rmii.rxd1))
-
+            RMIIRx(self.mac_addr, rx_port_w, rmii.crs_dv,
+                   rmii.rxd0, rmii.rxd1))
         self.submodules.rmii_tx = ClockDomainsRenamer("rmii")(
             RMIITx(tx_port_r, rmii.txen, rmii.txd0, rmii.txd1))
-
         self.submodules.stretch = PulseStretch(int(clk_freq/1000))
 
         # Double register RMIIRx inputs/outputs for CDC
@@ -297,38 +296,6 @@ class PHYManager(Module):
                     NextValue(counter, one_ms),
                     NextState(next_state)),
             )
-
-
-class PulseStretch(Module):
-    def __init__(self, nclks):
-        # Inputs
-        self.input = Signal()
-
-        # Outputs
-        self.output = Signal()
-
-        ###
-
-        counter = Signal(max=nclks)
-        self.submodules.fsm = FSM(reset_state="WAIT")
-
-        self.comb += self.output.eq(self.fsm.ongoing("STRETCH"))
-
-        self.fsm.act(
-            "WAIT",
-            NextValue(counter, 0),
-            If(self.input == 1, NextState("STRETCH")),
-        )
-
-        self.fsm.act(
-            "STRETCH",
-            If(
-                counter == nclks-1,
-                NextState("WAIT"),
-            ).Else(
-                NextValue(counter, counter + 1)
-            )
-        )
 
 
 def test_phy_manager():

@@ -4,7 +4,7 @@ A UART transmitter.
 Copyright 2017 Adam Greig
 """
 
-from migen import Module, Signal, If, FSM, NextValue, NextState, Array, Cat
+from migen import Module, Signal, If, FSM, NextValue, NextState, Array
 
 
 class UARTTx(Module):
@@ -249,4 +249,4 @@ def test_uart_tx_from_memory():
 
         assert txout == expected_bits[:-1]
 
-    run_simulation(uartfrommem, tb(), vcd_name="dump.vcd")
+    run_simulation(uartfrommem, tb())
