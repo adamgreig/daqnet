@@ -50,8 +50,15 @@ class IPStack(Module):
         self.mac_addr = [int(x, 16) for x in mac_addr.split(":")]
         self.ip4_addr_int = sum(self.ip4_addr[3-x] << (8*x) for x in range(4))
         self.mac_addr_int = sum(self.mac_addr[5-x] << (8*x) for x in range(6))
+        self.ip4_addr_c = Constant(self.ip4_addr_int, 32)
+        self.mac_addr_c = Constant(self.mac_addr_int, 48)
 
-        self.rx_dst_mac_addr = Signal(48)
+        # By default don't bother reading the destination MAC address.
+        # Functionality is left in in case it's required again later.
+        read_dst_addr = False
+        if read_dst_addr:
+            self.rx_dst_mac_addr = Signal(48)
+
         self.rx_src_mac_addr = Signal(48)
         self.rx_ethertype = Signal(16)
 
@@ -65,17 +72,25 @@ class IPStack(Module):
 
         self.submodules.fsm = FSM(reset_state="IDLE")
 
+        if read_dst_addr:
+            idle_offset = 0
+            idle_next_state = "RX_DST_ADDR_0"
+        else:
+            idle_offset = 6
+            idle_next_state = "RX_SRC_ADDR_0"
+
         # Wait for rx_valid
         self.fsm.act(
             "IDLE",
             NextValue(self.rx_ack, 0),
-            rx_port.adr.eq(0),
-            If(self.rx_valid, NextState("RX_DST_ADDR_0")),
+            rx_port.adr.eq(idle_offset),
+            If(self.rx_valid, NextState(idle_next_state)),
         )
 
-        # Read destination MAC address into rx_dst_mac_addr
-        fsm_read(self.fsm, "RX_DST_ADDR", 6, "RX_SRC_ADDR_0",
-                 self.rx_dst_mac_addr, rx_port.dat_r, rx_port.adr, 0)
+        if read_dst_addr:
+            # Read destination MAC address into rx_dst_mac_addr
+            fsm_read(self.fsm, "RX_DST_ADDR", 6, "RX_SRC_ADDR_0",
+                     self.rx_dst_mac_addr, rx_port.dat_r, rx_port.adr, 0)
 
         # Read source MAC address into rx_dst_mac_addr
         fsm_read(self.fsm, "RX_SRC_ADDR", 6, "RX_ETYPE_0",
@@ -213,7 +228,7 @@ class ProtocolARP(Module):
                   self.rx_arp_sha, self.tx_port_dat_w,
                   self.tx_port_we, self.tx_port_adr, 0)
         fsm_write(self.fsm, "TX_SRC_ADDR", 6, "TX_ETYPE_0",
-                  Constant(ipstack.mac_addr_int, 48), self.tx_port_dat_w,
+                  ipstack.mac_addr_c, self.tx_port_dat_w,
                   self.tx_port_we, self.tx_port_adr, 6)
         fsm_write(self.fsm, "TX_ETYPE", 2, "TX_HTYPE_0",
                   arp_etype, self.tx_port_dat_w,
@@ -234,10 +249,10 @@ class ProtocolARP(Module):
                   arp_oper_reply, self.tx_port_dat_w,
                   self.tx_port_we, self.tx_port_adr, 20)
         fsm_write(self.fsm, "TX_SHA", 6, "TX_SPA_0",
-                  Constant(ipstack.mac_addr_int, 48), self.tx_port_dat_w,
+                  ipstack.mac_addr_c, self.tx_port_dat_w,
                   self.tx_port_we, self.tx_port_adr, 22)
         fsm_write(self.fsm, "TX_SPA", 4, "TX_THA_0",
-                  Constant(ipstack.ip4_addr_int, 32), self.tx_port_dat_w,
+                  ipstack.ip4_addr_c, self.tx_port_dat_w,
                   self.tx_port_we, self.tx_port_adr, 28)
         fsm_write(self.fsm, "TX_THA", 6, "TX_TPA_0",
                   self.rx_arp_sha, self.tx_port_dat_w,
