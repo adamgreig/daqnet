@@ -4,8 +4,8 @@ MAC Address Matcher
 Copyright 2018 Adam Greig
 """
 
+import operator
 from functools import reduce
-from operator import and_
 
 from migen import Module, Signal, If, FSM, NextValue, NextState
 
@@ -39,24 +39,16 @@ class MACAddressMatch(Module):
 
         mac = [Signal(8) for _ in range(6)]
 
-        self.sync += [
-            self.mac_match.eq(
-                reduce(and_, [mac[idx] == mac_addr[idx] for idx in range(6)])
-                |
-                reduce(and_, [mac[idx] == 0xFF for idx in range(6)])
-            ),
-        ]
+        self.sync += self.mac_match.eq(
+            reduce(operator.and_,
+                   [(mac[idx] == mac_addr[idx]) | (mac[idx] == 0xFF)
+                    for idx in range(6)]))
 
         self.submodules.fsm = FSM(reset_state="RESET")
 
         self.fsm.act(
             "RESET",
-            NextValue(mac[0], 0),
-            NextValue(mac[1], 0),
-            NextValue(mac[2], 0),
-            NextValue(mac[3], 0),
-            NextValue(mac[4], 0),
-            NextValue(mac[5], 0),
+            [NextValue(mac[idx], 0) for idx in range(6)],
             If(~self.reset, NextState("BYTE0")),
         )
 
@@ -76,10 +68,7 @@ class MACAddressMatch(Module):
 
         self.fsm.act(
             "DONE",
-            If(
-                self.reset == 1,
-                NextState("RESET"),
-            )
+            If(self.reset == 1, NextState("RESET"))
         )
 
 
