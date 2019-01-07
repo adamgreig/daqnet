@@ -1,25 +1,25 @@
 import argparse
-import subprocess
-from .platform import ProtoSensorPlatform, ProtoSwitchPlatform
-from .top import ProtoSensorTop, ProtoSwitchTop
 
+from nmigen.back import rtlil, verilog
 
-def get_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--build", action='store_true')
-    parser.add_argument("--program", action='store_true')
-    return parser.parse_args()
+from .platform import SensorPlatform, SwitchPlatform
+from .top import SensorTop, SwitchTop
 
 
 def main():
-    args = get_args()
-    plat = ProtoSwitchPlatform()
-    # plat.add_period_constraint('sys', 10)
-    top = ProtoSwitchTop(plat)
-    if args.build:
-        plat.build(top)
-    if args.program:
-        subprocess.run(["/home/adam/Projects/amp_flashprog/prog.py",
-                        "--fpga", "build/top.bin"])
-        # prog = plat.create_programmer()
-        # prog.load_bitstream("build/top.bin")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("device", choices=["switch", "sensor"])
+    args = parser.parse_args()
+    if args.device == "switch":
+        plat = SwitchPlatform(args)
+        top = SwitchTop(plat, args)
+    elif args.device == "sensor":
+        plat = SensorPlatform(args)
+        top = SensorTop(plat, args)
+    with open(f"build/{args.device}.pcf", "w") as f:
+        f.write(plat.pcf)
+    frag = top.get_fragment(plat)
+    with open(f"build/{args.device}.il", "w") as f:
+        f.write(rtlil.convert(frag, name=args.device))
+    with open(f"build/{args.device}.v", "w") as f:
+        f.write(verilog.convert(frag, name=args.device))

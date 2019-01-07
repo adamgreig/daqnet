@@ -1,29 +1,78 @@
-from migen import (Signal, Module, ClockDomain, Instance, If, Memory,
-                   FSM, NextValue, NextState)
+from nmigen import Signal, Module, ClockDomain
 
-from .ethernet.mac import MAC
-from .ethernet.ip import IPStack
-from .uart import UARTTxFromMemory, UARTTx
+# from .ethernet.mac import MAC
+# from .ethernet.ip import IPStack
+# from .uart import UARTTxFromMemory, UARTTx
 
 
-class PLL(Module):
-    def __init__(self, divr, divf, divq, filter_range, name="PLL"):
-        self.clk_in = Signal()
-        self.clk_out = Signal()
-        self.specials += Instance(
-            'SB_PLL40_PAD',
-            name=name,
-            p_FEEDBACK_PATH="SIMPLE",
-            p_PLLOUT_SELECT="GENCLK",
-            p_DIVR=divr,
-            p_DIVF=divf,
-            p_DIVQ=divq,
-            p_FILTER_RANGE=filter_range,
-            i_PACKAGEPIN=self.clk_in,
-            i_RESETB=1,
-            i_BYPASS=0,
-            o_PLLOUTGLOBAL=self.clk_out,
-        )
+class LEDBlinker:
+    def __init__(self, nbits):
+        self.led = Signal()
+        self.nbits = nbits
+
+    def get_fragment(self, platform):
+        m = Module()
+        divider = Signal(self.nbits)
+        m.d.sync += divider.eq(divider + 1)
+        m.d.comb += self.led.eq(divider[-1])
+        return m.lower(platform)
+
+
+class Top:
+    def __init__(self, platform, args):
+        pass
+
+
+class SwitchTop(Top):
+    def __init__(self, platform, args):
+        self.led_blinker = LEDBlinker(24)
+
+    def get_fragment(self, platform):
+        m = Module()
+
+        for name, module in platform.get_instances():
+            setattr(m.submodules, name, module)
+
+        cd = ClockDomain("sync", reset_less=True)
+        m.d.comb += cd.clk.eq(platform.clk)
+
+        blinker = self.led_blinker.get_fragment(platform)
+        blinker.add_domains(cd)
+        m.submodules.led_blinker = blinker
+        m.d.comb += platform.user_led_1_pad.eq(self.led_blinker.led)
+
+        frag = m.lower(platform)
+
+        for port, dirn in platform.get_ports():
+            frag.add_ports(port, dir=dirn)
+
+        return frag
+
+
+class SensorTop(Top):
+    def __init__(self, platform, args):
+        self.led_blinker = LEDBlinker(23)
+
+    def get_fragment(self, platform):
+        m = Module()
+
+        for name, module in platform.get_instances():
+            setattr(m.submodules, name, module)
+
+        cd = ClockDomain("sync", reset_less=True)
+        m.d.comb += cd.clk.eq(platform.clk)
+
+        blinker = self.led_blinker.get_fragment(platform)
+        blinker.add_domains(cd)
+        m.submodules.led_blinker = blinker
+        m.d.comb += platform.user_led_3_pad.eq(self.led_blinker.led)
+
+        frag = m.lower(platform)
+
+        for port, dirn in platform.get_ports():
+            frag.add_ports(port, dir=dirn)
+
+        return frag
 
 
 class ProtoSensorTop(Module):
