@@ -16,9 +16,9 @@ def main():
     elif args.device == "sensor":
         plat = SensorPlatform(args)
         top = SensorTop(plat, args)
-    with open(f"build/{args.device}.pcf", "w") as f:
-        f.write(plat.pcf)
     frag = top.get_fragment(plat)
+    with open(f"build/{args.device}.pcf", "w") as f:
+        f.write(plat.get_pcf())
     with open(f"build/{args.device}.il", "w") as f:
         f.write(rtlil.convert(frag, name=args.device))
     with open(f"build/{args.device}.v", "w") as f:

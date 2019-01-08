@@ -1,4 +1,5 @@
 from nmigen import Signal, Module, ClockDomain
+from .platform import SB_PLL40_PAD
 
 # from .ethernet.mac import MAC
 # from .ethernet.ip import IPStack
@@ -30,16 +31,20 @@ class SwitchTop(Top):
     def get_fragment(self, platform):
         m = Module()
 
-        for name, module in platform.get_instances():
-            setattr(m.submodules, name, module)
+        # Set up PLL to multiply 25MHz clock to 100MHz clock
+        m.submodules.pll = pll = SB_PLL40_PAD(0, 31, 3, 2)
+        pll.packagepin = platform.request("clk25")
+        pll.plloutglobal = Signal()
 
+        # Set up clock domain on output of PLL
         cd = ClockDomain("sync", reset_less=True)
-        m.d.comb += cd.clk.eq(platform.clk)
+        m.d.comb += cd.clk.eq(pll.plloutglobal)
 
-        blinker = self.led_blinker.get_fragment(platform)
-        blinker.add_domains(cd)
-        m.submodules.led_blinker = blinker
-        m.d.comb += platform.user_led_1_pad.eq(self.led_blinker.led)
+        # Create LED blinker in PLL clock domain
+        led_blinker = self.led_blinker.get_fragment(platform)
+        m.submodules.led_blinker = led_blinker
+        led_blinker.add_domains(cd)
+        m.d.comb += platform.request("user_led_1").eq(self.led_blinker.led)
 
         frag = m.lower(platform)
 
