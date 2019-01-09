@@ -93,6 +93,15 @@ class SwitchTop(Top):
             mac.tx_len.eq(ipstack.tx_len),
         ]
 
+        # Debug outputs
+        led1 = platform.request("user_led_1")
+        led2 = platform.request("user_led_2")
+
+        self.comb += [
+            led1.eq(eth_led),
+            led2.eq(mac.link_up),
+        ]
+
         frag = m.lower(platform)
 
         # Add all the ports used on the platform to this module's ports
@@ -100,43 +109,3 @@ class SwitchTop(Top):
             frag.add_ports(port, dir=dirn)
 
         return frag
-
-
-class ProtoSwitchTop(Module):
-    def __init__(self, platform):
-        self.clock_domains.sys = ClockDomain("sys")
-        clk25 = platform.request("clk25")
-
-        # Set up 100MHz PLL
-        self.submodules.pll = PLL(divr=0, divf=31, divq=3, filter_range=2)
-        self.comb += self.pll.clk_in.eq(clk25)
-        self.comb += self.sys.clk.eq(self.pll.clk_out)
-
-        # Instantiate Ethernet MAC
-        rmii = platform.request("rmii")
-        phy_rst = platform.request("phy_rst")
-        eth_led = platform.request("eth_led")
-        mac_addr = "02:44:4E:30:76:9E"
-        self.submodules.mac = MAC(100e6, 0, mac_addr, rmii, phy_rst, eth_led)
-
-        # Instantiate IP stack
-        ip4_addr = "10.1.1.5"
-        self.submodules.ipstack = IPStack(
-            ip4_addr, mac_addr, self.mac.rx_port, self.mac.tx_port)
-        self.comb += [
-            self.ipstack.rx_valid.eq(self.mac.rx_valid),
-            self.ipstack.rx_len.eq(self.mac.rx_len),
-            self.ipstack.tx_ready.eq(self.mac.tx_ready),
-            self.mac.rx_ack.eq(self.ipstack.rx_ack),
-            self.mac.tx_start.eq(self.ipstack.tx_start),
-            self.mac.tx_len.eq(self.ipstack.tx_len),
-        ]
-
-        # Debug outputs
-        led1 = platform.request("user_led")
-        led2 = platform.request("user_led")
-
-        self.comb += [
-            led1.eq(eth_led),
-            led2.eq(self.mac.link_up),
-        ]

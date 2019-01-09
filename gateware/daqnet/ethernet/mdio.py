@@ -1,11 +1,11 @@
 """
 MDIO Controller
 
-Copyright 2018 Adam Greig
+Copyright 2018, 2019 Adam Greig
 """
 
-from migen import (Module, Signal, TSTriple, If, FSM, Array,
-                   NextValue, NextState)
+from nmigen import Module, Signal, Array
+from nmigen.lib.io import TSTriple
 
 
 class MDIO(Module):
@@ -44,43 +44,50 @@ class MDIO(Module):
         self.read_data = Signal(16)
         self.busy = Signal()
 
-        ###
+        # Parameters
+        self.clk_div = clk_div
+
+        # Pins
+        self.mdio = mdio
+        self.mdc = mdc
+
+    def get_fragment(self, platform):
+
+        m = Module()
 
         # Create tristate for MDIO
         self.mdio_t = TSTriple()
-        if mdio is not None:
+        if self.mdio is not None:
             # Skip special creation when mdio=None (for use with simulator)
-            self.specials += self.mdio_t.get_tristate(mdio)
+            m.submodules += platform.get_tristate(self.mdio_t, self.mdio)
 
         # Create divided clock for MDC
         mdc_int = Signal()
         mdc_rise = Signal()
         mdc_fall = Signal()
-        mdc_divider = Signal(max=clk_div)
-        self.sync += (
-            If(
-                mdc_divider == 0,
-                mdc_divider.eq(clk_div - 1),
+        mdc_divider = Signal(max=self.clk_div)
+        with m.If(mdc_divider == 0):
+            m.d.sync += [
+                mdc_divider.eq(self.clk_div - 1),
                 mdc_int.eq(0),
                 mdc_fall.eq(1),
                 mdc_rise.eq(0),
-            ).Elif(
-                mdc_divider == clk_div//2,
+            ]
+
+        with m.Elif(mdc_divider == self.clk_div//2):
+            m.d.sync += [
                 mdc_divider.eq(mdc_divider - 1),
                 mdc_int.eq(1),
                 mdc_fall.eq(0),
                 mdc_rise.eq(1),
-            ).Else(
+            ]
+
+        with m.Else():
+            m.d.sync += [
                 mdc_divider.eq(mdc_divider - 1),
                 mdc_fall.eq(0),
                 mdc_rise.eq(0),
-            )
-        )
-
-        # MDIO FSM
-        self.submodules.fsm = FSM(reset_state="IDLE")
-        self.comb += self.busy.eq(~self.fsm.ongoing("IDLE"))
-        bit_counter = Signal(6)
+            ]
 
         # Latches for inputs
         _phy_addr = Signal.like(self.phy_addr)
@@ -88,244 +95,219 @@ class MDIO(Module):
         _rw = Signal.like(self.rw)
         _write_data = Signal.like(self.write_data)
 
-        # Idle state
-        # Constantly register input data and wait for START signal
-        self.fsm.act(
-            "IDLE",
-            mdc.eq(0),
-            self.mdio_t.oe.eq(0),
+        # MDIO FSM
+        bit_counter = Signal(6)
+        with m.FSM() as fsm:
+            m.d.comb += self.busy.eq(~fsm.ongoing("IDLE"))
 
-            # Latch input signals while in idle
-            NextValue(_phy_addr, self.phy_addr),
-            NextValue(_reg_addr, self.reg_addr),
-            NextValue(_rw, self.rw),
-            NextValue(_write_data, self.write_data),
+            # Idle state
+            # Constantly register input data and wait for START signal
+            with m.State("IDLE"):
+                m.d.comb += [
+                    self.mdc.eq(0),
+                    self.mdio_t.oe.eq(0),
+                ]
 
-            If(self.start == 1, NextState("SYNC"))
-        )
+                # Latch input signals while in idle
+                m.d.sync += [
+                    _phy_addr.eq(self.phy_addr),
+                    _reg_addr.eq(self.reg_addr),
+                    _rw.eq(self.rw),
+                    _write_data.eq(self.write_data),
+                ]
 
-        # Synchronise to MDC. Enter this state at any time.
-        # Will transition to PRE_32 immediately after the next falling edge
-        # on MDC.
-        self.fsm.act(
-            "SYNC",
-            mdc.eq(0),
-            self.mdio_t.oe.eq(0),
+                with m.If(self.start == 1):
+                    m.next = "SYNC"
 
-            If(mdc_fall == 1,
-                NextValue(bit_counter, 32),
-                NextState("PRE_32"))
-        )
+            # Synchronise to MDC. Enter this state at any time.
+            # Will transition to PRE_32 immediately after the next
+            # falling edge on MDC.
+            with m.State("SYNC"):
+                m.d.comb += [
+                    self.mdc.eq(0),
+                    self.mdio_t.oe.eq(0),
+                ]
 
-        # PRE_32
-        # Preamble field: 32 bits of 1
-        self.fsm.act(
-            "PRE_32",
-            mdc.eq(mdc_int),
-            self.mdio_t.oe.eq(1),
+                with m.If(mdc_fall == 1):
+                    m.d.sync += bit_counter.eq(32)
+                    m.next = "PRE_32"
 
-            # Output all 1s
-            self.mdio_t.o.eq(1),
+            # PRE_32
+            # Preamble field: 32 bits of 1
+            with m.State("PRE_32"):
+                m.d.comb += [
+                    self.mdc.eq(mdc_int),
+                    self.mdio_t.oe.eq(1),
 
-            # Count falling edges of MDC, transition to ST after 32 MDC clocks
-            If(
-                mdc_fall == 1,
-                If(
-                    bit_counter == 1,
-                    NextValue(bit_counter, 2),
-                    NextState("ST")
-                ).Else(
-                    NextValue(bit_counter, bit_counter - 1)
-                )
-            )
-        )
+                    # Output all 1s
+                    self.mdio_t.o.eq(1),
+                ]
 
-        # ST
-        # Start field: always 01
-        self.fsm.act(
-            "ST",
-            mdc.eq(mdc_int),
-            self.mdio_t.oe.eq(1),
-            self.mdio_t.o.eq(bit_counter[0]),
+                # Count falling edges of MDC,
+                # transition to ST after 32 MDC clocks
+                with m.If(mdc_fall == 1):
+                    with m.If(bit_counter == 1):
+                        m.d.sync += bit_counter.eq(2)
+                        m.next = "ST"
+                    with m.Else():
+                        m.d.sync += bit_counter.eq(bit_counter - 1)
 
-            If(
-                mdc_fall == 1,
-                If(
-                    bit_counter == 1,
-                    NextValue(bit_counter, 2),
-                    NextState("OP")
-                ).Else(
-                    NextValue(bit_counter, bit_counter - 1)
-                )
-            )
-        )
+            # ST
+            # Start field: always 01
+            with m.State("ST"):
+                m.d.comb += [
+                    self.mdc.eq(mdc_int),
+                    self.mdio_t.oe.eq(1),
+                    self.mdio_t.o.eq(bit_counter[0]),
+                ]
 
-        # OP
-        # Opcode field: read=10, write=01
-        self.fsm.act(
-            "OP",
-            mdc.eq(mdc_int),
-            self.mdio_t.oe.eq(1),
-            If(
-                _rw == 1,
-                self.mdio_t.o.eq(bit_counter[0]),
-            ).Else(
-                self.mdio_t.o.eq(~bit_counter[0]),
-            ),
+                with m.If(mdc_fall == 1):
+                    with m.If(bit_counter == 1):
+                        m.d.sync += bit_counter.eq(2)
+                        m.next = "OP"
+                    with m.Else():
+                        m.d.sync += bit_counter.eq(bit_counter - 1)
 
-            If(
-                mdc_fall == 1,
-                If(
-                    bit_counter == 1,
-                    NextValue(bit_counter, 5),
-                    NextState("PA5")
-                ).Else(
-                    NextValue(bit_counter, bit_counter - 1)
-                )
-            )
-        )
+            # OP
+            # Opcode field: read=10, write=01
+            with m.State("OP"):
+                m.d.comb += [
+                    self.mdc.eq(mdc_int),
+                    self.mdio_t.oe.eq(1),
+                ]
+                with m.If(_rw == 1):
+                    m.d.comb += self.mdio_t.o.eq(bit_counter[0])
+                with m.Else():
+                    m.d.comb += self.mdio_t.o.eq(~bit_counter[0])
 
-        # PA5
-        # PHY address field, 5 bits
-        self.fsm.act(
-            "PA5",
-            mdc.eq(mdc_int),
-            self.mdio_t.oe.eq(1),
-            self.mdio_t.o.eq(Array(_phy_addr)[bit_counter - 1]),
+                with m.If(mdc_fall == 1):
+                    with m.If(bit_counter == 1):
+                        m.d.sync += bit_counter.eq(5)
+                        m.next = "PA5"
+                    with m.Else():
+                        m.d.sync += bit_counter.eq(bit_counter - 1)
 
-            If(
-                mdc_fall == 1,
-                If(
-                    bit_counter == 1,
-                    NextValue(bit_counter, 5),
-                    NextState("RA5")
-                ).Else(
-                    NextValue(bit_counter, bit_counter - 1)
-                )
-            )
-        )
+            # PA5
+            # PHY address field, 5 bits
+            with m.State("PA5"):
+                m.d.comb += [
+                    self.mdc.eq(mdc_int),
+                    self.mdio_t.oe.eq(1),
+                    self.mdio_t.o.eq(Array(_phy_addr)[bit_counter - 1]),
+                ]
 
-        # RA5
-        # Register address field, 5 bits
-        self.fsm.act(
-            "RA5",
-            mdc.eq(mdc_int),
-            self.mdio_t.oe.eq(1),
-            self.mdio_t.o.eq(Array(_reg_addr)[bit_counter - 1]),
+                with m.If(mdc_fall == 1):
+                    with m.If(bit_counter == 1):
+                        m.d.sync += bit_counter.eq(5)
+                        m.next = "RA5"
+                    with m.Else():
+                        m.d.sync += bit_counter.eq(bit_counter - 1)
 
-            If(
-                mdc_fall == 1,
-                If(
-                    bit_counter == 1,
-                    If(
-                        _rw == 1,
-                        NextValue(bit_counter, 2),
-                        NextState("TA_W")
-                    ).Else(
-                        NextValue(bit_counter, 1),
-                        NextState("TA_R")
-                    )
-                ).Else(
-                    NextValue(bit_counter, bit_counter - 1)
-                )
-            )
-        )
+            # RA5
+            # Register address field, 5 bits
+            with m.State("RA5"):
+                m.d.comb += [
+                    self.mdc.eq(mdc_int),
+                    self.mdio_t.oe.eq(1),
+                    self.mdio_t.o.eq(Array(_reg_addr)[bit_counter - 1]),
+                ]
 
-        # TA
-        # Turnaround, 1 bits, OE released for read operations
-        self.fsm.act(
-            "TA_R",
-            mdc.eq(mdc_int),
-            self.mdio_t.oe.eq(0),
+                with m.If(mdc_fall == 1):
+                    with m.If(bit_counter == 1):
+                        with m.If(_rw == 1):
+                            m.d.sync += bit_counter.eq(2)
+                            m.next = "TA_W"
+                        with m.Else():
+                            m.d.sync += bit_counter.eq(1)
+                            m.next = "TA_R"
+                    with m.Else():
+                        m.d.sync += bit_counter.eq(bit_counter - 1)
 
-            If(
-                mdc_fall == 1,
-                If(
-                    bit_counter == 1,
-                    NextValue(bit_counter, 16),
-                    NextState("D16_R")
-                ).Else(
-                    NextValue(bit_counter, bit_counter - 1)
-                )
-            )
-        )
+            # TA
+            # Turnaround, 1 bits, OE released for read operations
+            with m.State("TA_R"):
+                m.d.comb += [
+                    self.mdc.eq(mdc_int),
+                    self.mdio_t.oe.eq(0),
+                ]
 
-        # TA
-        # Turnaround, 2 bits, driven to 10 for write operations
-        self.fsm.act(
-            "TA_W",
-            mdc.eq(mdc_int),
-            self.mdio_t.oe.eq(1),
-            self.mdio_t.o.eq(~bit_counter[0]),
+                with m.If(mdc_fall == 1):
+                    with m.If(bit_counter == 1):
+                        m.d.sync += bit_counter.eq(16)
+                        m.next = "D16_R"
+                    with m.Else():
+                        m.d.sync += bit_counter.eq(bit_counter - 1)
 
-            If(
-                mdc_fall == 1,
-                If(
-                    bit_counter == 1,
-                    NextValue(bit_counter, 16),
-                    NextState("D16_W")
-                ).Else(
-                    NextValue(bit_counter, bit_counter - 1)
-                )
-            )
-        )
+            # TA
+            # Turnaround, 2 bits, driven to 10 for write operations
+            with m.State("TA_W"):
+                m.d.comb += [
+                    self.mdc.eq(mdc_int),
+                    self.mdio_t.oe.eq(1),
+                    self.mdio_t.o.eq(~bit_counter[0]),
+                ]
 
-        # D16
-        # Data field, read operation
-        self.fsm.act(
-            "D16_R",
-            mdc.eq(mdc_int),
-            self.mdio_t.oe.eq(0),
+                with m.If(mdc_fall == 1):
+                    with m.If(bit_counter == 1):
+                        m.d.sync += bit_counter.eq(16)
+                        m.next = "D16_W"
+                    with m.Else():
+                        m.d.sync += bit_counter.eq(bit_counter - 1)
 
-            If(
-                mdc_fall == 1,
-                NextValue(Array(self.read_data)[bit_counter - 1],
-                          self.mdio_t.i),
-                If(
-                    bit_counter == 1,
-                    NextState("READ_LAST_CLOCK")
-                ).Else(
-                    NextValue(bit_counter, bit_counter - 1),
-                )
-            )
-        )
+            # D16
+            # Data field, read operation
+            with m.State("D16_R"):
+                m.d.comb += [
+                    self.mdc.eq(mdc_int),
+                    self.mdio_t.oe.eq(0),
+                ]
 
-        # Because we sample MDIO on the falling edge, the final clock pulse
-        # is not used for data, but should probably be emitted to stop things
-        # getting confused.
-        self.fsm.act(
-            "READ_LAST_CLOCK",
-            mdc.eq(mdc_int),
-            self.mdio_t.oe.eq(0),
-            If(mdc_fall == 1, NextState("IDLE")),
-        )
+                with m.If(mdc_fall == 1):
+                    bit = Array(self.read_data)[bit_counter - 1]
+                    m.d.sync += bit.eq(self.mdio_t.i)
+                    with m.If(bit_counter == 1):
+                        m.next = "READ_LAST_CLOCK"
+                    with m.Else():
+                        m.d.sync += bit_counter.eq(bit_counter - 1)
 
-        # D16
-        # Data field, write operation
-        self.fsm.act(
-            "D16_W",
-            mdc.eq(mdc_int),
-            self.mdio_t.oe.eq(1),
-            self.mdio_t.o.eq(Array(_write_data)[bit_counter - 1]),
+            # Because we sample MDIO on the falling edge, the final clock
+            # pulse is not used for data, but should probably be emitted to
+            # stop things getting confused.
+            with m.State("READ_LAST_CLOCK"):
+                m.d.comb += [
+                    self.mdc.eq(mdc_int),
+                    self.mdio_t.oe.eq(0),
+                ]
 
-            If(
-                mdc_fall == 1,
-                If(
-                    bit_counter == 0,
-                    NextState("IDLE")
-                ).Else(
-                    NextValue(bit_counter, bit_counter - 1)
-                )
-            )
-        )
+                with m.If(mdc_fall == 1):
+                    m.next = "IDLE"
+
+            # D16
+            # Data field, write operation
+            with m.State("D16_W"):
+                m.d.comb += [
+                    self.mdc.eq(mdc_int),
+                    self.mdio_t.oe.eq(1),
+                    self.mdio_t.o.eq(Array(_write_data)[bit_counter - 1]),
+                ]
+
+                with m.If(mdc_fall == 1):
+                    with m.If(bit_counter == 0):
+                        m.next = "IDLE"
+                    with m.Else():
+                        m.d.sync += bit_counter.eq(bit_counter - 1)
+
+        return m.lower(platform)
 
 
 def test_mdio_read():
     import random
-    from migen.sim import run_simulation
+    from nmigen.back import pysim
 
     mdc = Signal()
     mdio = MDIO(20, None, mdc)
+    frag = mdio.get_fragment(platform=None)
+    vcdf = open("mdio_read.vcd", "w")
 
     def testbench():
         rng = random.Random(0)
@@ -394,15 +376,20 @@ def test_mdio_read():
             assert read_data == expected
             assert not was_busy
 
-    run_simulation(mdio, testbench(), vcd_name="mdio_read.vcd")
+    with pysim.Simulator(frag, vcd_file=vcdf) as sim:
+        sim.add_clock(1e-6)
+        sim.add_sync_process(testbench())
+        sim.run()
 
 
 def test_mdio_write():
     import random
-    from migen.sim import run_simulation
+    from nmigen.back import pysim
 
     mdc = Signal()
     mdio = MDIO(20, None, mdc)
+    frag = mdio.get_fragment(platform=None)
+    vcdf = open("mdio_write.vcd", "w")
 
     def testbench():
         rng = random.Random(0)
@@ -469,4 +456,7 @@ def test_mdio_write():
             assert oebits == expected
             assert not was_busy
 
-    run_simulation(mdio, testbench(), vcd_name="mdio_write.vcd")
+    with pysim.Simulator(frag, vcd_file=vcdf) as sim:
+        sim.add_clock(1e-6)
+        sim.add_sync_process(testbench())
+        sim.run()
