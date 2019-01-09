@@ -1,7 +1,8 @@
+from collections import namedtuple
 from nmigen import Signal, Instance, Const
 
 
-class InstanceWrapper:
+class _InstanceWrapper:
     """
     Wraps an Instance, taking parameters in the constructor and then
     exposing all ports as attributes. Unused ports are not specified
@@ -50,7 +51,7 @@ class InstanceWrapper:
         return Instance(self.itype, **args)
 
 
-class SB_IO(InstanceWrapper):
+class SB_IO(_InstanceWrapper):
     """
     I/O Primitive SB_IO.
 
@@ -88,7 +89,7 @@ class SB_IO(InstanceWrapper):
             m.d.comb += io1.d_out_0.eq(io2.d_in_0)
         Unused ports will not be added to the instantiated Instance.
 
-        * package_pin: connect to top-level pin
+        * package_pin: required, connect to top-level pin
         * latch_input_value: when high, maintain current input value
         * clock_enable: clock enable common to input and output clock
         * input_clock: clock for input FFs
@@ -152,7 +153,7 @@ class SB_IO(InstanceWrapper):
         self.params["pin_type"] = in_pin_type | (out_pin_type << 2)
 
 
-class SB_PLL40_PAD(InstanceWrapper):
+class SB_PLL40_PAD(_InstanceWrapper):
     """
     Phase-locked loop primitive SB_PLL40_PAD.
 
@@ -221,7 +222,7 @@ class SB_PLL40_PAD(InstanceWrapper):
         super().__init__("SB_PLL40_PAD", params, ports, required, default)
 
 
-class Port:
+class _Port:
     """
     Represents a port (one or more pins with the same name) available to the
     platform.
@@ -250,7 +251,7 @@ class Port:
         return "\n".join(pcf_lines)
 
 
-class Platform:
+class _Platform:
     def __init__(self, ports):
         self.ports_available = {port.name: port for port in ports}
         self.ports_used = {}
@@ -265,6 +266,16 @@ class Platform:
         else:
             raise ValueError(f"Unknown port {port}")
 
+    def request_group(self, group):
+        ports = []
+        for port in self.ports_available:
+            if port.startswith(group + "_"):
+                ports.append(port)
+        if not ports:
+            raise ValueError(f"No ports found in group {group}")
+        Group = namedtuple(group, [port[len(group)+1:] for port in ports])
+        return Group(*(self.request(port) for port in ports))
+
     def get_pcf(self):
         return "\n".join(port.make_pcf() for port in self.ports_used.values())
 
@@ -272,78 +283,78 @@ class Platform:
         return [(port.signal, port.dirn) for port in self.ports_used.values()]
 
 
-class SensorPlatform(Platform):
+class SensorPlatform(_Platform):
     def __init__(self, args):
         ports = (
-            Port("clk25", "i", "B6"),
-            Port("user_led_3", "o", "A10"),
-            Port("user_led_4", "o", "A11"),
-            Port("user_sw_1", "i", "L1"),
-            Port("user_sw_2", "i", "L7"),
-            Port("adc_cs", "o", "L2"),
-            Port("adc_dout", "o", "L3"),
-            Port("adc_sclk", "o", "L4"),
-            Port("flash_sdi", "o", "K9"),
-            Port("flash_sdo", "i", "J9"),
-            Port("flash_sck", "o", "L10"),
-            Port("flash_cs", "o", "K10"),
-            Port("flash_io2", "i", "H11"),
-            Port("flash_io3", "i", "J11"),
-            Port("daqnet_led1", "o", "A3"),
-            Port("daqnet_led2", "o", "A4"),
-            Port("daqnet_txp", "o", "C2"),
-            Port("daqnet_txn", "o", "C1"),
-            Port("daqnet_rx", "i", "B2"),
+            _Port("clk25", "i", "B6"),
+            _Port("user_led_3", "o", "A10"),
+            _Port("user_led_4", "o", "A11"),
+            _Port("user_sw_1", "i", "L1"),
+            _Port("user_sw_2", "i", "L7"),
+            _Port("adc_cs", "o", "L2"),
+            _Port("adc_dout", "o", "L3"),
+            _Port("adc_sclk", "o", "L4"),
+            _Port("flash_sdi", "o", "K9"),
+            _Port("flash_sdo", "i", "J9"),
+            _Port("flash_sck", "o", "L10"),
+            _Port("flash_cs", "o", "K10"),
+            _Port("flash_io2", "i", "H11"),
+            _Port("flash_io3", "i", "J11"),
+            _Port("daqnet_led1", "o", "A3"),
+            _Port("daqnet_led2", "o", "A4"),
+            _Port("daqnet_txp", "o", "C2"),
+            _Port("daqnet_txn", "o", "C1"),
+            _Port("daqnet_rx", "i", "B2"),
         )
 
         super().__init__(ports)
 
 
-class SwitchPlatform(Platform):
+class SwitchPlatform(_Platform):
     def __init__(self, args):
         ports = (
-            Port("clk25", "i", "B6"),
-            Port("user_led_1", "o", "A11"),
-            Port("user_led_2", "o", "A10"),
-            Port("uart_rx", "i", "A4"),
-            Port("uart_tx", "o", "A3"),
-            Port("flash_sdi", "o", "K9"),
-            Port("flash_sdo", "i", "J9"),
-            Port("flash_sck", "o", "L10"),
-            Port("flash_cs", "o", "K10"),
-            Port("flash_io2", "i", "K11"),
-            Port("flash_io3", "i", "J11"),
-            Port("rmii_txd0", "o", "J3"),
-            Port("rmii_txd1", "o", "L1"),
-            Port("rmii_txen", "o", "L2"),
-            Port("rmii_rxd0", "i", "K5"),
-            Port("rmii_rxd1", "i", "J5"),
-            Port("rmii_crs_dv", "i", "L4"),
-            Port("rmii_ref_clk", "i", "K4"),
-            Port("rmii_mdc", "o", "K3"),
-            Port("rmii_mdio", "io", "L3"),
-            Port("phy_rst", "o", "K2"),
-            Port("eth_led", "o", "J2"),
-            Port("daqnet_0_led1", "o", "C4"),
-            Port("daqnet_0_led2", "o", "D3"),
-            Port("daqnet_0_txp", "o", "B1"),
-            Port("daqnet_0_txn", "o", "B2"),
-            Port("daqnet_0_rx", "i", "C1"),
-            Port("daqnet_1_led1", "o", "D2"),
-            Port("daqnet_1_led2", "o", "C3"),
-            Port("daqnet_1_txp", "o", "E1"),
-            Port("daqnet_1_txn", "o", "D1"),
-            Port("daqnet_1_rx", "i", "E3"),
-            Port("daqnet_2_led1", "o", "G3"),
-            Port("daqnet_2_led2", "o", "F3"),
-            Port("daqnet_2_txp", "o", "F1"),
-            Port("daqnet_2_txn", "o", "F2"),
-            Port("daqnet_2_rx", "i", "G2"),
-            Port("daqnet_3_led1", "o", "F4"),
-            Port("daqnet_3_led2", "o", "H3"),
-            Port("daqnet_3_txp", "o", "H1"),
-            Port("daqnet_3_txn", "o", "H2"),
-            Port("daqnet_3_rx", "i", "K1"),
+            _Port("clk25", "i", "B6"),
+            _Port("user_led_1", "o", "A11"),
+            _Port("user_led_2", "o", "A10"),
+            _Port("uart_rx", "i", "A4"),
+            _Port("uart_tx", "o", "A3"),
+            _Port("flash_sdi", "o", "K9"),
+            _Port("flash_sdo", "i", "J9"),
+            _Port("flash_sck", "o", "L10"),
+            _Port("flash_cs", "o", "K10"),
+            _Port("flash_io2", "i", "K11"),
+            _Port("flash_io3", "i", "J11"),
+            _Port("rmii_txd0", "o", "J3"),
+            _Port("rmii_txd1", "o", "L1"),
+            _Port("rmii_txen", "o", "L2"),
+            _Port("rmii_rxd0", "i", "K5"),
+            _Port("rmii_rxd1", "i", "J5"),
+            _Port("rmii_crs_dv", "i", "L4"),
+            _Port("rmii_ref_clk", "i", "K4"),
+            _Port("rmii_mdc", "o", "K3"),
+            _Port("rmii_mdio", "io", "L3"),
+            _Port("phy_rst", "o", "K2"),
+            _Port("eth_led", "o", "J2"),
+            _Port("daqnet_0_led1", "o", "C4"),
+            _Port("daqnet_0_led2", "o", "D3"),
+            _Port("daqnet_0_txp", "o", "B1"),
+            _Port("daqnet_0_txn", "o", "B2"),
+            _Port("daqnet_0_rx", "i", "C1"),
+            _Port("daqnet_1_led1", "o", "D2"),
+            _Port("daqnet_1_led2", "o", "C3"),
+            _Port("daqnet_1_txp", "o", "E1"),
+            _Port("daqnet_1_txn", "o", "D1"),
+            _Port("daqnet_1_rx", "i", "E3"),
+            _Port("daqnet_2_led1", "o", "G3"),
+            _Port("daqnet_2_led2", "o", "F3"),
+            _Port("daqnet_2_txp", "o", "F1"),
+            _Port("daqnet_2_txn", "o", "F2"),
+            _Port("daqnet_2_rx", "i", "G2"),
+            _Port("daqnet_3_led1", "o", "F4"),
+            _Port("daqnet_3_led2", "o", "H3"),
+            _Port("daqnet_3_txp", "o", "H1"),
+            _Port("daqnet_3_txn", "o", "H2"),
+            _Port("daqnet_3_rx", "i", "K1"),
         )
 
         super().__init__(ports)
