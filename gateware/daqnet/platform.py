@@ -1,7 +1,56 @@
 from nmigen import Signal, Instance, Const
 
 
-class SB_IO:
+class InstanceWrapper:
+    """
+    Wraps an Instance, taking parameters in the constructor and then
+    exposing all ports as attributes. Unused ports are not specified
+    in the eventual Instance.
+
+    itype: the type of the instance to create
+    params: a dictionary of parameter names to values
+    ports: a dictionary of port names to (dirn, shape) tuples
+    required_ports: a list of required port names
+    defaults: a dictionary of port names to default values if unused
+    """
+    def __init__(self, itype, params, ports, required_ports, defaults=None):
+        super().__setattr__('ports_used', {})
+        super().__setattr__('ports', ports)
+        self.itype = itype
+        self.params = params
+        self.required_ports = required_ports
+        self.defaults = defaults
+
+    def __getattr__(self, name):
+        if name in self.ports_used:
+            return self.ports_used[name]
+        elif name.upper() in self.ports:
+            _, shape = self.ports[name.upper()]
+            self.ports_used[name] = Signal(shape=shape, name=name)
+            return self.ports_used[name]
+        else:
+            raise AttributeError
+
+    def __setattr__(self, name, value):
+        if name.upper() in self.ports:
+            self.ports_used[name] = value
+        else:
+            super().__setattr__(name, value)
+
+    def get_fragment(self, platform):
+        args = {f"p_{key.upper()}": val for (key, val) in self.params.items()}
+        for port, (dirn, shape) in self.ports.items():
+            if port.lower() in self.ports_used:
+                args[f"{dirn}_{port}"] = self.ports_used[port.lower()]
+            elif self.defaults and port in self.defaults:
+                args[f"{dirn}_{port}"] = self.defaults[port]
+            elif port in self.required_ports:
+                raise ValueError(f"{self.itype}: Required port {port} missing")
+
+        return Instance(self.itype, **args)
+
+
+class SB_IO(InstanceWrapper):
     """
     I/O Primitive SB_IO.
 
@@ -76,56 +125,34 @@ class SB_IO:
                  out_pin_type=PIN_NO_OUTPUT,
                  pullup=False, neg_trigger=False,
                  io_standard="SB_LVCMOS"):
-        self.params = {
+        params = {
             "pin_type": in_pin_type | (out_pin_type << 2),
             "pullup": int(pullup),
             "neg_trigger": int(neg_trigger),
             "io_standard": io_standard,
         }
 
-        self.ports = (
-            ("PACKAGE_PIN", "io"),
-            ("LATCH_INPUT_VALUE", "i"),
-            ("CLOCK_ENABLE", "i"),
-            ("INPUT_CLK", "i"),
-            ("OUTPUT_CLK", "i"),
-            ("OUTPUT_ENABLE", "i"),
-            ("D_OUT_0", "i"),
-            ("D_OUT_1", "i"),
-            ("D_IN_0", "o"),
-            ("D_IN_1", "o"),
-        )
+        ports = {
+            "PACKAGE_PIN": ("io", 1),
+            "LATCH_INPUT_VALUE": ("i", 1),
+            "CLOCK_ENABLE": ("i", 1),
+            "INPUT_CLK": ("i", 1),
+            "OUTPUT_CLK": ("i", 1),
+            "OUTPUT_ENABLE": ("i", 1),
+            "D_OUT_0": ("i", 1),
+            "D_OUT_1": ("i", 1),
+            "D_IN_0": ("o", 1),
+            "D_IN_1": ("o", 1),
+        }
 
-        self.ports_available = [p[0] for p in self.ports]
-        self.ports_used = {}
+        required = ("PACKAGE_PIN",)
+        super().__init__("SB_IO", params, ports, required)
 
     def change_pin_type(self, in_pin_type, out_pin_type):
         self.params["pin_type"] = in_pin_type | (out_pin_type << 2)
 
-    def __getattr__(self, name):
-        if name in self.ports_used:
-            return self.ports_used[name]
-        elif name.upper() in self.ports_available:
-            self.ports_used[name] = Signal(name=name)
-            return self.ports_used[name]
-        else:
-            raise AttributeError
 
-    def get_fragment(self, platform):
-        args = {f"p_{key.upper()}": val for (key, val) in self.params.items()}
-
-        required_ports = ("PACKAGE_PIN",)
-
-        for port, dirn, required in self.ports:
-            if port.lower() in self.__dict__:
-                args[f"{dirn}_{port}"] = getattr(self, port.lower())
-            elif port in required_ports:
-                raise ValueError(f"Required port {port} missing")
-
-        return Instance("SB_IO", **args)
-
-
-class SB_PLL40_PAD:
+class SB_PLL40_PAD(InstanceWrapper):
     """
     Phase-locked loop primitive SB_PLL40_PAD.
 
@@ -164,58 +191,34 @@ class SB_PLL40_PAD:
 
         If unspecified, RESETB is set to 1.
     """
-    def __init__(self, divr, divf, divq, filter_range, **kwargs):
-        kwargs["divr"] = divr
-        kwargs["divf"] = divf
-        kwargs["divq"] = divq
-        kwargs["filter_range"] = filter_range
+    def __init__(self, divr, divf, divq, filter_range, **params):
+        params["divr"] = divr
+        params["divf"] = divf
+        params["divq"] = divq
+        params["filter_range"] = filter_range
 
-        if "feedback_path" not in kwargs:
-            kwargs["feedback_path"] = "SIMPLE"
-        if "pllout_select" not in kwargs:
-            kwargs["pllout_select"] = "GENCLK"
+        if "feedback_path" not in params:
+            params["feedback_path"] = "SIMPLE"
+        if "pllout_select" not in params:
+            params["pllout_select"] = "GENCLK"
 
-        self.params = kwargs
+        ports = {
+            "PACKAGEPIN": ("i", 1),
+            "EXTFEEDBACK": ("i", 1),
+            "DYNAMICDELAY": ("i", 1),
+            "LATCHINPUTVALUE": ("i", 1),
+            "SCLK": ("i", 1),
+            "SDI": ("i", 1),
+            "SDO": ("o", 1),
+            "RESETB": ("i", 1),
+            "LOCK": ("o", 1),
+            "PLLOUTCORE": ("o", 1),
+            "PLLOUTGLOBAL": ("o", 1),
+        }
 
-        self.ports = (
-            ("PACKAGEPIN", "i"),
-            ("EXTFEEDBACK", "i"),
-            ("DYNAMICDELAY", "i"),
-            ("LATCHINPUTVALUE", "i"),
-            ("SCLK", "i"),
-            ("SDI", "i"),
-            ("SDO", "o"),
-            ("RESETB", "i"),
-            ("LOCK", "o"),
-            ("PLLOUTCORE", "o"),
-            ("PLLOUTGLOBAL", "o"),
-        )
-
-    def __getattr__(self, name):
-        if name in self.ports_used:
-            return self.ports_used[name]
-        elif name.upper() in self.ports_available:
-            self.ports_used[name] = Signal(name=name)
-            return self.ports_used[name]
-        else:
-            raise AttributeError
-
-    def get_fragment(self, platform):
-        args = {f"p_{key.upper()}": val for (key, val) in self.params.items()}
-
-        required_ports = ("PACKAGEPIN",)
-
-        for port, dirn in self.ports:
-            if port.lower() in self.__dict__:
-                args[f"{dirn}_{port}"] = getattr(self, port.lower())
-            elif port in required_ports:
-                raise ValueError(f"Required port {port} missing")
-
-        # Ensure i_RESETB is set high if not provided
-        if "i_RESETB" not in args:
-            args["i_RESETB"] = Const(1)
-
-        return Instance("SB_PLL40_PAD", **args)
+        required = ("PACKAGEPIN",)
+        default = {"RESETB": Const(1)}
+        super().__init__("SB_PLL40_PAD", params, ports, required, default)
 
 
 class Port:
