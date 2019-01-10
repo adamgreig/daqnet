@@ -106,7 +106,6 @@ def test_crc32():
         assert out == 0xCBF43926
 
     frag = crc.get_fragment(None)
-    frag.add_subfragment(crc.crctable.write_port().get_fragment(None))
     vcdf = open("crc32.vcd", "w")
     with pysim.Simulator(frag, vcd_file=vcdf) as sim:
         sim.add_clock(1e-6)
@@ -145,7 +144,6 @@ def test_crc32_match():
         assert match == 1
 
     frag = crc.get_fragment(None)
-    frag.add_subfragment(crc.crctable.write_port().get_fragment(None))
     vcdf = open("crc32_match.vcd", "w")
     with pysim.Simulator(frag, vcd_file=vcdf) as sim:
         sim.add_clock(1e-6)

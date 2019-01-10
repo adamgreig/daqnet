@@ -651,10 +651,6 @@ def test_rmii_tx():
     frag = rmii_tx.get_fragment(None)
     frag.add_subfragment(mem_port.get_fragment(None))
 
-    # TODO (nmigen#20) remove superfluous write port
-    write_port = mem.write_port()
-    frag.add_subfragment(write_port.get_fragment(None))
-
     vcdf = open("rmii_tx.vcd", "w")
     with pysim.Simulator(frag, vcd_file=vcdf) as sim:
         sim.add_clock(1/50e6)

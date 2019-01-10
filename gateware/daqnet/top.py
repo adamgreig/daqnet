@@ -100,7 +100,8 @@ class SwitchTop(Top):
 
         m.d.comb += [
             led1.eq(eth_led),
-            led2.eq(mac.link_up),
+            # led2.eq(mac.link_up),
+            led2.eq(phy_rst),
         ]
 
         frag = m.lower(platform)

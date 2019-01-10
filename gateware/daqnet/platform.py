@@ -283,8 +283,12 @@ class _Platform:
         return [(port.signal, port.dirn) for port in self.ports_used.values()]
 
     def get_tristate(self, tstriple, pad):
-        from nmigen import Fragment
-        return Fragment()
+        io = SB_IO(out_pin_type=SB_IO.PIN_OUTPUT_TRISTATE)
+        io.package_pin = pad
+        io.d_out_0 = tstriple.o
+        io.output_enable = tstriple.oe
+        tstriple.i = io.d_in_0
+        return io
 
 
 class SensorPlatform(_Platform):
