@@ -72,6 +72,12 @@ class MAC:
         self.phy_rst = phy_rst
         self.eth_led = eth_led
 
+        # Create packet memories and interface ports
+        self.rx_mem = Memory(8, 2048)
+        self.rx_port = self.rx_mem.read_port()
+        self.tx_mem = Memory(8, 2048)
+        self.tx_port = self.tx_mem.write_port()
+
     def get_fragment(self, platform):
         m = Module()
 
@@ -80,23 +86,17 @@ class MAC:
         m.d.comb += cd.clk.eq(self.rmii.ref_clk)
         m.domains.rmii = cd
 
-        # Create RX packet memory and read/write ports
-        rx_mem = Memory(8, 2048)
-        self.rx_port = rx_mem.read_port()
-        rx_port_w = rx_mem.write_port(domain="rmii")
-        m.submodules += [self.rx_port, rx_port_w]
-
-        # Create TX packet memory and read/write ports
-        tx_mem = Memory(8, 2048)
-        self.tx_port = tx_mem.write_port()
-        tx_port_r = tx_mem.read_port(domain="rmii")
-        m.submodules += [self.tx_port, tx_port_r]
+        # Create RX write and TX read ports for RMII use
+        rx_port_w = self.rx_mem.write_port(domain="rmii")
+        tx_port_r = self.tx_mem.read_port(domain="rmii")
+        m.submodules += [self.rx_port, rx_port_w, self.tx_port, tx_port_r]
 
         # Create submodules for PHY and RMII
         m.submodules.phy_manager = phy_manager = PHYManager(
             self.clk_freq, self.phy_addr, self.phy_rst,
             self.rmii.mdio, self.rmii.mdc)
         m.submodules.stretch = stretch = PulseStretch(int(self.clk_freq/1000))
+        m.d.comb += phy_manager.phy_reset.eq(0)
 
         rmii_rx = RMIIRx(
             self.mac_addr, rx_port_w, self.rmii.crs_dv,
@@ -137,7 +137,10 @@ class MAC:
         m.submodules.rmii_tx = DomainRenamer("rmii")(
             rmii_tx.get_fragment(platform))
 
-        return m.lower(platform)
+        frag = m.lower(platform)
+        frag.add_ports(self.rmii.txen, self.rmii.txd0, self.rmii.txd1, dir='o')
+        frag.add_ports(self.rmii.mdc, dir='o')
+        return frag
 
 
 class PHYManager:
@@ -238,6 +241,8 @@ class PHYManager:
                         m.next = "RESET"
                     with m.Elif(counter == 0):
                         m.next = f"WRITE_{registers_to_write[0][0]}"
+            else:
+                m.d.comb += mdio.write_data.eq(0)
 
             for idx, (name, addr, val) in enumerate(registers_to_write):
                 if idx == len(registers_to_write) - 1:
@@ -320,7 +325,9 @@ class PHYManager:
                         ]
                         m.next = next_state
 
-        return m.lower(platform)
+        frag = m.lower(platform)
+        frag.add_ports(self.mdc, dir='o')
+        return frag
 
 
 def test_phy_manager():

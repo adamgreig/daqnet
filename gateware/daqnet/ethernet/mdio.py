@@ -297,7 +297,9 @@ class MDIO:
                     with m.Else():
                         m.d.sync += bit_counter.eq(bit_counter - 1)
 
-        return m.lower(platform)
+        frag = m.lower(platform)
+        frag.add_ports(self.mdc, dir='o')
+        return frag
 
 
 def test_mdio_read():

@@ -351,7 +351,9 @@ class RMIITx:
                 with m.If(tx_idx == 48):
                     m.next = "IDLE"
 
-        return m.lower(platform)
+        frag = m.lower(platform)
+        frag.add_ports(self.txen, self.txd0, self.txd1, dir='o')
+        return frag
 
 
 class RMIITxByte:
@@ -443,7 +445,9 @@ class RMIITxByte:
                 with m.Else():
                     m.next = "IDLE"
 
-        return m.lower(platform)
+        frag = m.lower(platform)
+        frag.add_ports(self.txen, self.txd0, self.txd1, dir='o')
+        return frag
 
 
 def test_rmii_rx():

@@ -80,6 +80,17 @@ class SwitchTop(Top):
         mac = MAC(100e6, 0, mac_addr, rmii, phy_rst, eth_led)
         m.submodules.mac = mac
 
+        # Explicitly zero unused inputs in MAC
+        m.d.comb += [
+            mac.rx_ack.eq(1),
+            mac.tx_start.eq(0),
+            mac.tx_len.eq(0),
+            mac.rx_port.addr.eq(0),
+            mac.tx_port.addr.eq(0),
+            mac.tx_port.data.eq(0),
+            mac.tx_port.en.eq(0),
+        ]
+
         # IP stack
         # ip4_addr = "10.1.1.5"
         # ipstack = IPStack(
@@ -100,8 +111,7 @@ class SwitchTop(Top):
 
         m.d.comb += [
             led1.eq(eth_led),
-            # led2.eq(mac.link_up),
-            led2.eq(phy_rst),
+            led2.eq(mac.link_up),
         ]
 
         frag = m.lower(platform)
