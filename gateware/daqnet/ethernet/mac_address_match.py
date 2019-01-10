@@ -1,16 +1,16 @@
 """
 MAC Address Matcher
 
-Copyright 2018 Adam Greig
+Copyright 2018-2019 Adam Greig
 """
 
 import operator
 from functools import reduce
 
-from migen import Module, Signal, If, FSM, NextValue, NextState
+from nmigen import Module, Signal
 
 
-class MACAddressMatch(Module):
+class MACAddressMatch:
     """
     MAC Address Matcher
 
@@ -35,60 +35,52 @@ class MACAddressMatch(Module):
         # Outputs
         self.mac_match = Signal()
 
-        ###
+        # Parameters
+        self.mac_addr = mac_addr
 
+    def get_fragment(self, platform):
+        m = Module()
         mac = [Signal(8) for _ in range(6)]
 
-        self.sync += self.mac_match.eq(
+        m.d.sync += self.mac_match.eq(
             reduce(operator.and_,
-                   [(mac[idx] == mac_addr[idx]) | (mac[idx] == 0xFF)
+                   [(mac[idx] == self.mac_addr[idx]) | (mac[idx] == 0xFF)
                     for idx in range(6)]))
 
-        self.submodules.fsm = FSM(reset_state="RESET")
+        with m.FSM():
+            with m.State("RESET"):
+                m.d.sync += [mac[idx].eq(0) for idx in range(6)]
+                with m.If(~self.reset):
+                    m.next = "BYTE0"
 
-        self.fsm.act(
-            "RESET",
-            [NextValue(mac[idx], 0) for idx in range(6)],
-            If(~self.reset, NextState("BYTE0")),
-        )
+            for idx in range(6):
+                next_state = f"BYTE{idx+1}" if idx < 5 else "DONE"
 
-        for idx in range(6):
-            next_state = f"BYTE{idx+1}" if idx < 5 else "DONE"
-            self.fsm.act(
-                f"BYTE{idx}",
-                NextValue(mac[idx], self.data),
-                If(
-                    self.reset == 1,
-                    NextState("RESET")
-                ).Elif(
-                    self.data_valid,
-                    NextState(next_state),
-                )
-            )
+                with m.State(f"BYTE{idx}"):
+                    m.d.sync += mac[idx].eq(self.data)
+                    with m.If(self.reset):
+                        m.next = "RESET"
+                    with m.Elif(self.data_valid):
+                        m.next = next_state
 
-        self.fsm.act(
-            "DONE",
-            If(self.reset == 1, NextState("RESET"))
-        )
+            with m.State("DONE"):
+                with m.If(self.reset):
+                    m.next = "RESET"
+
+        return m.lower(platform)
 
 
 def test_mac_address_match():
     import random
-    from migen.sim import run_simulation
-
-    data = Signal(8)
-    data_valid = Signal()
-    reset = Signal()
+    from nmigen.back import pysim
 
     mac_address = [random.randint(0, 255) for _ in range(6)]
     mac_address = [0x01, 0x23, 0x45, 0x67, 0x89, 0xAB]
     mac_matcher = MACAddressMatch(mac_address)
 
-    mac_matcher.comb += [
-        mac_matcher.data.eq(data),
-        mac_matcher.data_valid.eq(data_valid),
-        mac_matcher.reset.eq(reset),
-    ]
+    data = mac_matcher.data
+    data_valid = mac_matcher.data_valid
+    reset = mac_matcher.reset
 
     def testbench():
         yield (reset.eq(1))
@@ -163,4 +155,9 @@ def test_mac_address_match():
         yield (reset.eq(0))
         yield
 
-    run_simulation(mac_matcher, testbench(), vcd_name="mac_matcher.vcd")
+    frag = mac_matcher.get_fragment(None)
+    vcdf = open("mac_matcher.vcd", "w")
+    with pysim.Simulator(frag, vcd_file=vcdf) as sim:
+        sim.add_clock(1e-6)
+        sim.add_sync_process(testbench())
+        sim.run()

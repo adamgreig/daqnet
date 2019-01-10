@@ -1,14 +1,14 @@
 """
 MDIO Controller
 
-Copyright 2018, 2019 Adam Greig
+Copyright 2018-2019 Adam Greig
 """
 
 from nmigen import Module, Signal, Array
 from nmigen.lib.io import TSTriple
 
 
-class MDIO(Module):
+class MDIO:
     """
     MDIO interface controller.
 
@@ -116,7 +116,7 @@ class MDIO(Module):
                     _write_data.eq(self.write_data),
                 ]
 
-                with m.If(self.start == 1):
+                with m.If(self.start):
                     m.next = "SYNC"
 
             # Synchronise to MDC. Enter this state at any time.
@@ -128,7 +128,7 @@ class MDIO(Module):
                     self.mdio_t.oe.eq(0),
                 ]
 
-                with m.If(mdc_fall == 1):
+                with m.If(mdc_fall):
                     m.d.sync += bit_counter.eq(32)
                     m.next = "PRE_32"
 
@@ -145,7 +145,7 @@ class MDIO(Module):
 
                 # Count falling edges of MDC,
                 # transition to ST after 32 MDC clocks
-                with m.If(mdc_fall == 1):
+                with m.If(mdc_fall):
                     with m.If(bit_counter == 1):
                         m.d.sync += bit_counter.eq(2)
                         m.next = "ST"
@@ -161,7 +161,7 @@ class MDIO(Module):
                     self.mdio_t.o.eq(bit_counter[0]),
                 ]
 
-                with m.If(mdc_fall == 1):
+                with m.If(mdc_fall):
                     with m.If(bit_counter == 1):
                         m.d.sync += bit_counter.eq(2)
                         m.next = "OP"
@@ -175,12 +175,12 @@ class MDIO(Module):
                     self.mdc.eq(mdc_int),
                     self.mdio_t.oe.eq(1),
                 ]
-                with m.If(_rw == 1):
+                with m.If(_rw):
                     m.d.comb += self.mdio_t.o.eq(bit_counter[0])
                 with m.Else():
                     m.d.comb += self.mdio_t.o.eq(~bit_counter[0])
 
-                with m.If(mdc_fall == 1):
+                with m.If(mdc_fall):
                     with m.If(bit_counter == 1):
                         m.d.sync += bit_counter.eq(5)
                         m.next = "PA5"
@@ -196,7 +196,7 @@ class MDIO(Module):
                     self.mdio_t.o.eq(Array(_phy_addr)[bit_counter - 1]),
                 ]
 
-                with m.If(mdc_fall == 1):
+                with m.If(mdc_fall):
                     with m.If(bit_counter == 1):
                         m.d.sync += bit_counter.eq(5)
                         m.next = "RA5"
@@ -212,9 +212,9 @@ class MDIO(Module):
                     self.mdio_t.o.eq(Array(_reg_addr)[bit_counter - 1]),
                 ]
 
-                with m.If(mdc_fall == 1):
+                with m.If(mdc_fall):
                     with m.If(bit_counter == 1):
-                        with m.If(_rw == 1):
+                        with m.If(_rw):
                             m.d.sync += bit_counter.eq(2)
                             m.next = "TA_W"
                         with m.Else():
@@ -231,7 +231,7 @@ class MDIO(Module):
                     self.mdio_t.oe.eq(0),
                 ]
 
-                with m.If(mdc_fall == 1):
+                with m.If(mdc_fall):
                     with m.If(bit_counter == 1):
                         m.d.sync += bit_counter.eq(16)
                         m.next = "D16_R"
@@ -247,7 +247,7 @@ class MDIO(Module):
                     self.mdio_t.o.eq(~bit_counter[0]),
                 ]
 
-                with m.If(mdc_fall == 1):
+                with m.If(mdc_fall):
                     with m.If(bit_counter == 1):
                         m.d.sync += bit_counter.eq(16)
                         m.next = "D16_W"
@@ -262,7 +262,7 @@ class MDIO(Module):
                     self.mdio_t.oe.eq(0),
                 ]
 
-                with m.If(mdc_fall == 1):
+                with m.If(mdc_fall):
                     bit = Array(self.read_data)[bit_counter - 1]
                     m.d.sync += bit.eq(self.mdio_t.i)
                     with m.If(bit_counter == 1):
@@ -279,7 +279,7 @@ class MDIO(Module):
                     self.mdio_t.oe.eq(0),
                 ]
 
-                with m.If(mdc_fall == 1):
+                with m.If(mdc_fall):
                     m.next = "IDLE"
 
             # D16
@@ -291,7 +291,7 @@ class MDIO(Module):
                     self.mdio_t.o.eq(Array(_write_data)[bit_counter - 1]),
                 ]
 
-                with m.If(mdc_fall == 1):
+                with m.If(mdc_fall):
                     with m.If(bit_counter == 0):
                         m.next = "IDLE"
                     with m.Else():
@@ -306,8 +306,6 @@ def test_mdio_read():
 
     mdc = Signal()
     mdio = MDIO(20, None, mdc)
-    frag = mdio.get_fragment(platform=None)
-    vcdf = open("mdio_read.vcd", "w")
 
     def testbench():
         rng = random.Random(0)
@@ -376,6 +374,8 @@ def test_mdio_read():
             assert read_data == expected
             assert not was_busy
 
+    frag = mdio.get_fragment(platform=None)
+    vcdf = open("mdio_read.vcd", "w")
     with pysim.Simulator(frag, vcd_file=vcdf) as sim:
         sim.add_clock(1e-6)
         sim.add_sync_process(testbench())
@@ -388,8 +388,6 @@ def test_mdio_write():
 
     mdc = Signal()
     mdio = MDIO(20, None, mdc)
-    frag = mdio.get_fragment(platform=None)
-    vcdf = open("mdio_write.vcd", "w")
 
     def testbench():
         rng = random.Random(0)
@@ -456,6 +454,8 @@ def test_mdio_write():
             assert oebits == expected
             assert not was_busy
 
+    frag = mdio.get_fragment(platform=None)
+    vcdf = open("mdio_write.vcd", "w")
     with pysim.Simulator(frag, vcd_file=vcdf) as sim:
         sim.add_clock(1e-6)
         sim.add_sync_process(testbench())

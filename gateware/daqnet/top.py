@@ -39,10 +39,10 @@ class SensorTop(Top):
         # Set up clock domain on PLL output
         cd = ClockDomain("sync", reset_less=True)
         m.d.comb += cd.clk.eq(pll.plloutglobal)
+        m.domains += cd
 
         # Create LED blinker in PLL clock domain
         blinker = self.led_blinker.get_fragment(platform)
-        blinker.add_domains(cd)
         m.submodules.led_blinker = blinker
         m.d.comb += platform.request("user_led_3").eq(self.led_blinker.led)
 
@@ -70,6 +70,7 @@ class SwitchTop(Top):
         # Set up clock domain on output of PLL
         cd = ClockDomain("sync", reset_less=True)
         m.d.comb += cd.clk.eq(pll.plloutglobal)
+        m.domains += cd
 
         # Ethernet MAC
         rmii = platform.request_group("rmii")
@@ -80,24 +81,24 @@ class SwitchTop(Top):
         m.submodules.mac = mac
 
         # IP stack
-        ip4_addr = "10.1.1.5"
-        ipstack = IPStack(
-            ip4_addr, mac_addr, self.mac.rx_port, self.mac.tx_port)
-        m.submodules.ipstack = ipstack
-        m.comb += [
-            ipstack.rx_valid.eq(mac.rx_valid),
-            ipstack.rx_len.eq(mac.rx_len),
-            ipstack.tx_ready.eq(mac.tx_ready),
-            mac.rx_ack.eq(ipstack.rx_ack),
-            mac.tx_start.eq(ipstack.tx_start),
-            mac.tx_len.eq(ipstack.tx_len),
-        ]
+        # ip4_addr = "10.1.1.5"
+        # ipstack = IPStack(
+            # ip4_addr, mac_addr, mac.rx_port, mac.tx_port)
+        # m.submodules.ipstack = ipstack
+        # m.comb += [
+            # ipstack.rx_valid.eq(mac.rx_valid),
+            # ipstack.rx_len.eq(mac.rx_len),
+            # ipstack.tx_ready.eq(mac.tx_ready),
+            # mac.rx_ack.eq(ipstack.rx_ack),
+            # mac.tx_start.eq(ipstack.tx_start),
+            # mac.tx_len.eq(ipstack.tx_len),
+        # ]
 
         # Debug outputs
         led1 = platform.request("user_led_1")
         led2 = platform.request("user_led_2")
 
-        self.comb += [
+        m.d.comb += [
             led1.eq(eth_led),
             led2.eq(mac.link_up),
         ]

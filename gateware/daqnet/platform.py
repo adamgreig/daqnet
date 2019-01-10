@@ -282,6 +282,10 @@ class _Platform:
     def get_ports(self):
         return [(port.signal, port.dirn) for port in self.ports_used.values()]
 
+    def get_tristate(self, tstriple, pad):
+        from nmigen import Fragment
+        return Fragment()
+
 
 class SensorPlatform(_Platform):
     def __init__(self, args):

@@ -1,15 +1,15 @@
 """
 Ethernet RMII Interface
 
-Copyright 2018 Adam Greig
+Copyright 2018-2019 Adam Greig
 """
 
-from migen import Module, Signal, If, Cat, FSM, NextValue, NextState
+from nmigen import Module, Signal, Cat
 from .crc import CRC32
 from .mac_address_match import MACAddressMatch
 
 
-class RMIIRx(Module):
+class RMIIRx:
     """
     RMII receive module
 
@@ -50,68 +50,63 @@ class RMIIRx(Module):
         self.rx_valid = Signal()
         self.rx_len = Signal(11)
 
-        ###
+        # Store arguments
+        self.mac_addr = mac_addr
+        self.write_port = write_port
+        self.crs_dv = crs_dv
+        self.rxd0 = rxd0
+        self.rxd1 = rxd1
 
-        self.submodules.rxbyte = RMIIRxByte(crs_dv, rxd0, rxd1)
-        self.submodules.crc = CRC32()
-        self.submodules.mac_match = MACAddressMatch(mac_addr)
-        self.submodules.fsm = FSM(reset_state="IDLE")
+    def get_fragment(self, platform):
 
-        self.comb += [
-            write_port.adr.eq(self.rx_len),
-            write_port.dat_w.eq(self.rxbyte.data),
-            write_port.we.eq(self.rxbyte.data_valid),
-            self.crc.data.eq(self.rxbyte.data),
-            self.crc.data_valid.eq(self.rxbyte.data_valid),
-            self.crc.reset.eq(self.fsm.ongoing("IDLE")),
-            self.mac_match.data.eq(self.rxbyte.data),
-            self.mac_match.data_valid.eq(self.rxbyte.data_valid),
-            self.mac_match.reset.eq(self.fsm.ongoing("IDLE")),
-            self.rx_valid.eq(self.fsm.ongoing("ACK")),
-        ]
+        m = Module()
 
-        # Idle until we see data valid
-        self.fsm.act(
-            "IDLE",
-            NextValue(self.rx_len, 0),
-            If(
-                self.rxbyte.dv,
-                NextState("DATA")
-            ),
-        )
+        m.submodules.crc = crc = CRC32()
+        m.submodules.mac_match = mac_match = MACAddressMatch(self.mac_addr)
+        m.submodules.rxbyte = rxbyte = RMIIRxByte(
+            self.crs_dv, self.rxd0, self.rxd1)
 
-        # Save incoming data to memory
-        self.fsm.act(
-            "DATA",
-            If(
-                self.rxbyte.data_valid,
-                NextValue(self.rx_len, self.rx_len + 1)
-            ).Elif(
-                ~self.rxbyte.dv,
-                NextState("EOF")
-            ),
-        )
+        with m.FSM() as fsm:
+            m.d.comb += [
+                self.write_port.addr.eq(self.rx_len),
+                self.write_port.data.eq(rxbyte.data),
+                self.write_port.en.eq(rxbyte.data_valid),
+                crc.data.eq(rxbyte.data),
+                crc.data_valid.eq(rxbyte.data_valid),
+                crc.reset.eq(fsm.ongoing("IDLE")),
+                mac_match.data.eq(rxbyte.data),
+                mac_match.data_valid.eq(rxbyte.data_valid),
+                mac_match.reset.eq(fsm.ongoing("IDLE")),
+                self.rx_valid.eq(fsm.ongoing("ACK")),
+            ]
 
-        self.fsm.act(
-            "EOF",
-            If(
-                self.crc.crc_match & self.mac_match.mac_match,
-                NextState("ACK"),
-            ).Else(
-                NextState("IDLE"),
-            ),
-        )
+            # Idle until we see data valid
+            with m.State("IDLE"):
+                m.d.sync += self.rx_len.eq(0)
+                with m.If(rxbyte.dv):
+                    m.next = "DATA"
 
-        self.fsm.act(
-            "ACK",
-            If(
-                self.rx_ack,
-                NextState("IDLE"),
-            ),
-        )
+            # Save incoming data to memory
+            with m.State("DATA"):
+                with m.If(rxbyte.data_valid):
+                    m.d.sync += self.rx_len.eq(self.rx_len + 1)
+                with m.Elif(~rxbyte.dv):
+                    m.next = "EOF"
+
+            with m.State("EOF"):
+                with m.If(crc.crc_match & mac_match.mac_match):
+                    m.next = "ACK"
+                with m.Else():
+                    m.next = "IDLE"
+
+            with m.State("ACK"):
+                with m.If(self.rx_ack):
+                    m.next = "IDLE"
+
+        return m.lower(platform)
 
 
-class RMIIRxByte(Module):
+class RMIIRxByte:
     """
     RMII Receive Byte De-muxer
 
@@ -138,102 +133,94 @@ class RMIIRxByte(Module):
         self.dv = Signal()
         self.crs = Signal()
 
-        ###
+        self.crs_dv = crs_dv
+        self.rxd0 = rxd0
+        self.rxd1 = rxd1
+
+    def get_fragment(self, platform):
+        m = Module()
 
         # Sample RMII signals on rising edge of ref_clk
         crs_dv_reg = Signal()
         rxd_reg = Signal(2)
-        self.sync += [
-            crs_dv_reg.eq(crs_dv),
-            rxd_reg.eq(Cat(rxd0, rxd1)),
+        m.d.sync += [
+            crs_dv_reg.eq(self.crs_dv),
+            rxd_reg.eq(Cat(self.rxd0, self.rxd1)),
         ]
 
-        self.submodules.fsm = FSM(reset_state="IDLE")
+        with m.FSM():
+            with m.State("IDLE"):
+                m.d.sync += [
+                    self.crs.eq(0),
+                    self.dv.eq(0),
+                    self.data_valid.eq(0),
+                ]
+                with m.If(crs_dv_reg & (rxd_reg == 0b01)):
+                    m.next = "PREAMBLE_SFD"
 
-        self.fsm.act(
-            "IDLE",
-            NextValue(self.crs, 0),
-            NextValue(self.dv, 0),
-            NextValue(self.data_valid, 0),
-            If(
-                crs_dv_reg & (rxd_reg == 0b01),
-                NextState("PREAMBLE_SFD"),
-            )
-        )
+            with m.State("PREAMBLE_SFD"):
+                m.d.sync += [
+                    self.crs.eq(1),
+                    self.dv.eq(1),
+                    self.data_valid.eq(0),
+                ]
+                with m.If(rxd_reg == 0b11):
+                    m.next = "NIBBLE1"
+                with m.Elif(rxd_reg != 0b01):
+                    m.next = "IDLE"
 
-        self.fsm.act(
-            "PREAMBLE_SFD",
-            NextValue(self.crs, 1),
-            NextValue(self.dv, 1),
-            NextValue(self.data_valid, 0),
-            If(
-                rxd_reg == 0b11,
-                NextState("NIBBLE1"),
-            ).Elif(
-                rxd_reg != 0b01,
-                NextState("IDLE"),
-            )
-        )
+            with m.State("NIBBLE1"):
+                m.d.sync += [
+                    self.data[0:2].eq(rxd_reg),
+                    self.data_valid.eq(0),
+                ]
+                with m.If(self.dv):
+                    m.d.sync += self.crs.eq(crs_dv_reg)
+                    m.next = "NIBBLE2"
+                with m.Else():
+                    m.next = "IDLE"
 
-        self.fsm.act(
-            "NIBBLE1",
-            NextValue(self.data[0:2], rxd_reg),
-            NextValue(self.data_valid, 0),
-            If(
-                self.dv,
-                NextValue(self.crs, crs_dv_reg),
-                NextState("NIBBLE2"),
-            ).Elif(
-                ~self.dv,
-                NextState("IDLE"),
-            )
-        )
+            with m.State("NIBBLE2"):
+                m.d.sync += [
+                    self.data[2:4].eq(rxd_reg),
+                    self.data_valid.eq(0),
+                ]
+                with m.If(self.dv):
+                    m.d.sync += self.dv.eq(crs_dv_reg)
+                    m.next = "NIBBLE3"
+                with m.Else():
+                    m.next = "IDLE"
 
-        self.fsm.act(
-            "NIBBLE2",
-            NextValue(self.data[2:4], rxd_reg),
-            NextValue(self.data_valid, 0),
-            If(
-                self.dv,
-                NextValue(self.dv, crs_dv_reg),
-                NextState("NIBBLE3"),
-            ).Elif(
-                ~self.dv,
-                NextState("IDLE"),
-            )
-        )
+            with m.State("NIBBLE3"):
+                m.d.sync += [
+                    self.data[4:6].eq(rxd_reg),
+                    self.data_valid.eq(0),
+                ]
+                with m.If(self.dv):
+                    m.d.sync += self.crs.eq(crs_dv_reg)
+                    m.next = "NIBBLE4"
+                with m.Else():
+                    m.next = "IDLE"
 
-        self.fsm.act(
-            "NIBBLE3",
-            NextValue(self.data[4:6], rxd_reg),
-            NextValue(self.data_valid, 0),
-            If(
-                self.dv,
-                NextValue(self.crs, crs_dv_reg),
-                NextState("NIBBLE4"),
-            ).Elif(
-                ~self.dv,
-                NextState("IDLE"),
-            )
-        )
+            with m.State("NIBBLE4"):
+                m.d.sync += [
+                    self.data[6:8].eq(rxd_reg),
+                    self.data_valid.eq(0),
+                ]
+                with m.If(self.dv):
+                    m.d.sync += [
+                        self.dv.eq(crs_dv_reg),
+                        self.data_valid.eq(1),
+                    ]
+                    m.next = "NIBBLE1"
+                with m.Else():
+                    m.d.sync += self.data_valid.eq(1),
+                    m.next = "IDLE"
 
-        self.fsm.act(
-            "NIBBLE4",
-            NextValue(self.data[6:8], rxd_reg),
-            If(
-                self.dv,
-                NextValue(self.dv, crs_dv_reg),
-                NextValue(self.data_valid, 1),
-                NextState("NIBBLE1"),
-            ).Elif(
-                ~self.dv,
-                NextValue(self.data_valid, 0),
-                NextState("IDLE"),
-            )
-        )
+        return m.lower(platform)
 
 
-class RMIITx(Module):
+class RMIITx:
     """
     RMII transmit module
 
@@ -268,140 +255,106 @@ class RMIITx(Module):
         # Outputs
         self.tx_ready = Signal()
 
-        ###
+        self.read_port = read_port
+        self.txen = txen
+        self.txd0 = txd0
+        self.txd1 = txd1
+
+    def get_fragment(self, platform):
+        m = Module()
 
         # Transmit byte counter
         tx_idx = Signal(11)
         # Transmit length latch
         tx_len = Signal(11)
 
-        self.submodules.txbyte = RMIITxByte(txen, txd0, txd1)
-        self.submodules.crc = CRC32()
-        self.submodules.fsm = FSM(reset_state="IDLE")
+        m.submodules.crc = crc = CRC32()
+        m.submodules.txbyte = txbyte = RMIITxByte(
+            self.txen, self.txd0, self.txd1)
 
-        self.comb += [
-            read_port.adr.eq(tx_idx),
-            self.crc.data.eq(read_port.dat_r),
-            self.crc.reset.eq(self.fsm.ongoing("IDLE")),
-            self.crc.data_valid.eq(
-                (self.fsm.ongoing("DATA") | self.fsm.ongoing("PAD"))
-                & self.txbyte.ready),
-            self.tx_ready.eq(self.fsm.ongoing("IDLE")),
-            self.txbyte.data_valid.eq(
-                ~(self.fsm.ongoing("IDLE") | self.fsm.ongoing("IPG"))),
-        ]
+        with m.FSM() as fsm:
+            m.d.comb += [
+                self.read_port.addr.eq(tx_idx),
+                crc.data.eq(self.read_port.data),
+                crc.reset.eq(fsm.ongoing("IDLE")),
+                crc.data_valid.eq(
+                    (fsm.ongoing("DATA") | fsm.ongoing("PAD"))
+                    & txbyte.ready),
+                self.tx_ready.eq(fsm.ongoing("IDLE")),
+                txbyte.data_valid.eq(
+                    ~(fsm.ongoing("IDLE") | fsm.ongoing("IPG"))),
+            ]
 
-        self.fsm.act(
-            "IDLE",
-            self.txbyte.data.eq(0),
-            NextValue(tx_idx, 0),
-            NextValue(tx_len, self.tx_len),
-            If(self.tx_start, NextState("PREAMBLE"))
-        )
+            with m.State("IDLE"):
+                m.d.comb += txbyte.data.eq(0)
+                m.d.sync += [
+                    tx_idx.eq(0),
+                    tx_len.eq(self.tx_len),
+                ]
+                with m.If(self.tx_start):
+                    m.next = "PREAMBLE"
 
-        self.fsm.act(
-            "PREAMBLE",
-            self.txbyte.data.eq(0x55),
-            If(
-                self.txbyte.ready,
-                If(
-                    tx_idx == 6,
-                    NextValue(tx_idx, 0),
-                    NextState("SFD"),
-                ).Else(
-                    NextValue(tx_idx, tx_idx + 1),
-                )
-            )
-        )
+            with m.State("PREAMBLE"):
+                m.d.comb += txbyte.data.eq(0x55)
+                with m.If(txbyte.ready):
+                    with m.If(tx_idx == 6):
+                        m.d.sync += tx_idx.eq(0)
+                        m.next = "SFD"
+                    with m.Else():
+                        m.d.sync += tx_idx.eq(tx_idx + 1)
 
-        self.fsm.act(
-            "SFD",
-            self.txbyte.data.eq(0xD5),
-            If(
-                self.txbyte.ready,
-                NextState("DATA"),
-            )
-        )
+            with m.State("SFD"):
+                m.d.comb += txbyte.data.eq(0xD5)
+                with m.If(txbyte.ready):
+                    m.next = "DATA"
 
-        self.fsm.act(
-            "DATA",
-            self.txbyte.data.eq(read_port.dat_r),
-            If(
-                self.txbyte.ready,
-                NextValue(tx_idx, tx_idx + 1),
-                If(
-                    tx_idx == tx_len - 1,
-                    If(
-                        tx_len < 60,
-                        NextState("PAD"),
-                    ).Else(
-                        NextState("FCS1"),
-                    )
-                )
-            )
-        )
+            with m.State("DATA"):
+                m.d.comb += txbyte.data.eq(self.read_port.data)
+                with m.If(txbyte.ready):
+                    m.d.sync += tx_idx.eq(tx_idx + 1)
+                    with m.If(tx_idx == tx_len - 1):
+                        with m.If(tx_len < 60):
+                            m.next = "PAD"
+                        with m.Else():
+                            m.next = "FCS1"
 
-        self.fsm.act(
-            "PAD",
-            self.txbyte.data.eq(0x00),
-            If(
-                self.txbyte.ready,
-                NextValue(tx_idx, tx_idx + 1),
-                If(
-                    tx_idx == 59,
-                    NextState("FCS1"),
-                )
-            )
-        )
+            with m.State("PAD"):
+                m.d.comb += txbyte.data.eq(0x00)
+                with m.If(txbyte.ready):
+                    m.d.sync += tx_idx.eq(tx_idx + 1)
+                    with m.If(tx_idx == 59):
+                        m.next = "FCS1"
 
-        self.fsm.act(
-            "FCS1",
-            self.txbyte.data.eq(self.crc.crc_out[0:8]),
-            If(
-                self.txbyte.ready,
-                NextState("FCS2"),
-            )
-        )
+            with m.State("FCS1"):
+                m.d.comb += txbyte.data.eq(crc.crc_out[0:8])
+                with m.If(txbyte.ready):
+                    m.next = "FCS2"
 
-        self.fsm.act(
-            "FCS2",
-            self.txbyte.data.eq(self.crc.crc_out[8:16]),
-            If(
-                self.txbyte.ready,
-                NextState("FCS3"),
-            )
-        )
+            with m.State("FCS2"):
+                m.d.comb += txbyte.data.eq(crc.crc_out[8:16])
+                with m.If(txbyte.ready):
+                    m.next = "FCS3"
 
-        self.fsm.act(
-            "FCS3",
-            self.txbyte.data.eq(self.crc.crc_out[16:24]),
-            If(
-                self.txbyte.ready,
-                NextState("FCS4"),
-            )
-        )
+            with m.State("FCS3"):
+                m.d.comb += txbyte.data.eq(crc.crc_out[16:24])
+                with m.If(txbyte.ready):
+                    m.next = "FCS4"
 
-        self.fsm.act(
-            "FCS4",
-            self.txbyte.data.eq(self.crc.crc_out[24:32]),
-            If(
-                self.txbyte.ready,
-                NextValue(tx_idx, 0),
-                NextState("IPG"),
-            )
-        )
+            with m.State("FCS4"):
+                m.d.comb += txbyte.data.eq(crc.crc_out[24:32])
+                with m.If(txbyte.ready):
+                    m.d.sync += tx_idx.eq(0)
+                    m.next = "IPG"
 
-        self.fsm.act(
-            "IPG",
-            NextValue(tx_idx, tx_idx + 1),
-            If(
-                tx_idx == 48,
-                NextState("IDLE"),
-            )
-        )
+            with m.State("IPG"):
+                m.d.sync += tx_idx.eq(tx_idx + 1)
+                with m.If(tx_idx == 48):
+                    m.next = "IDLE"
+
+        return m.lower(platform)
 
 
-class RMIITxByte(Module):
+class RMIITxByte:
     """
     RMII Transmit Byte Muxer
 
@@ -433,77 +386,80 @@ class RMIITxByte(Module):
         # Outputs
         self.ready = Signal()
 
-        ###
+        self.txen = txen
+        self.txd0 = txd0
+        self.txd1 = txd1
+
+    def get_fragment(self, platform):
+        m = Module()
 
         # Register input data on the data_valid signal
         data_reg = Signal(8)
 
-        self.submodules.fsm = FSM(reset_state="IDLE")
+        with m.FSM() as fsm:
+            m.d.comb += [
+                self.ready.eq(fsm.ongoing("IDLE") | fsm.ongoing("NIBBLE4")),
+                self.txen.eq(~fsm.ongoing("IDLE")),
+            ]
 
-        self.comb += [
-            self.ready.eq(
-                self.fsm.ongoing("IDLE") | self.fsm.ongoing("NIBBLE4")),
-            txen.eq(~self.fsm.ongoing("IDLE")),
-        ]
+            with m.State("IDLE"):
+                m.d.comb += [
+                    self.txd0.eq(0),
+                    self.txd1.eq(0),
+                ]
+                m.d.sync += data_reg.eq(self.data)
+                with m.If(self.data_valid):
+                    m.next = "NIBBLE1"
 
-        self.fsm.act(
-            "IDLE",
-            txd0.eq(0),
-            txd1.eq(0),
-            NextValue(data_reg, self.data),
-            If(self.data_valid, NextState("NIBBLE1"))
-        )
+            with m.State("NIBBLE1"):
+                m.d.comb += [
+                    self.txd0.eq(data_reg[0]),
+                    self.txd1.eq(data_reg[1]),
+                ]
+                m.next = "NIBBLE2"
 
-        self.fsm.act(
-            "NIBBLE1",
-            txd0.eq(data_reg[0]),
-            txd1.eq(data_reg[1]),
-            NextState("NIBBLE2"),
-        )
+            with m.State("NIBBLE2"):
+                m.d.comb += [
+                    self.txd0.eq(data_reg[2]),
+                    self.txd1.eq(data_reg[3]),
+                ]
+                m.next = "NIBBLE3"
 
-        self.fsm.act(
-            "NIBBLE2",
-            txd0.eq(data_reg[2]),
-            txd1.eq(data_reg[3]),
-            NextState("NIBBLE3"),
-        )
+            with m.State("NIBBLE3"):
+                m.d.comb += [
+                    self.txd0.eq(data_reg[4]),
+                    self.txd1.eq(data_reg[5]),
+                ]
+                m.next = "NIBBLE4"
 
-        self.fsm.act(
-            "NIBBLE3",
-            txd0.eq(data_reg[4]),
-            txd1.eq(data_reg[5]),
-            NextState("NIBBLE4"),
-        )
+            with m.State("NIBBLE4"):
+                m.d.comb += [
+                    self.txd0.eq(data_reg[6]),
+                    self.txd1.eq(data_reg[7]),
+                ]
+                m.d.sync += data_reg.eq(self.data)
+                with m.If(self.data_valid):
+                    m.next = "NIBBLE1"
+                with m.Else():
+                    m.next = "IDLE"
 
-        self.fsm.act(
-            "NIBBLE4",
-            txd0.eq(data_reg[6]),
-            txd1.eq(data_reg[7]),
-            NextValue(data_reg, self.data),
-            If(
-                self.data_valid,
-                NextState("NIBBLE1")
-            ).Else(
-                NextState("IDLE")
-            )
-        )
+        return m.lower(platform)
 
 
 def test_rmii_rx():
     import random
-    from migen.sim import run_simulation
-    from migen import Memory
+    from nmigen.back import pysim
+    from nmigen import Memory
 
     crs_dv = Signal()
     rxd0 = Signal()
     rxd1 = Signal()
 
     mem = Memory(8, 128)
-    mem_port = mem.get_port(write_capable=True)
+    mem_port = mem.write_port()
     mac_addr = [random.randint(0, 255) for _ in range(6)]
 
     rmii_rx = RMIIRx(mac_addr, mem_port, crs_dv, rxd0, rxd1)
-    rmii_rx.specials += [mem, mem_port]
 
     def testbench():
         for _ in range(10):
@@ -558,13 +514,18 @@ def test_rmii_rx():
 
         assert (yield rmii_rx.rx_valid) == 0
 
-    run_simulation(rmii_rx, testbench(),
-                   clocks={"sys": (20, 0)}, vcd_name="rmii_rx.vcd")
+    frag = rmii_rx.get_fragment(None)
+    frag.add_subfragment(mem_port.get_fragment(None))
+    vcdf = open("rmii_rx.vcd", "w")
+    with pysim.Simulator(frag, vcd_file=vcdf) as sim:
+        sim.add_clock(1/50e6)
+        sim.add_sync_process(testbench())
+        sim.run()
 
 
 def test_rmii_rx_byte():
     import random
-    from migen.sim import run_simulation
+    from nmigen.back import pysim
 
     crs_dv = Signal()
     rxd0 = Signal()
@@ -625,13 +586,17 @@ def test_rmii_rx_byte():
 
         assert rxbytes == txbytes
 
-    run_simulation(rmii_rx_byte, testbench(),
-                   clocks={"sys": (20, 0)}, vcd_name="rmii_rx_byte.vcd")
+    frag = rmii_rx_byte.get_fragment(None)
+    vcdf = open("rmii_rx_byte.vcd", "w")
+    with pysim.Simulator(frag, vcd_file=vcdf) as sim:
+        sim.add_clock(1/50e6)
+        sim.add_sync_process(testbench())
+        sim.run()
 
 
 def test_rmii_tx():
-    from migen.sim import run_simulation
-    from migen import Memory
+    from nmigen.back import pysim
+    from nmigen import Memory
 
     txen = Signal()
     txd0 = Signal()
@@ -660,10 +625,9 @@ def test_rmii_tx():
         ]
 
     mem = Memory(8, 128, txbytes)
-    mem_port = mem.get_port()
+    mem_port = mem.read_port()
 
     rmii_tx = RMIITx(mem_port, txen, txd0, txd1)
-    rmii_tx.specials += [mem, mem_port]
 
     def testbench():
         for _ in range(10):
@@ -684,26 +648,31 @@ def test_rmii_tx():
 
         assert txnibbles == rxnibbles
 
-    run_simulation(rmii_tx, testbench(), clocks={"sys": (20, 0)},
-                   vcd_name="rmii_tx.vcd")
+    frag = rmii_tx.get_fragment(None)
+    frag.add_subfragment(mem_port.get_fragment(None))
+
+    # TODO (nmigen#20) remove superfluous write port
+    write_port = mem.write_port()
+    frag.add_subfragment(write_port.get_fragment(None))
+
+    vcdf = open("rmii_tx.vcd", "w")
+    with pysim.Simulator(frag, vcd_file=vcdf) as sim:
+        sim.add_clock(1/50e6)
+        sim.add_sync_process(testbench())
+        sim.run()
 
 
 def test_rmii_tx_byte():
     import random
-    from migen.sim import run_simulation
-
-    data = Signal(8)
-    data_valid = Signal()
+    from nmigen.back import pysim
 
     txen = Signal()
     txd0 = Signal()
     txd1 = Signal()
 
     rmii_tx_byte = RMIITxByte(txen, txd0, txd1)
-    rmii_tx_byte.comb += [
-        rmii_tx_byte.data.eq(data),
-        rmii_tx_byte.data_valid.eq(data_valid),
-    ]
+    data = rmii_tx_byte.data
+    data_valid = rmii_tx_byte.data_valid
 
     def testbench():
         for _ in range(10):
@@ -741,5 +710,9 @@ def test_rmii_tx_byte():
         for _ in range(10):
             yield
 
-    run_simulation(rmii_tx_byte, testbench(), clocks={"sys": (20, 0)},
-                   vcd_name="rmii_tx_byte.vcd")
+    frag = rmii_tx_byte.get_fragment(None)
+    vcdf = open("rmii_tx_byte.vcd", "w")
+    with pysim.Simulator(frag, vcd_file=vcdf) as sim:
+        sim.add_clock(1/50e6)
+        sim.add_sync_process(testbench())
+        sim.run()
