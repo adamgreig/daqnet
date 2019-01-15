@@ -137,18 +137,7 @@ class MAC:
         m.submodules.rmii_tx = DomainRenamer("rmii")(
             rmii_tx.get_fragment(platform))
 
-        frag = m.lower(platform)
-        frag.add_ports(
-            self.rmii.txen, self.rmii.txd0, self.rmii.txd1,
-            self.rmii.mdc, self.phy_rst, self.eth_led,
-            self.link_up, self.rx_valid, self.rx_len, self.tx_ready,
-            dir='o')
-        frag.add_ports(
-            self.rx_ack, self.tx_start, self.tx_len,
-            dir='i')
-        if self.rmii.mdio is not None:
-            frag.add_ports(self.rmii.mdio, dir='io')
-        return frag
+        return m.lower(platform)
 
 
 class PHYManager:
@@ -333,12 +322,7 @@ class PHYManager:
                         ]
                         m.next = next_state
 
-        frag = m.lower(platform)
-        frag.add_ports(self.mdc, self.phy_rst, self.link_up, dir='o')
-        frag.add_ports(self.phy_reset, dir='i')
-        if self.mdio is not None:
-            frag.add_ports(self.mdio, dir='io')
-        return frag
+        return m.lower(platform)
 
 
 def test_phy_manager():

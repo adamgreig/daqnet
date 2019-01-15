@@ -46,13 +46,7 @@ class SensorTop(Top):
         m.submodules.led_blinker = blinker
         m.d.comb += platform.request("user_led_3").eq(self.led_blinker.led)
 
-        frag = m.lower(platform)
-
-        # Add all the ports used on the platform to this module's ports
-        for port, dirn in platform.get_ports():
-            frag.add_ports(port, dir=dirn)
-
-        return frag
+        return m.lower(platform)
 
 
 class SwitchTop(Top):
@@ -114,10 +108,4 @@ class SwitchTop(Top):
             led2.eq(mac.link_up),
         ]
 
-        frag = m.lower(platform)
-
-        # Add all the ports used on the platform to this module's ports
-        for port, dirn in platform.get_ports():
-            frag.add_ports(port, dir=dirn)
-
-        return frag
+        return m.lower(platform)

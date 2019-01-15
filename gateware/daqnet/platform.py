@@ -1,5 +1,8 @@
+import os
+import subprocess
 from collections import namedtuple
 from nmigen import Signal, Instance, Const, Module
+from nmigen.back import rtlil, verilog
 
 
 class _InstanceWrapper:
@@ -276,11 +279,47 @@ class _Platform:
         Group = namedtuple(group, [port[len(group)+1:] for port in ports])
         return Group(*(self.request(port) for port in ports))
 
-    def get_pcf(self):
+    def build(self, top, name, builddir, freq=None):
+        def makepath(ext):
+            return os.path.join(builddir, f"{name}.{ext}")
+
+        frag = top.get_fragment(self)
+        ports = self._get_ports()
+
+        os.makedirs(builddir, exist_ok=True)
+
+        with open(makepath("pcf"), "w") as f:
+            f.write(self._get_pcf())
+
+        with open(makepath("il"), "w") as f:
+            f.write(rtlil.convert(frag, name=name, ports=ports))
+
+        with open(makepath("v"), "w") as f:
+            f.write(verilog.convert(frag, name=name, ports=ports))
+
+        subprocess.run([
+            "yosys", "-q", "-p", f"synth_ice40 -json {makepath('json')}",
+            makepath("il")
+        ], check=True)
+
+        nextpnr_args = [
+            "nextpnr-ice40", "--hx8k", "--package", "bg121", "--json",
+            makepath("json"), "--pcf", makepath("pcf"), "--asc",
+            makepath("asc")
+        ]
+
+        if freq is not None:
+            nextpnr_args += ["--freq", str(freq)]
+
+        subprocess.run(nextpnr_args, check=True)
+        subprocess.run(["icepack", makepath("asc"), makepath("bin")],
+                       check=True)
+
+    def _get_pcf(self):
         return "\n".join(port.make_pcf() for port in self.ports_used.values())
 
-    def get_ports(self):
-        return [(port.signal, port.dirn) for port in self.ports_used.values()]
+    def _get_ports(self):
+        return [port.signal for port in self.ports_used.values()]
 
     def get_tristate(self, tstriple, pad):
         m = Module()

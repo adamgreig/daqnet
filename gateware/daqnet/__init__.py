@@ -1,7 +1,5 @@
 import argparse
 
-from nmigen.back import rtlil, verilog
-
 from .platform import SensorPlatform, SwitchPlatform
 from .top import SensorTop, SwitchTop
 
@@ -17,9 +15,4 @@ def main():
         plat = SensorPlatform(args)
         top = SensorTop(plat, args)
     frag = top.get_fragment(plat)
-    with open(f"build/{args.device}.pcf", "w") as f:
-        f.write(plat.get_pcf())
-    with open(f"build/{args.device}.il", "w") as f:
-        f.write(rtlil.convert(frag, name=args.device))
-    with open(f"build/{args.device}.v", "w") as f:
-        f.write(verilog.convert(frag, name=args.device))
+    plat.build(frag, args.device, "build/", freq=100)
