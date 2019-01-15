@@ -140,6 +140,8 @@ class MAC:
         frag = m.lower(platform)
         frag.add_ports(self.rmii.txen, self.rmii.txd0, self.rmii.txd1, dir='o')
         frag.add_ports(self.rmii.mdc, dir='o')
+        if self.rmii.mdio is not None:
+            frag.add_ports(self.rmii.mdio, dir='io')
         return frag
 
 
@@ -186,7 +188,7 @@ class PHYManager:
         # Create MDIO submodule
         clk_div = int(self.clk_freq // 2.5e6)
         m.submodules.mdio = mdio = MDIO(clk_div, self.mdio, self.mdc)
-        self.mdio = mdio
+        self.mdio_mod = mdio
         mdio.phy_addr = Const(self.phy_addr)
 
         # Latches for registers we read
@@ -327,6 +329,8 @@ class PHYManager:
 
         frag = m.lower(platform)
         frag.add_ports(self.mdc, dir='o')
+        if self.mdio is not None:
+            frag.add_ports(self.mdio, dir='io')
         return frag
 
 
@@ -361,16 +365,16 @@ def test_phy_manager():
 
         # Wait for the register read to synchronise to MDIO
         while True:
-            if (yield phy_manager.mdio.mdio_t.o) == 1:
+            if (yield phy_manager.mdio_mod.mdio_t.o) == 1:
                 break
             yield
 
         # Clock through BSR register read, setting bits 14, 5, 2
         for clk in range(260):
             if clk in (194, 230, 242):
-                yield (phy_manager.mdio.mdio_t.i.eq(1))
+                yield (phy_manager.mdio_mod.mdio_t.i.eq(1))
             else:
-                yield (phy_manager.mdio.mdio_t.i.eq(0))
+                yield (phy_manager.mdio_mod.mdio_t.i.eq(0))
             yield
 
         # Finish register reads

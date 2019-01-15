@@ -1,5 +1,5 @@
 from collections import namedtuple
-from nmigen import Signal, Instance, Const
+from nmigen import Signal, Instance, Const, Module
 
 
 class _InstanceWrapper:
@@ -283,12 +283,15 @@ class _Platform:
         return [(port.signal, port.dirn) for port in self.ports_used.values()]
 
     def get_tristate(self, tstriple, pad):
-        io = SB_IO(out_pin_type=SB_IO.PIN_OUTPUT_TRISTATE)
+        m = Module()
+        m.submodules.io = io = SB_IO(out_pin_type=SB_IO.PIN_OUTPUT_TRISTATE)
         io.package_pin = pad
         io.d_out_0 = tstriple.o
         io.output_enable = tstriple.oe
-        tstriple.i = io.d_in_0
-        return io
+        m.d.comb += tstriple.i.eq(io.d_in_0)
+        frag = m.get_fragment(self)
+        frag.flatten = True
+        return frag
 
 
 class SensorPlatform(_Platform):

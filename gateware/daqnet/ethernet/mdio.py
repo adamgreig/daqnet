@@ -57,9 +57,9 @@ class MDIO:
 
         # Create tristate for MDIO
         self.mdio_t = TSTriple()
+        # Skip tristate creation when self.mdio=None (for use with simulator)
         if self.mdio is not None:
-            # Skip special creation when mdio=None (for use with simulator)
-            m.submodules += platform.get_tristate(self.mdio_t, self.mdio)
+            m.submodules += self.mdio_t.get_tristate(self.mdio)
 
         # Create divided clock for MDC
         mdc_int = Signal()
@@ -299,6 +299,8 @@ class MDIO:
 
         frag = m.lower(platform)
         frag.add_ports(self.mdc, dir='o')
+        if self.mdio is not None:
+            frag.add_ports(self.mdio, dir='io')
         return frag
 
 

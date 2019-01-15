@@ -1,8 +1,8 @@
 from nmigen import Signal, Module, ClockDomain
-from .platform import SB_PLL40_PAD, SB_IO
+from .platform import SB_PLL40_PAD
 
 from .ethernet.mac import MAC
-from .ethernet.ip import IPStack
+# from .ethernet.ip import IPStack
 # from .uart import UARTTxFromMemory, UARTTx
 
 
