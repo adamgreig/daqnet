@@ -298,7 +298,10 @@ class MDIO:
                         m.d.sync += bit_counter.eq(bit_counter - 1)
 
         frag = m.lower(platform)
-        frag.add_ports(self.mdc, dir='o')
+        frag.add_ports(self.mdc, self.read_data, self.busy, dir='o')
+        frag.add_ports(
+            self.reg_addr, self.rw, self.write_data, self.start,
+            dir='i')
         if self.mdio is not None:
             frag.add_ports(self.mdio, dir='io')
         return frag

@@ -25,7 +25,7 @@ class MAC:
         * `phy_addr`: 5-bit address of the PHY
         * `mac_addr`: MAC address in standard XX:XX:XX:XX:XX:XX format
 
-    Ports:
+    Memory Ports:
         * `rx_port`: Read port into RX packet memory, 8 bytes by 2048 cells.
         * `tx_port`: Write port into TX packet memory, 8 bytes by 2048 cells.
 
@@ -138,8 +138,14 @@ class MAC:
             rmii_tx.get_fragment(platform))
 
         frag = m.lower(platform)
-        frag.add_ports(self.rmii.txen, self.rmii.txd0, self.rmii.txd1, dir='o')
-        frag.add_ports(self.rmii.mdc, dir='o')
+        frag.add_ports(
+            self.rmii.txen, self.rmii.txd0, self.rmii.txd1,
+            self.rmii.mdc, self.phy_rst, self.eth_led,
+            self.link_up, self.rx_valid, self.rx_len, self.tx_ready,
+            dir='o')
+        frag.add_ports(
+            self.rx_ack, self.tx_start, self.tx_len,
+            dir='i')
         if self.rmii.mdio is not None:
             frag.add_ports(self.rmii.mdio, dir='io')
         return frag
@@ -328,7 +334,8 @@ class PHYManager:
                         m.next = next_state
 
         frag = m.lower(platform)
-        frag.add_ports(self.mdc, dir='o')
+        frag.add_ports(self.mdc, self.phy_rst, self.link_up, dir='o')
+        frag.add_ports(self.phy_reset, dir='i')
         if self.mdio is not None:
             frag.add_ports(self.mdio, dir='io')
         return frag
