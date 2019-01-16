@@ -5,6 +5,7 @@ Copyright 2018-2019 Adam Greig
 """
 
 from nmigen import Module, Signal, Const, Memory, ClockDomain
+from nmigen.lib.cdc import MultiReg
 from nmigen.hdl.xfrm import DomainRenamer
 from .mdio import MDIO
 from .rmii import RMIIRx, RMIITx
@@ -35,35 +36,44 @@ class MAC:
         * `phy_rst`: PHY RST pin (output, active low)
         * `eth_led`: Ethernet LED, active high, pulsed on packet traffic
 
+    TX port:
+        * `tx_start`: Pulse high to begin transmission of a packet from memory
+        * `tx_len`: 11-bit length of packet to transmit
+        * `tx_offset`: 11-bit address offset of packet to transmit
+
+    RX port:
+        * `rx_valid`: Held high while `rx_len` and `rx_offset` are valid
+        * `rx_len`: 11-bit length of received packet
+        * `rx_offset`: 11-bit address offset of received packet
+        * `rx_ack`: Pulse high to acknowledge packet receipt
+
     Inputs:
-        * `rx_ack`: Assert to acknowledge packet reception and restart
-                    listening for new packets, ideally within 48 RMII
-                    ref_clk cycles.
-        * `tx_start`: Assert to begin transmission of a packet from memory
-        * `tx_len`: 11-bit wide length of packet to transmit
+        * `phy_reset`: Assert to reset the PHY, de-assert for normal operation
 
     Outputs:
         * `link_up`: High while link is established
-        * `rx_valid`: Asserted when a valid packet is in RX memory.
-                      Acknowledge by asserting `rx_ack`.
-        * `rx_len`: Received packet length. Valid while `rx_valid` is asserted
-        * `tx_ready`: Asserted while ready to transmit a new packet
     """
     def __init__(self, clk_freq, phy_addr, mac_addr, rmii, phy_rst, eth_led):
-        # Ports
+        # Memory Ports
         self.rx_port = None  # Assigned below
         self.tx_port = None  # Assigned below
 
-        # Inputs
-        self.rx_ack = Signal()
+        # TX port
         self.tx_start = Signal()
         self.tx_len = Signal(11)
+        self.tx_offset = Signal(11)
+
+        # RX port
+        self.rx_ack = Signal()
+        self.rx_valid = Signal()
+        self.rx_len = Signal(11)
+        self.rx_offset = Signal(11)
+
+        # Inputs
+        self.phy_reset = Signal()
 
         # Outputs
         self.link_up = Signal()
-        self.rx_valid = Signal()
-        self.rx_len = Signal(11)
-        self.tx_ready = Signal()
 
         self.clk_freq = clk_freq
         self.phy_addr = phy_addr
@@ -95,8 +105,7 @@ class MAC:
         m.submodules.phy_manager = phy_manager = PHYManager(
             self.clk_freq, self.phy_addr, self.phy_rst,
             self.rmii.mdio, self.rmii.mdc)
-        m.submodules.stretch = stretch = PulseStretch(int(self.clk_freq/1000))
-        m.d.comb += phy_manager.phy_reset.eq(0)
+        m.submodules.stretch = stretch = PulseStretch(int(1e6))
 
         rmii_rx = RMIIRx(
             self.mac_addr, rx_port_w, self.rmii.crs_dv,
@@ -104,38 +113,103 @@ class MAC:
         rmii_tx = RMIITx(
             tx_port_r, self.rmii.txen, self.rmii.txd0, self.rmii.txd1)
 
-        # Double register RMIIRx inputs/outputs for CDC
-        rx_valid_latch = Signal()
-        rx_len_latch = Signal(11)
-        rx_ack_latch = Signal()
-        tx_start_latch = Signal()
-        tx_len_latch = Signal(11)
-        tx_ready_latch = Signal()
-        m.d.sync += [
-            rx_valid_latch.eq(rmii_rx.rx_valid),
-            self.rx_valid.eq(rx_valid_latch),
-            rx_len_latch.eq(rmii_rx.rx_len),
-            self.rx_len.eq(rx_len_latch),
-            rx_ack_latch.eq(self.rx_ack),
-            rmii_rx.rx_ack.eq(rx_ack_latch),
-            tx_start_latch.eq(self.tx_start),
-            rmii_tx.tx_start.eq(tx_start_latch),
-            tx_len_latch.eq(self.tx_len),
-            rmii_tx.tx_len.eq(tx_len_latch),
-            tx_ready_latch.eq(rmii_tx.tx_ready),
-            self.tx_ready.eq(tx_ready_latch),
-        ]
+        # Create FIFOs to interface to RMII modules
+        rx_len_fifo = DummyFIFO(width=11)
+        rx_off_fifo = DummyFIFO(width=11)
+        tx_len_fifo = DummyFIFO(width=11)
+        tx_off_fifo = DummyFIFO(width=11)
 
         m.d.comb += [
+            # RX length FIFO + rx_valid
+            rx_len_fifo.din.eq(rmii_rx.rx_len),
+            rx_len_fifo.we.eq(rmii_rx.rx_valid),
+            self.rx_len.eq(rx_len_fifo.dout),
+            self.rx_valid.eq(rx_len_fifo.readable),
+            rx_len_fifo.re.eq(self.rx_ack),
+
+            # RX offset FIFO
+            rx_off_fifo.din.eq(rmii_rx.rx_offset),
+            rx_off_fifo.we.eq(rmii_rx.rx_valid),
+            self.rx_offset.eq(rx_off_fifo.dout),
+            rx_off_fifo.re.eq(self.rx_ack),
+
+            # TX length FIFO + tx_start
+            tx_len_fifo.din.eq(self.tx_len),
+            tx_len_fifo.we.eq(self.tx_start),
+            rmii_tx.tx_len.eq(tx_len_fifo.dout),
+            rmii_tx.tx_start.eq(tx_len_fifo.readable),
+            tx_len_fifo.re.eq(rmii_tx.tx_ready),
+
+            # TX offset FIFO
+            tx_off_fifo.din.eq(self.tx_offset),
+            tx_off_fifo.we.eq(self.tx_start),
+            rmii_tx.tx_offset.eq(tx_off_fifo.dout),
+            tx_off_fifo.re.eq(rmii_tx.tx_ready),
+
+            # Other submodules
+            phy_manager.phy_reset.eq(self.phy_reset),
             self.link_up.eq(phy_manager.link_up),
-            stretch.trigger.eq(self.rx_valid | ~self.tx_ready),
+            stretch.trigger.eq(self.rx_valid),
             self.eth_led.eq(stretch.pulse),
         ]
 
+        m.submodules.rx_len_fifo = rx_len_fifo
+        m.submodules.rx_off_fifo = rx_off_fifo
+        m.submodules.tx_len_fifo = DomainRenamer("rmii")(
+            tx_len_fifo.get_fragment(platform))
+        m.submodules.tx_off_fifo = DomainRenamer("rmii")(
+            tx_off_fifo.get_fragment(platform))
         m.submodules.rmii_rx = DomainRenamer("rmii")(
             rmii_rx.get_fragment(platform))
         m.submodules.rmii_tx = DomainRenamer("rmii")(
             rmii_tx.get_fragment(platform))
+
+        return m.lower(platform)
+
+
+class DummyFIFO:
+    """
+    A mock FIFO that doesn't actually store anything except the current value.
+
+    To be replaced with a real FIFO in due course.
+
+    Parameters:
+        * `width`: Bit width of FIFO data
+
+    Write port:
+        * `din`: Data input
+        * `we`: Pulse high to save data
+
+    Read port:
+        * `dout`: Data output
+        * `re`: Pulse high to acknowledge data
+        * `readable`: High while `dout` is valid
+    """
+    def __init__(self, width):
+        # Write port
+        self.din = Signal(width, reset_less=True)
+        self.we = Signal()
+
+        # Read port
+        self.dout = Signal(width, reset_less=True)
+        self.re = Signal()
+        self.readable = Signal()
+
+    def get_fragment(self, platform):
+        m = Module()
+
+        we_cdc = Signal()
+        m.submodules += MultiReg(self.we, we_cdc)
+        m.submodules += MultiReg(self.din, self.dout)
+
+        with m.If(we_cdc):
+            m.d.sync += [
+                self.readable.eq(1),
+            ]
+        with m.Elif(self.re):
+            m.d.sync += [
+                self.readable.eq(0),
+            ]
 
         return m.lower(platform)
 
@@ -323,6 +397,56 @@ class PHYManager:
                         m.next = next_state
 
         return m.lower(platform)
+
+
+def test_dummy_fifo():
+    from nmigen.back import pysim
+    fifo = DummyFIFO(width=8)
+
+    def testbench():
+        for _ in range(10):
+            yield
+
+        # Apply some data but don't WE yet
+        yield fifo.din.eq(0xAA)
+        yield
+        yield
+        yield
+        # Should not be readable until after WE
+        assert not (yield fifo.readable)
+
+        # Now assert WE
+        yield fifo.we.eq(1)
+        yield
+        yield
+        yield
+        # Data should be readable
+        assert (yield fifo.readable)
+        assert (yield fifo.dout) == 0xAA
+        # Deassert WE, data should remain readable
+        yield fifo.we.eq(0)
+        yield
+        yield
+        yield
+        assert (yield fifo.readable)
+        assert (yield fifo.dout) == 0xAA
+        yield
+        yield
+        yield
+
+        # Now assert RE, data should stop being readable
+        yield fifo.re.eq(1)
+        yield
+        yield
+        yield
+        assert not (yield fifo.readable)
+
+    frag = fifo.get_fragment(None)
+    vcdf = open("dummy_fifo.vcd", "w")
+    with pysim.Simulator(frag, vcd_file=vcdf) as sim:
+        sim.add_clock(1e-6)
+        sim.add_sync_process(testbench())
+        sim.run()
 
 
 def test_phy_manager():

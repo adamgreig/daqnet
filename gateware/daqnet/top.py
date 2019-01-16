@@ -76,14 +76,18 @@ class SwitchTop(Top):
 
         # Explicitly zero unused inputs in MAC
         m.d.comb += [
-            mac.rx_ack.eq(1),
+            mac.phy_reset.eq(0),
             mac.tx_start.eq(0),
             mac.tx_len.eq(0),
+            mac.tx_offset.eq(0),
             mac.rx_port.addr.eq(0),
             mac.tx_port.addr.eq(0),
             mac.tx_port.data.eq(0),
             mac.tx_port.en.eq(0),
         ]
+
+        # Acknowledge and throw away any incoming packets
+        m.d.comb += mac.rx_ack.eq(1)
 
         # IP stack
         # ip4_addr = "10.1.1.5"

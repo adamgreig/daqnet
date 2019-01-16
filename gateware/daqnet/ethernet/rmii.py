@@ -32,22 +32,15 @@ class RMIIRx:
         * `rxd0`: RMII receive data 0
         * `rxd1`: RMII receive data 1
 
-    Inputs:
-        * `rx_ack`: assert when packet has been read from memory and reception
-                    can restart
-
     Outputs:
-        * `rx_valid`: asserted when a valid packet is in memory, until `rx_ack`
-                      is asserted
-        * `rx_len`: 11-bit wide length of received packet, valid while
-                    packet_rx is high
+        * `rx_valid`: pulsed when a valid packet is in memory
+        * `rx_offset`: 11-bit start address of received packet
+        * `rx_len`: 11-bit length of received packet
     """
     def __init__(self, mac_addr, write_port, crs_dv, rxd0, rxd1):
-        # Inputs
-        self.rx_ack = Signal()
-
         # Outputs
         self.rx_valid = Signal()
+        self.rx_offset = Signal(11)
         self.rx_len = Signal(11)
 
         # Store arguments
@@ -66,9 +59,11 @@ class RMIIRx:
         m.submodules.rxbyte = rxbyte = RMIIRxByte(
             self.crs_dv, self.rxd0, self.rxd1)
 
+        adr = Signal(11)
+
         with m.FSM() as fsm:
             m.d.comb += [
-                self.write_port.addr.eq(self.rx_len),
+                self.write_port.addr.eq(adr),
                 self.write_port.data.eq(rxbyte.data),
                 self.write_port.en.eq(rxbyte.data_valid),
                 crc.data.eq(rxbyte.data),
@@ -77,31 +72,28 @@ class RMIIRx:
                 mac_match.data.eq(rxbyte.data),
                 mac_match.data_valid.eq(rxbyte.data_valid),
                 mac_match.reset.eq(fsm.ongoing("IDLE")),
-                self.rx_valid.eq(fsm.ongoing("ACK")),
             ]
 
             # Idle until we see data valid
             with m.State("IDLE"):
                 m.d.sync += self.rx_len.eq(0)
+                m.d.sync += self.rx_valid.eq(0)
                 with m.If(rxbyte.dv):
+                    m.d.sync += self.rx_offset.eq(adr)
                     m.next = "DATA"
 
             # Save incoming data to memory
             with m.State("DATA"):
                 with m.If(rxbyte.data_valid):
+                    m.d.sync += adr.eq(adr + 1)
                     m.d.sync += self.rx_len.eq(self.rx_len + 1)
                 with m.Elif(~rxbyte.dv):
                     m.next = "EOF"
 
             with m.State("EOF"):
                 with m.If(crc.crc_match & mac_match.mac_match):
-                    m.next = "ACK"
-                with m.Else():
-                    m.next = "IDLE"
-
-            with m.State("ACK"):
-                with m.If(self.rx_ack):
-                    m.next = "IDLE"
+                    m.d.sync += self.rx_valid.eq(1)
+                m.next = "IDLE"
 
         return m.lower(platform)
 
@@ -240,9 +232,9 @@ class RMIITx:
         * `txd1`: RMII transmit data 1
 
     Inputs:
-        * `tx_start`: Assert to begin transmission of a packet
-        * `tx_len`: 11-bit wide length of packet to transmit, read
-          when `tx_start` is asserted.
+        * `tx_start`: Pulse high to begin transmission of a packet
+        * `tx_offset`: 11-bit address offset of packet to transmit
+        * `tx_len`: 11-bit length of packet to transmit
 
     Outputs:
         * `tx_ready`: Asserted while ready to transmit a new packet
@@ -250,6 +242,7 @@ class RMIITx:
     def __init__(self, read_port, txen, txd0, txd1):
         # Inputs
         self.tx_start = Signal()
+        self.tx_offset = Signal(11)
         self.tx_len = Signal(11)
 
         # Outputs
@@ -267,6 +260,8 @@ class RMIITx:
         tx_idx = Signal(11)
         # Transmit length latch
         tx_len = Signal(11)
+        # Transmit offset latch
+        tx_offset = Signal(11)
 
         m.submodules.crc = crc = CRC32()
         m.submodules.txbyte = txbyte = RMIITxByte(
@@ -274,7 +269,7 @@ class RMIITx:
 
         with m.FSM() as fsm:
             m.d.comb += [
-                self.read_port.addr.eq(tx_idx),
+                self.read_port.addr.eq(tx_idx + tx_offset),
                 crc.data.eq(self.read_port.data),
                 crc.reset.eq(fsm.ongoing("IDLE")),
                 crc.data_valid.eq(
@@ -289,6 +284,7 @@ class RMIITx:
                 m.d.comb += txbyte.data.eq(0)
                 m.d.sync += [
                     tx_idx.eq(0),
+                    tx_offset.eq(self.tx_offset),
                     tx_len.eq(self.tx_len),
                 ]
                 with m.If(self.tx_start):
@@ -462,6 +458,29 @@ def test_rmii_rx():
     rmii_rx = RMIIRx(mac_addr, mem_port, crs_dv, rxd0, rxd1)
 
     def testbench():
+        def tx_packet():
+            yield (crs_dv.eq(1))
+            # Preamble
+            for _ in range(random.randint(10, 40)):
+                yield (rxd0.eq(1))
+                yield (rxd1.eq(0))
+                yield
+            # SFD
+            yield (rxd0.eq(1))
+            yield (rxd1.eq(1))
+            yield
+            # Data
+            for txbyte in txbytes:
+                for dibit in range(0, 8, 2):
+                    yield (rxd0.eq((txbyte >> (dibit + 0)) & 1))
+                    yield (rxd1.eq((txbyte >> (dibit + 1)) & 1))
+                    yield
+            yield (crs_dv.eq(0))
+
+            # Finish clocking
+            for _ in range(5):
+                yield
+
         for _ in range(10):
             yield
 
@@ -478,41 +497,37 @@ def test_rmii_rx():
             0x32, 0x1F, 0x9E
         ]
 
-        yield (crs_dv.eq(1))
-        # Preamble
-        for _ in range(random.randint(10, 40)):
-            yield (rxd0.eq(1))
-            yield (rxd1.eq(0))
-            yield
-        # SFD
-        yield (rxd0.eq(1))
-        yield (rxd1.eq(1))
-        yield
-        # Data
-        for txbyte in txbytes:
-            for dibit in range(0, 8, 2):
-                yield (rxd0.eq((txbyte >> (dibit + 0)) & 1))
-                yield (rxd1.eq((txbyte >> (dibit + 1)) & 1))
-                yield
-        yield (crs_dv.eq(0))
+        # Transmit first packet
+        yield from tx_packet()
 
-        for _ in range(10):
-            yield
-
+        # Check packet was received
         assert (yield rmii_rx.rx_valid)
         assert (yield rmii_rx.rx_len) == 102
-
+        assert (yield rmii_rx.rx_offset) == 0
         mem_contents = []
         for idx in range(102):
             mem_contents.append((yield mem[idx]))
         assert mem_contents == txbytes
 
-        yield (rmii_rx.rx_ack.eq(1))
-
-        for _ in range(10):
+        # Pause (inter-frame gap)
+        for _ in range(20):
             yield
 
         assert (yield rmii_rx.rx_valid) == 0
+
+        # Transmit a second packet
+        yield from tx_packet()
+
+        # Check packet was received
+        assert (yield rmii_rx.rx_valid)
+        assert (yield rmii_rx.rx_len) == 102
+        assert (yield rmii_rx.rx_offset) == 102
+        mem_contents = []
+        for idx in range(102):
+            mem_contents.append((yield mem[(102+idx) % 128]))
+        assert mem_contents == txbytes
+
+        yield
 
     frag = rmii_rx.get_fragment(None)
     frag.add_subfragment(mem_port.get_fragment(None))
@@ -624,7 +639,8 @@ def test_rmii_tx():
             ((txbyte >> 6) & 0b11),
         ]
 
-    mem = Memory(8, 128, txbytes)
+    # Put the transmit bytes into memory at some offset from 0
+    mem = Memory(8, 128, [0, 0, 0, 0] + txbytes)
     mem_port = mem.read_port()
 
     rmii_tx = RMIITx(mem_port, txen, txd0, txd1)
@@ -634,11 +650,13 @@ def test_rmii_tx():
             yield
 
         yield (rmii_tx.tx_start.eq(1))
+        yield (rmii_tx.tx_offset.eq(4))
         yield (rmii_tx.tx_len.eq(len(txbytes)))
 
         yield
 
         yield (rmii_tx.tx_start.eq(0))
+        yield (rmii_tx.tx_offset.eq(0))
         yield (rmii_tx.tx_len.eq(0))
 
         for _ in range((len(txbytes) + 12) * 4 + 120):
@@ -646,6 +664,9 @@ def test_rmii_tx():
                 rxnibbles.append((yield txd0) | ((yield txd1) << 1))
             yield
 
+        print(len(txnibbles), len(rxnibbles))
+        print(txnibbles)
+        print(rxnibbles)
         assert txnibbles == rxnibbles
 
     frag = rmii_tx.get_fragment(None)
