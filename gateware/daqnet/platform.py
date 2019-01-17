@@ -298,7 +298,8 @@ class _Platform:
             f.write(verilog.convert(frag, name=name, ports=ports))
 
         subprocess.run([
-            "yosys", "-q", "-p", f"synth_ice40 -json {makepath('json')}",
+            "yosys", "-q", "-p",
+            f"synth_ice40 -relut -json {makepath('json')}",
             makepath("il")
         ], check=True)
 
