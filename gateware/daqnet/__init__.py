@@ -15,4 +15,4 @@ def main():
         plat = SensorPlatform(args)
         top = SensorTop(plat, args)
     frag = top.get_fragment(plat)
-    plat.build(frag, args.device, "build/", freq=100)
+    plat.build(frag, args.device, "build/", freq=50)

@@ -2,8 +2,7 @@ from nmigen import Signal, Module, ClockDomain
 from .platform import SB_PLL40_PAD
 
 from .ethernet.mac import MAC
-# from .ethernet.ip import IPStack
-# from .uart import UARTTxFromMemory, UARTTx
+from .ethernet.ip import IPStack
 
 
 class LEDBlinker:
@@ -57,7 +56,7 @@ class SwitchTop(Top):
         m = Module()
 
         # Set up PLL to multiply 25MHz clock to 100MHz clock
-        m.submodules.pll = pll = SB_PLL40_PAD(0, 31, 3, 2)
+        m.submodules.pll = pll = SB_PLL40_PAD(0, 23, 3, 2)
         pll.packagepin = platform.request("clk25")
         pll.plloutglobal = Signal()
 
@@ -77,31 +76,24 @@ class SwitchTop(Top):
         # Explicitly zero unused inputs in MAC
         m.d.comb += [
             mac.phy_reset.eq(0),
-            mac.tx_start.eq(0),
-            mac.tx_len.eq(0),
-            mac.tx_offset.eq(0),
-            mac.rx_port.addr.eq(0),
-            mac.tx_port.addr.eq(0),
-            mac.tx_port.data.eq(0),
-            mac.tx_port.en.eq(0),
         ]
 
         # Acknowledge and throw away any incoming packets
         m.d.comb += mac.rx_ack.eq(1)
 
         # IP stack
-        # ip4_addr = "10.1.1.5"
-        # ipstack = IPStack(
-            # ip4_addr, mac_addr, mac.rx_port, mac.tx_port)
-        # m.submodules.ipstack = ipstack
-        # m.comb += [
-            # ipstack.rx_valid.eq(mac.rx_valid),
-            # ipstack.rx_len.eq(mac.rx_len),
-            # ipstack.tx_ready.eq(mac.tx_ready),
-            # mac.rx_ack.eq(ipstack.rx_ack),
-            # mac.tx_start.eq(ipstack.tx_start),
-            # mac.tx_len.eq(ipstack.tx_len),
-        # ]
+        ip4_addr = "10.1.1.5"
+        m.submodules.ipstack = ipstack = IPStack(
+            mac_addr, ip4_addr, mac.rx_port, mac.tx_port)
+        m.d.comb += [
+            mac.tx_start.eq(ipstack.tx_start),
+            mac.tx_len.eq(ipstack.tx_len),
+            mac.tx_offset.eq(ipstack.tx_offset),
+            ipstack.rx_valid.eq(mac.rx_valid),
+            ipstack.rx_len.eq(mac.rx_len),
+            ipstack.rx_offset.eq(mac.rx_offset),
+            mac.rx_ack.eq(ipstack.rx_ack),
+        ]
 
         # Debug outputs
         led1 = platform.request("user_led_1")

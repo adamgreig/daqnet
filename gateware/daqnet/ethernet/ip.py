@@ -57,15 +57,33 @@ class IPStack:
 
         m.d.comb += [
             eth.rx_port_data.eq(self.rx_port.data),
-            eth.rx_offset.eq(self.rx_offset),
             eth.tx_offset.eq(0),
-            eth.run.eq(self.rx_valid),
             self.rx_port.addr.eq(eth.rx_port_addr),
             self.tx_port.addr.eq(eth.tx_port_addr),
             self.tx_port.data.eq(eth.tx_port_data),
             self.tx_port.en.eq(eth.tx_port_we),
-            self.tx_start.eq(eth.transmit),
+            self.tx_len.eq(42),
+            self.tx_offset.eq(0),
         ]
+
+        with m.FSM():
+            with m.State("IDLE"):
+                m.d.sync += self.tx_start.eq(0)
+                with m.If(self.rx_valid):
+                    m.d.sync += [
+                        eth.run.eq(1),
+                        eth.rx_offset.eq(self.rx_offset),
+                        self.rx_ack.eq(1),
+                    ]
+                    m.next = "REPLY"
+
+            with m.State("REPLY"):
+                m.d.sync += eth.run.eq(0)
+                m.d.sync += self.rx_ack.eq(0)
+                with m.If(eth.complete):
+                    with m.If(eth.transmit):
+                        m.d.sync += self.tx_start.eq(1)
+                    m.next = "IDLE"
 
         return m.lower(platform)
 
@@ -118,8 +136,6 @@ class _StackLayer:
         with self.m.State("IDLE"):
             self.m.d.comb += [
                 self.rx_idx.eq(0),
-                self.complete.eq(0),
-                self.transmit.eq(0),
             ]
             self.m.d.sync += self.tx_at_end.eq(0)
             with self.m.If(self.run):
@@ -133,8 +149,6 @@ class _StackLayer:
             self._fsm_ctr += n
             self.m.d.comb += [
                 self.rx_idx.eq(self._fsm_ctr),
-                self.complete.eq(0),
-                self.transmit.eq(0),
             ]
             self.m.next = self._fsm_ctr
 
@@ -150,8 +164,6 @@ class _StackLayer:
                     self.tx_idx.eq(dst + i),
                     self.tx_port_data.eq(self.rx_port_data),
                     self.tx_port_we.eq(1),
-                    self.complete.eq(0),
-                    self.transmit.eq(0),
                 ]
                 self.m.next = self._fsm_ctr
 
@@ -164,8 +176,6 @@ class _StackLayer:
                 self._fsm_ctr += 1
                 self.m.d.comb += [
                     self.rx_idx.eq(self._fsm_ctr),
-                    self.complete.eq(0),
-                    self.transmit.eq(0),
                 ]
                 if bigendian:
                     left, right = 8*(n-i-1), 8*(n-i)
@@ -183,8 +193,6 @@ class _StackLayer:
                 self._fsm_ctr += 1
                 self.m.d.comb += [
                     self.rx_idx.eq(self._fsm_ctr),
-                    self.complete.eq(0),
-                    self.transmit.eq(0),
                 ]
                 if bigendian:
                     val_byte = (val >> 8*(n-i-1)) & 0xFF
@@ -209,8 +217,6 @@ class _StackLayer:
                     self.tx_idx.eq(dst + i),
                     self.tx_port_data.eq(val_byte),
                     self.tx_port_we.eq(1),
-                    self.complete.eq(0),
-                    self.transmit.eq(0),
                 ]
                 self._fsm_ctr += 1
                 self.m.next = self._fsm_ctr
@@ -293,7 +299,7 @@ class _EthernetLayer(_StackLayer):
     def get_fragment(self, platform):
         self.m = Module()
         self.m.submodules.arp = arp = _ARPLayer(self.ip_stack)
-        self.m.submodules.ipv4 = ipv4 = _IPv4Layer(self.ip_stack)
+        # self.m.submodules.ipv4 = ipv4 = _IPv4Layer(self.ip_stack)
 
         ethertype = Signal(16)
 
@@ -310,7 +316,7 @@ class _EthernetLayer(_StackLayer):
             self._extract("ETYPE", reg=ethertype, n=2)
             self._switch(ethertype, {
                 0x0806: arp,
-                0x0800: ipv4,
+                # 0x0800: ipv4,
             })
 
             # If we need to transmit, fill in the Ethernet source and ethertype
@@ -406,9 +412,12 @@ def run_rx_test(name, rx_bytes, expected_bytes, mac_addr, ip4_addr):
         for idx in range(64):
             tx_bytes.append((yield tx_mem[idx]))
 
-        print("Received:", " ".join(f"{x:02X}" for x in tx_bytes))
-
-        assert tx_bytes[:len(expected_bytes)] == expected_bytes
+        if expected_bytes is not None:
+            # Check transmit got asserted with valid tx_len, tx_offset
+            assert tx_bytes[:len(expected_bytes)] == expected_bytes
+        else:
+            # Check transmit did not get asserted
+            pass
 
     frag = ipstack.get_fragment(None)
     frag.add_subfragment(rx_mem_port.get_fragment(None))
