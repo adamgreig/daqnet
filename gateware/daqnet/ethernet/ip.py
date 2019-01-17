@@ -126,7 +126,7 @@ class _StackLayer:
         self.tx_at_end = Signal()
         self.ip_stack = ip_stack
 
-    def _start_fsm(self):
+    def start_fsm(self):
         """
         Call to generate first FSM state.
         """
@@ -141,7 +141,7 @@ class _StackLayer:
             with self.m.If(self.run):
                 self.m.next = 0
 
-    def _skip(self, name, n=1):
+    def skip(self, name, n=1):
         """
         Skip `n` bytes from the input.
         """
@@ -152,7 +152,7 @@ class _StackLayer:
             ]
             self.m.next = self._fsm_ctr
 
-    def _copy(self, name, dst, n=1):
+    def copy(self, name, dst, n=1):
         """
         Copy `n` bytes from input stream to offset `dst` in output.
         """
@@ -167,7 +167,7 @@ class _StackLayer:
                 ]
                 self.m.next = self._fsm_ctr
 
-    def _extract(self, name, reg, n=1, bigendian=True):
+    def extract(self, name, reg, n=1, bigendian=True):
         """
         Extract `n` bytes from input stream to register `reg`.
         """
@@ -184,7 +184,7 @@ class _StackLayer:
                 self.m.d.sync += reg[left:right].eq(self.rx_port_data)
                 self.m.next = self._fsm_ctr
 
-    def _check(self, name, val, n=1, bigendian=True):
+    def check(self, name, val, n=1, bigendian=True):
         """
         Compare `n` bytes from input stream to `val` and only proceed on match.
         """
@@ -203,7 +203,7 @@ class _StackLayer:
                 with self.m.Else():
                     self.m.next = "DONE_NO_TX"
 
-    def _write(self, name, val, dst, n=1, bigendian=True):
+    def write(self, name, val, dst, n=1, bigendian=True):
         """
         Writes `n` bytes of `val` (register or constant) to offset `dst`.
         """
@@ -221,7 +221,7 @@ class _StackLayer:
                 self._fsm_ctr += 1
                 self.m.next = self._fsm_ctr
 
-    def _switch(self, key, cases):
+    def switch(self, key, cases):
         """
         Depending on the value in register `key`, delegate further
         processing to the relevant case from `cases` (a dictionary
@@ -263,7 +263,7 @@ class _StackLayer:
 
         self._fsm_ctr += 1
 
-    def _end_fsm(self, transmit=False):
+    def end_fsm(self, transmit=False):
         """
         Call to generate final FSM state. Set `transmit` True if a response
         packet should be sent.
@@ -304,27 +304,27 @@ class _EthernetLayer(_StackLayer):
         ethertype = Signal(16)
 
         with self.m.FSM():
-            self._start_fsm()
+            self.start_fsm()
 
             # Copy source into outgoing destination in case we transmit later.
-            self._skip("DST", n=6)
-            self._copy("SRC", dst=0, n=6)
+            self.skip("DST", n=6)
+            self.copy("SRC", dst=0, n=6)
 
             # Extract and switch on the ethertype field.
             # If there's no handler or the handler doesn't need to transmit,
             # we'll return to idle after this.
-            self._extract("ETYPE", reg=ethertype, n=2)
-            self._switch(ethertype, {
+            self.extract("ETYPE", reg=ethertype, n=2)
+            self.switch(ethertype, {
                 0x0806: arp,
                 # 0x0800: ipv4,
             })
 
             # If we need to transmit, fill in the Ethernet source and ethertype
-            self._write("SRC", val=self.ip_stack.mac_addr_int, dst=6, n=6)
-            self._write("ETYPE", val=ethertype, dst=12, n=2)
+            self.write("SRC", val=self.ip_stack.mac_addr_int, dst=6, n=6)
+            self.write("ETYPE", val=ethertype, dst=12, n=2)
 
             # Transmission enable inherited from submodule
-            self._end_fsm()
+            self.end_fsm()
 
         return self.m.lower(platform)
 
@@ -339,27 +339,27 @@ class _ARPLayer(_StackLayer):
         self.m = Module()
 
         with self.m.FSM():
-            self._start_fsm()
+            self.start_fsm()
 
             # Read incoming packet, checking copying relevant fields as we go.
             # If any checks do not pass, we abort immediately.
-            self._copy("HTYPE", dst=0, n=2)
-            self._check("PTYPE", val=0x0800, n=2)
-            self._copy("LEN", dst=4, n=2)
-            self._check("OPER", val=1, n=2)
-            self._copy("SHA", dst=18, n=6)
-            self._copy("SPA", dst=24, n=4)
-            self._skip("THA", n=6)
-            self._check("TPA", val=self.ip_stack.ip4_addr_int, n=4)
+            self.copy("HTYPE", dst=0, n=2)
+            self.check("PTYPE", val=0x0800, n=2)
+            self.copy("LEN", dst=4, n=2)
+            self.check("OPER", val=1, n=2)
+            self.copy("SHA", dst=18, n=6)
+            self.copy("SPA", dst=24, n=4)
+            self.skip("THA", n=6)
+            self.check("TPA", val=self.ip_stack.ip4_addr_int, n=4)
 
             # If the TPA check matches, prepare to send a response.
-            self._write("PTYPE", val=0x0800, dst=2, n=2)
-            self._write("OPER", val=2, dst=6, n=2)
-            self._write("SHA", val=self.ip_stack.mac_addr_int, dst=8, n=6)
-            self._write("SPA", val=self.ip_stack.ip4_addr_int, dst=14, n=4)
+            self.write("PTYPE", val=0x0800, dst=2, n=2)
+            self.write("OPER", val=2, dst=6, n=2)
+            self.write("SHA", val=self.ip_stack.mac_addr_int, dst=8, n=6)
+            self.write("SPA", val=self.ip_stack.ip4_addr_int, dst=14, n=4)
 
             # Send response
-            self._end_fsm(transmit=True)
+            self.end_fsm(transmit=True)
 
         return self.m.lower(platform)
 
