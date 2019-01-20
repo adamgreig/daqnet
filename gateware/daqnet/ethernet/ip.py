@@ -66,14 +66,16 @@ class IPStack:
 
         m.d.sync += [
             eth.rx_data.eq(self.rx_port.data),
-            self.tx_len.eq(eth.tx_len),
         ]
+
+        load_ctr = Signal(3)
 
         with m.FSM():
             with m.State("IDLE"):
                 m.d.sync += self.rx_addr.eq(self.rx_offset),
                 m.d.sync += self.tx_start.eq(0)
                 m.d.sync += eth.run.eq(0)
+                m.d.sync += load_ctr.eq(0)
                 with m.If(self.rx_valid):
                     m.d.sync += self.rx_ack.eq(1)
                     m.next = "REPLY"
@@ -84,13 +86,21 @@ class IPStack:
                 m.d.sync += self.rx_ack.eq(0)
                 with m.If(eth.done):
                     with m.If(eth.send):
-                        m.next = "INCR_OFFSET"
+                        m.next = "TX_LOAD"
                         m.d.sync += self.tx_start.eq(1)
+                        m.d.sync += self.tx_len.eq(eth.tx_len)
                     with m.Else():
                         m.next = "IDLE"
 
-            with m.State("INCR_OFFSET"):
+            with m.State("TX_LOAD"):
                 m.d.sync += eth.run.eq(0)
+                m.d.sync += self.tx_start.eq(1)
+                with m.If(load_ctr == 4):
+                    m.next = "TX_INCR_OFFSET"
+                with m.Else():
+                    m.d.sync += load_ctr.eq(load_ctr + 1)
+
+            with m.State("TX_INCR_OFFSET"):
                 m.d.sync += self.tx_start.eq(0)
                 m.d.sync += self.tx_offset.eq(self.tx_offset + self.tx_len)
                 m.next = "IDLE"
@@ -422,7 +432,7 @@ class _IPv4Layer(_StackLayer):
     def get_fragment(self, platform):
         self.m = Module()
         self.m.submodules.icmpv4 = icmpv4 = _ICMPv4Layer(self.ip_stack, self)
-        # self.m.submodules.udp = udp = _UDPLayer(self.ip_stack, self)
+        self.m.submodules.udp = udp = _UDPLayer(self.ip_stack, self)
         self.m.submodules.ipchecksum = ipchecksum = _InternetChecksum()
 
         self.m.d.comb += [
@@ -447,7 +457,7 @@ class _IPv4Layer(_StackLayer):
             self.check("DEST", val=self.ip_stack.ip4_addr_int, n=4)
             self.switch(protocol, {
                 0x01: icmpv4,
-                # 0x11: udp,
+                0x11: udp,
             })
 
             # If the child layer requested transmission, fill in the
@@ -596,53 +606,56 @@ def test_ipv4_checksum():
 def run_rx_test(name, rx_bytes, expected_bytes, mac_addr, ip4_addr):
     from nmigen.back import pysim
 
-    rx_mem = Memory(8, 64, [0]*4 + rx_bytes)
+    mem_n = 64
+    rx_mem = Memory(8, mem_n, [0]*4 + rx_bytes)
     rx_mem_port = rx_mem.read_port()
-    tx_mem = Memory(8, 64)
+    tx_mem = Memory(8, mem_n)
     tx_mem_port = tx_mem.write_port()
 
     ipstack = IPStack(mac_addr, ip4_addr, rx_mem_port, tx_mem_port)
 
     def testbench():
-        yield
-        yield
-
-        yield ipstack.rx_offset.eq(4)
-        yield ipstack.rx_valid.eq(1)
-        yield
-        yield ipstack.rx_valid.eq(0)
-
-        tx_start = False
-        tx_offset = 0
-        tx_len = 0
-        for _ in range(128):
-            if (yield ipstack.tx_start):
-                tx_start = True
-                tx_offset = (yield ipstack.tx_offset)
-                tx_len = (yield ipstack.tx_len)
+        for repeat in range(3):
+            yield
             yield
 
-        tx_bytes = []
-        for idx in range(len(expected_bytes)):
-            tx_bytes.append((yield tx_mem[tx_offset + idx]))
+            yield ipstack.rx_offset.eq(4)
+            yield ipstack.rx_valid.eq(1)
+            yield
+            yield ipstack.rx_valid.eq(0)
+            yield ipstack.rx_offset.eq(0)
 
-        if expected_bytes is not None:
-            # Check transmit got asserted with valid tx_len, tx_offset
-            assert tx_start
-            assert tx_len == len(expected_bytes)
-            print("Received:", " ".join(
-                f"{x:02X}" for x in tx_bytes),
-                f"({len(tx_bytes)} bytes)")
-            print("Expected:", " ".join(
-                f"{x:02X}" for x in expected_bytes),
-                f"({len(expected_bytes)} bytes)")
-            print("Diff:    ", " ".join(
-                "XX" if x != y else "  "
-                for (x, y) in zip(tx_bytes, expected_bytes)))
-            assert tx_bytes == expected_bytes
-        else:
-            # Check transmit did not get asserted
-            assert not tx_start
+            tx_start = False
+            tx_offset = 0
+            tx_len = 0
+            for _ in range(128):
+                if (yield ipstack.tx_start):
+                    tx_start = True
+                    tx_offset = (yield ipstack.tx_offset)
+                    tx_len = (yield ipstack.tx_len)
+                yield
+
+            tx_bytes = []
+            for idx in range(len(expected_bytes)):
+                tx_bytes.append((yield tx_mem[(tx_offset + idx) % mem_n]))
+
+            if expected_bytes is not None:
+                # Check transmit got asserted with valid tx_len, tx_offset
+                assert tx_start
+                assert tx_len == len(expected_bytes)
+                print("Received:", " ".join(
+                    f"{x:02X}" for x in tx_bytes),
+                    f"({len(tx_bytes)} bytes)")
+                print("Expected:", " ".join(
+                    f"{x:02X}" for x in expected_bytes),
+                    f"({len(expected_bytes)} bytes)")
+                print("Diff:    ", " ".join(
+                    "XX" if x != y else "  "
+                    for (x, y) in zip(tx_bytes, expected_bytes)))
+                assert tx_bytes == expected_bytes
+            else:
+                # Check transmit did not get asserted
+                assert not tx_start
 
     frag = ipstack.get_fragment(None)
     frag.add_subfragment(rx_mem_port.get_fragment(None))
