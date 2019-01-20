@@ -55,33 +55,37 @@ class IPStack:
 
         m.submodules.eth = eth = _EthernetLayer(self)
 
+        self.rx_addr = Signal(11)
+
         m.d.comb += [
-            eth.rx_port_data.eq(self.rx_port.data),
-            eth.tx_offset.eq(0),
-            self.rx_port.addr.eq(eth.rx_port_addr),
-            self.tx_port.addr.eq(eth.tx_port_addr),
-            self.tx_port.data.eq(eth.tx_port_data),
-            self.tx_port.en.eq(eth.tx_port_we),
             self.tx_len.eq(42),
             self.tx_offset.eq(0),
+            self.rx_port.addr.eq(self.rx_addr),
+            self.tx_port.addr.eq(eth.tx_addr + self.tx_offset),
+            self.tx_port.data.eq(eth.tx_data),
+            self.tx_port.en.eq(eth.tx_en),
+        ]
+
+        m.d.sync += [
+            eth.rx_data.eq(self.rx_port.data),
         ]
 
         with m.FSM():
             with m.State("IDLE"):
+                m.d.sync += self.rx_addr.eq(self.rx_offset),
                 m.d.sync += self.tx_start.eq(0)
                 with m.If(self.rx_valid):
                     m.d.sync += [
-                        eth.run.eq(1),
-                        eth.rx_offset.eq(self.rx_offset),
                         self.rx_ack.eq(1),
                     ]
                     m.next = "REPLY"
 
             with m.State("REPLY"):
-                m.d.sync += eth.run.eq(0)
+                m.d.sync += self.rx_addr.eq(self.rx_addr + 1),
+                m.d.sync += eth.run.eq(~eth.done)
                 m.d.sync += self.rx_ack.eq(0)
-                with m.If(eth.complete):
-                    with m.If(eth.transmit):
+                with m.If(eth.done):
+                    with m.If(eth.send):
                         m.d.sync += self.tx_start.eq(1)
                     m.next = "IDLE"
 
@@ -92,65 +96,64 @@ class _StackLayer:
     """
     Layer in IP stack.
 
-    Inputs:
-        * `rx_port_data`: 8-bit read data from receioved packet memory
-        * `rx_offset`: 11-bit offset to start of this layer's data
-        * `tx_offset`: 11-bit offset to start writing this layer's data
-        * `run`: pulsed high when this layer should run
+    Interfaces to a layer above and zero or more layers below.
 
-    Outputs:
-        * `rx_port_addr`: 11-bit address to read from rx_port
-        * `tx_port_addr`: 11-bit address to write to tx_port
-        * `tx_port_data`: 8-bit data to write to tx_port
-        * `tx_port_we`: write-enable for tx_port
-        * `complete`: pulsed high once this layer (and children) are complete
-        * `transmit`: pulsed high with `complete` if a valid packet is ready
+    Incoming packet data is streamed in-order into each layer, which performs
+    any processing for its part of the packet and then streams further data
+    to a delegated child layer if required.
+
+    Outgoing packet data is sent up to the parent layer as an address and data
+    to put in that address. Addresses are relative to the start of this layer's
+    data.
+
+    Parameters:
+        * `ip_stack`: reference to top-level IPStack instance which contains
+          relevant constants such as configured IP and MAC address
+
+    Interface:
+        * `run`: Input pulsed high to start this layer processing a received
+          packet which will begin streaming in
+        * `done`: Output pulsed high when processing is finished
+        * `send`: Output pulsed high along with `done` if a packet should be
+          transmitted from the tx memory
+        * `rx_data`: Input 8-bit received packet data, one byte per clock
+        * `tx_en`: Output pulsed high if `tx_addr` and `tx_data` are valid
+        * `tx_addr`: Output 11-bit address to store `tx_data` in, relative to
+          start address of this layer
+        * `tx_data`: Output 8-bit data to store at `tx_addr`
     """
     def __init__(self, ip_stack):
-        # Inputs
-        self.rx_port_data = Signal(8)
-        self.rx_offset = Signal(11)
-        self.tx_offset = Signal(11)
         self.run = Signal()
+        self.done = Signal()
+        self.send = Signal()
+        self.rx_data = Signal(8)
+        self.tx_en = Signal()
+        self.tx_addr = Signal(11)
+        self.tx_data = Signal(8)
 
-        # Outputs
-        self.rx_port_addr = Signal(11)
-        self.tx_port_addr = Signal(11)
-        self.tx_port_data = Signal(8)
-        self.tx_port_we = Signal()
-        self.complete = Signal()
-        self.transmit = Signal()
-
-        self.rx_idx = Signal(11)
-        self.tx_idx = Signal(11)
-        self.tx_at_end = Signal()
+        self.send_at_end = Signal()
         self.ip_stack = ip_stack
 
     def start_fsm(self):
         """
         Call to generate first FSM state.
         """
-        self.m.d.comb += self.rx_port_addr.eq(self.rx_offset + self.rx_idx)
-        self.m.d.comb += self.tx_port_addr.eq(self.tx_offset + self.tx_idx)
         self._fsm_ctr = 0
         with self.m.State("IDLE"):
-            self.m.d.comb += [
-                self.rx_idx.eq(0),
-            ]
-            self.m.d.sync += self.tx_at_end.eq(0)
+            self.m.d.sync += self.send_at_end.eq(0)
+            self.m.d.sync += self.tx_en.eq(0)
             with self.m.If(self.run):
-                self.m.next = 0
+                self.m.next = self._fsm_ctr
 
     def skip(self, name, n=1):
         """
         Skip `n` bytes from the input.
         """
-        with self.m.State(self._fsm_ctr):
-            self._fsm_ctr += n
-            self.m.d.comb += [
-                self.rx_idx.eq(self._fsm_ctr),
-            ]
-            self.m.next = self._fsm_ctr
+        for i in range(n):
+            with self.m.State(self._fsm_ctr):
+                self._fsm_ctr += 1
+                self.m.d.sync += self.tx_en.eq(0)
+                self.m.next = self._fsm_ctr
 
     def copy(self, name, dst, n=1):
         """
@@ -159,11 +162,10 @@ class _StackLayer:
         for i in range(n):
             with self.m.State(self._fsm_ctr):
                 self._fsm_ctr += 1
-                self.m.d.comb += [
-                    self.rx_idx.eq(self._fsm_ctr),
-                    self.tx_idx.eq(dst + i),
-                    self.tx_port_data.eq(self.rx_port_data),
-                    self.tx_port_we.eq(1),
+                self.m.d.sync += [
+                    self.tx_en.eq(1),
+                    self.tx_addr.eq(dst + i),
+                    self.tx_data.eq(self.rx_data),
                 ]
                 self.m.next = self._fsm_ctr
 
@@ -174,14 +176,12 @@ class _StackLayer:
         for i in range(n):
             with self.m.State(self._fsm_ctr):
                 self._fsm_ctr += 1
-                self.m.d.comb += [
-                    self.rx_idx.eq(self._fsm_ctr),
-                ]
                 if bigendian:
                     left, right = 8*(n-i-1), 8*(n-i)
                 else:
                     left, right = 8*i, 8*(i+1)
-                self.m.d.sync += reg[left:right].eq(self.rx_port_data)
+                self.m.d.sync += reg[left:right].eq(self.rx_data)
+                self.m.d.sync += self.tx_en.eq(0)
                 self.m.next = self._fsm_ctr
 
     def check(self, name, val, n=1, bigendian=True):
@@ -191,14 +191,12 @@ class _StackLayer:
         for i in range(n):
             with self.m.State(self._fsm_ctr):
                 self._fsm_ctr += 1
-                self.m.d.comb += [
-                    self.rx_idx.eq(self._fsm_ctr),
-                ]
+                self.m.d.sync += self.tx_en.eq(0)
                 if bigendian:
                     val_byte = (val >> 8*(n-i-1)) & 0xFF
                 else:
                     val_byte = (val >> 8*i) & 0xFF
-                with self.m.If(self.rx_port_data == val_byte):
+                with self.m.If(self.rx_data == val_byte):
                     self.m.next = self._fsm_ctr
                 with self.m.Else():
                     self.m.next = "DONE_NO_TX"
@@ -209,16 +207,16 @@ class _StackLayer:
         """
         for i in range(n):
             with self.m.State(self._fsm_ctr):
+                self._fsm_ctr += 1
                 if bigendian:
                     val_byte = (val >> 8*(n-i-1)) & 0xFF
                 else:
                     val_byte = (val >> 8*i) & 0xFF
-                self.m.d.comb += [
-                    self.tx_idx.eq(dst + i),
-                    self.tx_port_data.eq(val_byte),
-                    self.tx_port_we.eq(1),
+                self.m.d.sync += [
+                    self.tx_addr.eq(dst + i),
+                    self.tx_data.eq(val_byte),
+                    self.tx_en.eq(1),
                 ]
-                self._fsm_ctr += 1
                 self.m.next = self._fsm_ctr
 
     def switch(self, key, cases):
@@ -227,35 +225,29 @@ class _StackLayer:
         processing to the relevant case from `cases` (a dictionary
         of integers mapping submodules).
         """
-        # Wire up submodules
+        # Wire up submodules' rx_data
         for case in cases:
             submod = cases[case]
-            self.m.d.comb += [
-                submod.rx_offset.eq(self.rx_offset + self._fsm_ctr),
-                submod.tx_offset.eq(self.tx_offset + self._fsm_ctr),
-                submod.rx_port_data.eq(self.rx_port_data),
+            self.m.d.sync += [
+                submod.rx_data.eq(self.rx_data),
             ]
 
-        with self.m.State(self._fsm_ctr):
-            self.m.next = "SWITCH"
-
         # Generate switch state
-        with self.m.State("SWITCH"):
+        with self.m.State(self._fsm_ctr):
             with self.m.Switch(key):
                 for case in cases:
                     submod = cases[case]
                     with self.m.Case(case):
-                        self.m.d.comb += [
-                            self.rx_port_addr.eq(submod.rx_port_addr),
-                            self.tx_port_addr.eq(submod.tx_port_addr),
-                            self.tx_port_data.eq(submod.tx_port_data),
-                            self.tx_port_we.eq(submod.tx_port_we),
-                            submod.run.eq(1),
+                        self.m.d.sync += [
+                            self.tx_en.eq(submod.tx_en),
+                            self.tx_addr.eq(submod.tx_addr + self._fsm_ctr),
+                            self.tx_data.eq(submod.tx_data),
                         ]
-                        with self.m.If(submod.complete):
-                            with self.m.If(submod.transmit):
+                        self.m.d.comb += submod.run.eq(~submod.done)
+                        with self.m.If(submod.done):
+                            with self.m.If(submod.send):
                                 self.m.next = self._fsm_ctr + 1
-                                self.m.d.sync += self.tx_at_end.eq(1)
+                                self.m.d.sync += self.send_at_end.eq(1)
                             with self.m.Else():
                                 self.m.next = "DONE_NO_TX"
                 with self.m.Case():
@@ -263,28 +255,28 @@ class _StackLayer:
 
         self._fsm_ctr += 1
 
-    def end_fsm(self, transmit=False):
+    def end_fsm(self, send=False):
         """
-        Call to generate final FSM state. Set `transmit` True if a response
+        Call to generate final FSM state. Set `send` True if a response
         packet should be sent.
         """
         with self.m.State("DONE_NO_TX"):
             self.m.d.comb += [
-                self.complete.eq(1),
-                self.transmit.eq(0),
+                self.done.eq(1),
+                self.send.eq(0),
             ]
             self.m.next = "IDLE"
         with self.m.State("DONE_TX"):
             self.m.d.comb += [
-                self.complete.eq(1),
-                self.transmit.eq(1),
+                self.done.eq(1),
+                self.send.eq(1),
             ]
             self.m.next = "IDLE"
         with self.m.State(self._fsm_ctr):
-            if transmit:
+            if send:
                 self.m.next = "DONE_TX"
             else:
-                with self.m.If(self.tx_at_end):
+                with self.m.If(self.send_at_end):
                     self.m.next = "DONE_TX"
                 with self.m.Else():
                     self.m.next = "DONE_NO_TX"
@@ -323,7 +315,6 @@ class _EthernetLayer(_StackLayer):
             self.write("SRC", val=self.ip_stack.mac_addr_int, dst=6, n=6)
             self.write("ETYPE", val=ethertype, dst=12, n=2)
 
-            # Transmission enable inherited from submodule
             self.end_fsm()
 
         return self.m.lower(platform)
@@ -359,7 +350,7 @@ class _ARPLayer(_StackLayer):
             self.write("SPA", val=self.ip_stack.ip4_addr_int, dst=14, n=4)
 
             # Send response
-            self.end_fsm(transmit=True)
+            self.end_fsm(send=True)
 
         return self.m.lower(platform)
 
@@ -390,7 +381,7 @@ class _UDPLayer(_StackLayer):
 def run_rx_test(name, rx_bytes, expected_bytes, mac_addr, ip4_addr):
     from nmigen.back import pysim
 
-    rx_mem = Memory(8, 64, rx_bytes)
+    rx_mem = Memory(8, 64, [0]*4 + rx_bytes)
     rx_mem_port = rx_mem.read_port()
     tx_mem = Memory(8, 64)
     tx_mem_port = tx_mem.write_port()
@@ -401,6 +392,7 @@ def run_rx_test(name, rx_bytes, expected_bytes, mac_addr, ip4_addr):
         for _ in range(2):
             yield
 
+        yield ipstack.rx_offset.eq(4)
         yield ipstack.rx_valid.eq(1)
         yield
         yield ipstack.rx_valid.eq(0)
@@ -414,6 +406,10 @@ def run_rx_test(name, rx_bytes, expected_bytes, mac_addr, ip4_addr):
 
         if expected_bytes is not None:
             # Check transmit got asserted with valid tx_len, tx_offset
+            print("Received:", " ".join(
+                f"{x:02X}" for x in tx_bytes[:len(expected_bytes)]))
+            print("Expected:", " ".join(
+                f"{x:02X}" for x in expected_bytes))
             assert tx_bytes[:len(expected_bytes)] == expected_bytes
         else:
             # Check transmit did not get asserted
