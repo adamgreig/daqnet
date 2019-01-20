@@ -279,7 +279,7 @@ class _Platform:
         Group = namedtuple(group, [port[len(group)+1:] for port in ports])
         return Group(*(self.request(port) for port in ports))
 
-    def build(self, top, name, builddir, freq=None):
+    def build(self, top, name, builddir, freq=None, seed=0):
         def makepath(ext):
             return os.path.join(builddir, f"{name}.{ext}")
 
@@ -306,7 +306,7 @@ class _Platform:
         nextpnr_args = [
             "nextpnr-ice40", "--hx8k", "--package", "bg121", "--json",
             makepath("json"), "--pcf", makepath("pcf"), "--asc",
-            makepath("asc")
+            makepath("asc"), "--seed", str(seed),
         ]
 
         if freq is not None:

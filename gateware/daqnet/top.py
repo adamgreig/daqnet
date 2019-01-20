@@ -78,9 +78,6 @@ class SwitchTop(Top):
             mac.phy_reset.eq(0),
         ]
 
-        # Acknowledge and throw away any incoming packets
-        m.d.comb += mac.rx_ack.eq(1)
-
         # IP stack
         ip4_addr = "10.1.1.5"
         m.submodules.ipstack = ipstack = IPStack(
