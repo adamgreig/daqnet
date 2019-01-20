@@ -1,119 +1,411 @@
-from migen.build.generic_platform import Pins, IOStandard, Subsignal
-from migen.build.lattice import LatticePlatform
-
-# Prototype sensor node platform
-_protosensor_io = [
-    ("user_led", 0, Pins("A10"), IOStandard("SB_LVCMOS")),
-    ("user_led", 1, Pins("A11"), IOStandard("SB_LVCMOS")),
-
-    ("user_sw", 0, Pins("L1"), IOStandard("SB_LVCMOS")),
-    ("user_sw", 1, Pins("L7"), IOStandard("SB_LVCMOS")),
-
-    ("clk25", 0, Pins("B6"), IOStandard("SB_LVCMOS")),
-
-    ("adc", 0,
-        Subsignal("cs", Pins("L2")),
-        Subsignal("dout", Pins("L3")),
-        Subsignal("sclk", Pins("L4")),
-        IOStandard("SB_LVCMOS")),
-
-    ("flash", 0,
-        Subsignal("sdi", Pins("K9")),
-        Subsignal("sdo", Pins("J9")),
-        Subsignal("sck", Pins("L10")),
-        Subsignal("cs", Pins("K10")),
-        Subsignal("io2", Pins("H11")),
-        Subsignal("io3", Pins("J11")),
-        IOStandard("SB_LVCMOS")),
-
-    ("daqnet", 0,
-        Subsignal("led1", Pins("A3"), IOStandard("SB_LVCMOS")),
-        Subsignal("led2", Pins("A4"), IOStandard("SB_LVCMOS")),
-        Subsignal("txp", Pins("C2"), IOStandard("SB_LVCMOS")),
-        Subsignal("txn", Pins("C1"), IOStandard("SB_LVCMOS")),
-        Subsignal("rx", Pins("B2"), IOStandard("SB_LVDS_INPUT"))),
-]
+import os
+import subprocess
+from collections import namedtuple
+from nmigen import Signal, Instance, Const, Module
+from nmigen.back import rtlil, verilog
 
 
-class ProtoSensorPlatform(LatticePlatform):
-    default_clk_name = "clk25"
-    default_clk_period = 40
+class _InstanceWrapper:
+    """
+    Wraps an Instance, taking parameters in the constructor and then
+    exposing all ports as attributes. Unused ports are not specified
+    in the eventual Instance.
 
-    def __init__(self):
-        super().__init__(
-            "ice40-hx8k-bg121", _protosensor_io, toolchain="icestorm")
+    itype: the type of the instance to create
+    params: a dictionary of parameter names to values
+    ports: a dictionary of port names to (dirn, shape) tuples
+    required_ports: a list of required port names
+    defaults: a dictionary of port names to default values if unused
+    """
+    def __init__(self, itype, params, ports, required_ports, defaults=None):
+        super().__setattr__('ports_used', {})
+        super().__setattr__('ports', ports)
+        self.itype = itype
+        self.params = params
+        self.required_ports = required_ports
+        self.defaults = defaults
 
+    def __getattr__(self, name):
+        if name in self.ports_used:
+            return self.ports_used[name]
+        elif name.upper() in self.ports:
+            _, shape = self.ports[name.upper()]
+            self.ports_used[name] = Signal(shape=shape, name=name)
+            return self.ports_used[name]
+        else:
+            raise AttributeError
 
-# Prototype switch platform
-_protoswitch_io = [
-    ("user_led", 0, Pins("A11"), IOStandard("SB_LVCMOS")),
-    ("user_led", 1, Pins("A10"), IOStandard("SB_LVCMOS")),
+    def __setattr__(self, name, value):
+        if name.upper() in self.ports:
+            self.ports_used[name] = value
+        else:
+            super().__setattr__(name, value)
 
-    ("clk25", 0, Pins("B6"), IOStandard("SB_LVCMOS")),
+    def get_fragment(self, platform):
+        args = {f"p_{key.upper()}": val for (key, val) in self.params.items()}
+        for port, (dirn, shape) in self.ports.items():
+            if port.lower() in self.ports_used:
+                args[f"{dirn}_{port}"] = self.ports_used[port.lower()]
+            elif self.defaults and port in self.defaults:
+                args[f"{dirn}_{port}"] = self.defaults[port]
+            elif port in self.required_ports:
+                raise ValueError(f"{self.itype}: Required port {port} missing")
 
-    ("uart", 0,
-        Subsignal("rx", Pins("A4")),
-        Subsignal("tx", Pins("A3")),
-        IOStandard("SB_LVCMOS")),
-
-    ("flash", 0,
-        Subsignal("sdi", Pins("K9")),
-        Subsignal("sdo", Pins("J9")),
-        Subsignal("sck", Pins("L10")),
-        Subsignal("cs", Pins("K10")),
-        Subsignal("io2", Pins("K11")),
-        Subsignal("io3", Pins("J11")),
-        IOStandard("SB_LVCMOS")),
-
-    ("rmii", 0,
-        Subsignal("txd0", Pins("J3")),
-        Subsignal("txd1", Pins("L1")),
-        Subsignal("txen", Pins("L2")),
-        Subsignal("rxd0", Pins("K5")),
-        Subsignal("rxd1", Pins("J5")),
-        Subsignal("crs_dv", Pins("L4")),
-        Subsignal("ref_clk", Pins("K4")),
-        Subsignal("mdc", Pins("K3")),
-        Subsignal("mdio", Pins("L3")),
-        IOStandard("SB_LVCMOS")),
-
-    ("phy_rst", 0, Pins("K2"), IOStandard("SB_LVCMOS")),
-    ("eth_led", 0, Pins("J2"), IOStandard("SB_LVCMOS")),
-
-    ("daqnet", 0,
-        Subsignal("led1", Pins("C4"), IOStandard("SB_LVCMOS")),
-        Subsignal("led2", Pins("D3"), IOStandard("SB_LVCMOS")),
-        Subsignal("txp", Pins("B1"), IOStandard("SB_LVCMOS")),
-        Subsignal("txn", Pins("B2"), IOStandard("SB_LVCMOS")),
-        Subsignal("rx", Pins("C1"), IOStandard("SB_LVDS_INPUT"))),
-
-    ("daqnet", 1,
-        Subsignal("led1", Pins("D2"), IOStandard("SB_LVCMOS")),
-        Subsignal("led2", Pins("C3"), IOStandard("SB_LVCMOS")),
-        Subsignal("txp", Pins("E1"), IOStandard("SB_LVCMOS")),
-        Subsignal("txn", Pins("D1"), IOStandard("SB_LVCMOS")),
-        Subsignal("rx", Pins("E3"), IOStandard("SB_LVDS_INPUT"))),
-
-    ("daqnet", 2,
-        Subsignal("led1", Pins("G3"), IOStandard("SB_LVCMOS")),
-        Subsignal("led2", Pins("F3"), IOStandard("SB_LVCMOS")),
-        Subsignal("txp", Pins("F1"), IOStandard("SB_LVCMOS")),
-        Subsignal("txn", Pins("F2"), IOStandard("SB_LVCMOS")),
-        Subsignal("rx", Pins("G2"), IOStandard("SB_LVDS_INPUT"))),
-
-    ("daqnet", 3,
-        Subsignal("led1", Pins("F4"), IOStandard("SB_LVCMOS")),
-        Subsignal("led2", Pins("H3"), IOStandard("SB_LVCMOS")),
-        Subsignal("txp", Pins("H1"), IOStandard("SB_LVCMOS")),
-        Subsignal("txn", Pins("H2"), IOStandard("SB_LVCMOS")),
-        Subsignal("rx", Pins("K1"), IOStandard("SB_LVDS_INPUT"))),
-]
+        return Instance(self.itype, **args)
 
 
-class ProtoSwitchPlatform(LatticePlatform):
-    default_clk_name = "clk25"
-    default_clk_period = 40
+class SB_IO(_InstanceWrapper):
+    """
+    I/O Primitive SB_IO.
 
-    def __init__(self):
-        super().__init__(
-            "ice40-hx8k-bg121", _protoswitch_io, toolchain="icestorm")
+    Parameters:
+        * in_pin_type: one of:
+            SB_IO.PIN_INPUT (default),
+            SB_IO.PIN_INPUT_LATCH
+            SB_IO.PIN_INPUT_REGISTERED
+            SB_IO.PIN_INPUT_REGISTERED_LATCH
+            SB_IO.PIN_INPUT_DDR
+        * out_pin_type: one of:
+            SB_IO.PIN_NO_OUTPUT (default)
+            SB_IO.PIN_OUTPUT
+            SB_IO.PIN_OUTPUT_TRISTATE
+            SB_IO.PIN_OUTPUT_ENABLE_REGISTERED
+            SB_IO.PIN_OUTPUT_REGISTERED
+            SB_IO.PIN_OUTPUT_REGISTERED_ENABLE
+            SB_IO.PIN_OUTPUT_REGISTERED_ENABLE_REGISTERED
+            SB_IO.PIN_OUTPUT_DDR
+            SB_IO.PIN_OUTPUT_DDR_ENABLE
+            SB_IO.PIN_OUTPUT_DDR_ENABLE_REGISTERED
+            SB_IO.PIN_OUTPUT_REGISTERED_INVERTED
+            SB_IO.PIN_OUTPUT_REGISTERED_ENABLE_INVERTED
+            SB_IO.PIN_OUTPUT_REGISTERED_ENABLE_REGISTERED_INVERTED
+        * pullup: boolean whether to enable internal pullup.
+        * neg_trigger: boolean whether to invert polarity of IO FFs
+        * io_standard: one of "SB_LVCMOS" or "SB_LVDS_INPUT"
+
+    Ports:
+        Ports must be used or accessed as attributes, e.g.:
+            io1 = SB_IO(out_pin_type=SB_IO.PIN_OUTPUT)
+            io1.package_pin = user_led1
+            io2 = SB_IO()
+            io2.package_pin = user_sw1
+            m.d.comb += io1.d_out_0.eq(io2.d_in_0)
+        Unused ports will not be added to the instantiated Instance.
+
+        * package_pin: required, connect to top-level pin
+        * latch_input_value: when high, maintain current input value
+        * clock_enable: clock enable common to input and output clock
+        * input_clock: clock for input FFs
+        * output_clock: clock for output FFs
+        * output_enable: when high, enable output, otherwise high impedance
+        * d_out_0: Output data, or in DDR mode, data for rising output_clock
+        * d_out_1: In DDR mode, data for falling output_clock edge
+        * d_in_0: Input data, or in DDR mode, data at rising input_clock edge
+        * d_in_1: In DDR mode, data at falling input_clock edge
+    """
+
+    PIN_INPUT = 0b01
+    PIN_INPUT_LATCH = 0b11
+    PIN_INPUT_REGISTERED = 0b00
+    PIN_INPUT_REGISTERED_LATCH = 0b10
+    PIN_INPUT_DDR = 0b00
+
+    PIN_NO_OUTPUT = 0b0000
+    PIN_OUTPUT = 0b0110
+    PIN_OUTPUT_TRISTATE = 0b1010
+    PIN_OUTPUT_ENABLE_REGISTERED = 0b1110
+    PIN_OUTPUT_REGISTERED = 0b0101
+    PIN_OUTPUT_REGISTERED_ENABLE = 0b1001
+    PIN_OUTPUT_REGISTERED_ENABLE_REGISTERED = 0b1101
+    PIN_OUTPUT_DDR = 0b0100
+    PIN_OUTPUT_DDR_ENABLE = 0b1000
+    PIN_OUTPUT_DDR_ENABLE_REGISTERED = 0b1100
+    PIN_OUTPUT_REGISTERED_INVERTED = 0b0111
+    PIN_OUTPUT_REGISTERED_ENABLE_INVERTED = 0b1011
+    PIN_OUTPUT_REGISTERED_ENABLE_REGISTERED_INVERTED = 0b1111
+
+    def __init__(self,
+                 in_pin_type=PIN_INPUT,
+                 out_pin_type=PIN_NO_OUTPUT,
+                 pullup=False, neg_trigger=False,
+                 io_standard="SB_LVCMOS"):
+        params = {
+            "pin_type": in_pin_type | (out_pin_type << 2),
+            "pullup": int(pullup),
+            "neg_trigger": int(neg_trigger),
+            "io_standard": io_standard,
+        }
+
+        ports = {
+            "PACKAGE_PIN": ("io", 1),
+            "LATCH_INPUT_VALUE": ("i", 1),
+            "CLOCK_ENABLE": ("i", 1),
+            "INPUT_CLK": ("i", 1),
+            "OUTPUT_CLK": ("i", 1),
+            "OUTPUT_ENABLE": ("i", 1),
+            "D_OUT_0": ("i", 1),
+            "D_OUT_1": ("i", 1),
+            "D_IN_0": ("o", 1),
+            "D_IN_1": ("o", 1),
+        }
+
+        required = ("PACKAGE_PIN",)
+        super().__init__("SB_IO", params, ports, required)
+
+    def change_pin_type(self, in_pin_type, out_pin_type):
+        self.params["pin_type"] = in_pin_type | (out_pin_type << 2)
+
+
+class SB_PLL40_PAD(_InstanceWrapper):
+    """
+    Phase-locked loop primitive SB_PLL40_PAD.
+
+    Used when the PLL source is an input pad in banks 0 or 2, and the source
+    clock is not required inside the FPGA.
+
+    Required Parameters:
+        * divr: Reference clock divider, 0 to 15
+        * divf: Feedback divider, 0 to 63
+        * divq: VCO divider, 1 to 6
+        * filter_range: PLL filter setting, 0 to 7
+
+    Optional Parameters:
+        See SB_PLL40_PAD documentation. Parameters may be given as additional
+        kwargs when initialising SB_PLL40_PAD, e.g.:
+        pll = SB_PLL40_PAD(0, 31, 3, 2, feedback_path="DELAY", fda_feedback=10)
+
+        If unspecified, FEEDBACK_PATH is set to SIMPLE and PLLOUT_SELECT
+        to GENCLK.
+
+    Ports:
+        Ports must be set or accessed as attributes to be used, e.g.:
+            pll = SB_PLL40_PAD(0, 31, 3, 2)
+            pll.packagepin = clk25
+            m.d.comb += cd.clk.eq(pll.plloutglobal)
+        Unused ports will not be added to the instantiated Instance.
+
+        See SB_PLL40_PAD documentation for the full list of ports.
+
+        Required ports:
+        * packagepin: Connect directly to input pad
+
+        Commonly used ports:
+        * plloutglobal: Global buffer clock out
+        * plloutcore: Core logic clock out
+
+        If unspecified, RESETB is set to 1.
+    """
+    def __init__(self, divr, divf, divq, filter_range, **params):
+        params["divr"] = divr
+        params["divf"] = divf
+        params["divq"] = divq
+        params["filter_range"] = filter_range
+
+        if "feedback_path" not in params:
+            params["feedback_path"] = "SIMPLE"
+        if "pllout_select" not in params:
+            params["pllout_select"] = "GENCLK"
+
+        ports = {
+            "PACKAGEPIN": ("i", 1),
+            "EXTFEEDBACK": ("i", 1),
+            "DYNAMICDELAY": ("i", 1),
+            "LATCHINPUTVALUE": ("i", 1),
+            "SCLK": ("i", 1),
+            "SDI": ("i", 1),
+            "SDO": ("o", 1),
+            "RESETB": ("i", 1),
+            "LOCK": ("o", 1),
+            "PLLOUTCORE": ("o", 1),
+            "PLLOUTGLOBAL": ("o", 1),
+        }
+
+        required = ("PACKAGEPIN",)
+        default = {"RESETB": Const(1)}
+        super().__init__("SB_PLL40_PAD", params, ports, required, default)
+
+
+class _Port:
+    """
+    Represents a port (one or more pins with the same name) available to the
+    platform.
+    """
+    def __init__(self, name, dirn, pads):
+        """
+        name: name of port
+        pads: either a single string of one pin location or a tuple of strings
+        """
+        self.name = name
+        self.dirn = dirn
+        self.pads = pads
+        n = len(self.pads) if isinstance(self.pads, tuple) else 1
+        self.signal = Signal(n, name=name)
+
+    def make_pcf(self):
+        """
+        Returns a string of lines for the PCF file containing this port.
+        """
+        pcf_lines = []
+        if isinstance(self.pads, tuple):
+            for idx, p in enumerate(self.pads):
+                pcf_lines.append(f"set_io {self.name}[{idx}] {p}")
+        else:
+            pcf_lines.append(f"set_io {self.name} {self.pads}")
+        return "\n".join(pcf_lines)
+
+
+class _Platform:
+    def __init__(self, ports):
+        self.ports_available = {port.name: port for port in ports}
+        self.ports_used = {}
+
+    def request(self, port):
+        if port in self.ports_available:
+            self.ports_used[port] = self.ports_available[port]
+            del self.ports_available[port]
+            return self.ports_used[port].signal
+        elif port in self.ports_used:
+            raise ValueError(f"Port {port} already used")
+        else:
+            raise ValueError(f"Unknown port {port}")
+
+    def request_group(self, group):
+        ports = []
+        for port in self.ports_available:
+            if port.startswith(group + "_"):
+                ports.append(port)
+        if not ports:
+            raise ValueError(f"No ports found in group {group}")
+        Group = namedtuple(group, [port[len(group)+1:] for port in ports])
+        return Group(*(self.request(port) for port in ports))
+
+    def build(self, top, name, builddir, freq=None, seed=0):
+        def makepath(ext):
+            return os.path.join(builddir, f"{name}.{ext}")
+
+        frag = top.get_fragment(self)
+        ports = self._get_ports()
+
+        os.makedirs(builddir, exist_ok=True)
+
+        with open(makepath("pcf"), "w") as f:
+            f.write(self._get_pcf())
+
+        with open(makepath("il"), "w") as f:
+            f.write(rtlil.convert(frag, name=name, ports=ports))
+
+        with open(makepath("v"), "w") as f:
+            f.write(verilog.convert(frag, name=name, ports=ports))
+
+        subprocess.run([
+            "yosys", "-q", "-p",
+            f"synth_ice40 -relut -json {makepath('json')}",
+            makepath("il")
+        ], check=True)
+
+        nextpnr_args = [
+            "nextpnr-ice40", "--hx8k", "--package", "bg121", "--json",
+            makepath("json"), "--pcf", makepath("pcf"), "--asc",
+            makepath("asc"), "--seed", str(seed),
+        ]
+
+        if freq is not None:
+            nextpnr_args += ["--freq", str(freq)]
+
+        subprocess.run(nextpnr_args, check=True)
+        subprocess.run(["icepack", makepath("asc"), makepath("bin")],
+                       check=True)
+
+    def _get_pcf(self):
+        return "\n".join(port.make_pcf() for port in self.ports_used.values())
+
+    def _get_ports(self):
+        return [port.signal for port in self.ports_used.values()]
+
+    def get_tristate(self, tstriple, pad):
+        m = Module()
+        m.submodules.io = io = SB_IO(out_pin_type=SB_IO.PIN_OUTPUT_TRISTATE)
+        io.package_pin = pad
+        io.d_out_0 = tstriple.o
+        io.output_enable = tstriple.oe
+        m.d.comb += tstriple.i.eq(io.d_in_0)
+        frag = m.get_fragment(self)
+        frag.flatten = True
+        return frag
+
+
+class SensorPlatform(_Platform):
+    def __init__(self, args):
+        ports = (
+            _Port("clk25", "i", "B6"),
+            _Port("user_led_3", "o", "A10"),
+            _Port("user_led_4", "o", "A11"),
+            _Port("user_sw_1", "i", "L1"),
+            _Port("user_sw_2", "i", "L7"),
+            _Port("adc_cs", "o", "L2"),
+            _Port("adc_dout", "o", "L3"),
+            _Port("adc_sclk", "o", "L4"),
+            _Port("flash_sdi", "o", "K9"),
+            _Port("flash_sdo", "i", "J9"),
+            _Port("flash_sck", "o", "L10"),
+            _Port("flash_cs", "o", "K10"),
+            _Port("flash_io2", "i", "H11"),
+            _Port("flash_io3", "i", "J11"),
+            _Port("daqnet_led1", "o", "A3"),
+            _Port("daqnet_led2", "o", "A4"),
+            _Port("daqnet_txp", "o", "C2"),
+            _Port("daqnet_txn", "o", "C1"),
+            _Port("daqnet_rx", "i", "B2"),
+        )
+
+        super().__init__(ports)
+
+
+class SwitchPlatform(_Platform):
+    def __init__(self, args):
+        ports = (
+            _Port("clk25", "i", "B6"),
+            _Port("user_led_1", "o", "A11"),
+            _Port("user_led_2", "o", "A10"),
+            _Port("uart_rx", "i", "A4"),
+            _Port("uart_tx", "o", "A3"),
+            _Port("flash_sdi", "o", "K9"),
+            _Port("flash_sdo", "i", "J9"),
+            _Port("flash_sck", "o", "L10"),
+            _Port("flash_cs", "o", "K10"),
+            _Port("flash_io2", "i", "K11"),
+            _Port("flash_io3", "i", "J11"),
+            _Port("rmii_txd0", "o", "J3"),
+            _Port("rmii_txd1", "o", "L1"),
+            _Port("rmii_txen", "o", "L2"),
+            _Port("rmii_rxd0", "i", "K5"),
+            _Port("rmii_rxd1", "i", "J5"),
+            _Port("rmii_crs_dv", "i", "L4"),
+            _Port("rmii_ref_clk", "i", "K4"),
+            _Port("rmii_mdc", "o", "K3"),
+            _Port("rmii_mdio", "io", "L3"),
+            _Port("phy_rst", "o", "K2"),
+            _Port("eth_led", "o", "J2"),
+            _Port("daqnet_0_led1", "o", "C4"),
+            _Port("daqnet_0_led2", "o", "D3"),
+            _Port("daqnet_0_txp", "o", "B1"),
+            _Port("daqnet_0_txn", "o", "B2"),
+            _Port("daqnet_0_rx", "i", "C1"),
+            _Port("daqnet_1_led1", "o", "D2"),
+            _Port("daqnet_1_led2", "o", "C3"),
+            _Port("daqnet_1_txp", "o", "E1"),
+            _Port("daqnet_1_txn", "o", "D1"),
+            _Port("daqnet_1_rx", "i", "E3"),
+            _Port("daqnet_2_led1", "o", "G3"),
+            _Port("daqnet_2_led2", "o", "F3"),
+            _Port("daqnet_2_txp", "o", "F1"),
+            _Port("daqnet_2_txn", "o", "F2"),
+            _Port("daqnet_2_rx", "i", "G2"),
+            _Port("daqnet_3_led1", "o", "F4"),
+            _Port("daqnet_3_led2", "o", "H3"),
+            _Port("daqnet_3_txp", "o", "H1"),
+            _Port("daqnet_3_txn", "o", "H2"),
+            _Port("daqnet_3_rx", "i", "K1"),
+        )
+
+        super().__init__(ports)

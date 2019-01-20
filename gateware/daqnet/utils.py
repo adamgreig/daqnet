@@ -1,39 +1,63 @@
 """
 Gateway utilities and common modules.
 
-Copyright 2018 Adam Greig
+Copyright 2018-2019 Adam Greig
 """
 
-from migen import Module, Signal, FSM, NextValue, NextState, If
+from nmigen import Module, Signal, Cat
 
 
-class PulseStretch(Module):
+class LFSR:
+    TAPS = {7: 6, 9: 5, 11: 9, 15: 14, 20: 3, 23: 18, 31: 28}
+
+    def __init__(self, k):
+        self.reset = Signal()
+        self.state = Signal(k)
+
+        if k not in LFSR.TAPS.keys():
+            raise ValueError(f"k={k} invalid for LFSR")
+
+        self.k = k
+
+    def get_fragment(self, platform):
+        m = Module()
+        x = Signal()
+        tap = LFSR.TAPS[self.k]
+        m.d.comb += x.eq(self.state[self.k-1] ^ self.state[tap-1])
+        with m.If(self.reset):
+            m.d.sync += self.state.eq(1)
+        with m.Else():
+            m.d.sync += Cat(self.state).eq(Cat(x, self.state))
+
+        return m.lower(platform)
+
+
+class PulseStretch:
     def __init__(self, nclks):
         # Inputs
-        self.input = Signal()
+        self.trigger = Signal()
 
         # Outputs
-        self.output = Signal()
+        self.pulse = Signal()
 
-        ###
+        self.nclks = nclks
 
-        counter = Signal(max=nclks)
-        self.submodules.fsm = FSM(reset_state="WAIT")
+    def get_fragment(self, platform):
+        m = Module()
 
-        self.comb += self.output.eq(self.fsm.ongoing("STRETCH"))
+        counter = Signal(max=self.nclks)
 
-        self.fsm.act(
-            "WAIT",
-            NextValue(counter, 0),
-            If(self.input == 1, NextState("STRETCH")),
-        )
+        with m.FSM() as fsm:
+            m.d.comb += self.pulse.eq(fsm.ongoing("STRETCH"))
+            with m.State("WAIT"):
+                m.d.sync += counter.eq(0)
+                with m.If(self.trigger):
+                    m.next = "STRETCH"
 
-        self.fsm.act(
-            "STRETCH",
-            If(
-                counter == nclks-1,
-                NextState("WAIT"),
-            ).Else(
-                NextValue(counter, counter + 1)
-            )
-        )
+            with m.State("STRETCH"):
+                with m.If(counter == self.nclks - 1):
+                    m.next = "WAIT"
+                with m.Else():
+                    m.d.sync += counter.eq(counter + 1)
+
+        return m.lower(platform)

@@ -1,17 +1,17 @@
 """
 Ethernet CRC32 Module
 
-Copyright 2018 Adam Greig
+Copyright 2018-2019 Adam Greig
 """
 
-from migen import Module, Signal, If, Memory, FSM, NextState, NextValue
+from nmigen import Module, Signal, Memory
 
 
-class CRC32(Module):
+class CRC32:
     """
     Ethernet CRC32
 
-    Processes one byte of data every *two* clock cycles.
+    Processes one byte of data every two clock cycles.
 
     Inputs:
         * `reset`: Re-initialises CRC to start state while high
@@ -36,45 +36,39 @@ class CRC32(Module):
         self.crc_out = Signal(32)
         self.crc_match = Signal()
 
-        ###
+    def get_fragment(self, platform):
 
+        m = Module()
         crc = Signal(32)
 
-        table = Memory(32, 256, make_crc32_table())
-        table_port = table.get_port()
-        self.specials += [table, table_port]
+        self.crctable = Memory(32, 256, make_crc32_table())
+        table_port = self.crctable.read_port()
+        m.submodules += table_port
 
-        self.comb += [
+        m.d.comb += [
             self.crc_out.eq(crc ^ 0xFFFFFFFF),
             self.crc_match.eq(crc == 0xDEBB20E3),
-            table_port.adr.eq(crc ^ self.data),
+            table_port.addr.eq(crc ^ self.data),
         ]
 
-        self.submodules.fsm = FSM(reset_state="RESET")
+        with m.FSM():
+            with m.State("RESET"):
+                m.d.sync += crc.eq(0xFFFFFFFF)
+                m.next = "IDLE"
 
-        self.fsm.act(
-            "RESET",
-            NextValue(crc, 0xFFFFFFFF),
-            NextState("IDLE"),
-        )
+            with m.State("IDLE"):
+                with m.If(self.reset):
+                    m.next = "RESET"
+                with m.Elif(self.data_valid):
+                    m.next = "BUSY"
 
-        self.fsm.act(
-            "IDLE",
-            If(
-                self.reset == 1,
-                NextState("RESET")
-            ).Elif(
-                self.data_valid,
-                NextState("BUSY")
-            )
-        )
+            with m.State("BUSY"):
+                with m.If(self.reset):
+                    m.next = "RESET"
+                m.d.sync += crc.eq(table_port.data ^ (crc >> 8))
+                m.next = "IDLE"
 
-        self.fsm.act(
-            "BUSY",
-            If(self.reset == 1, NextState("RESET")),
-            NextValue(crc, table_port.dat_r ^ (crc >> 8)),
-            NextState("IDLE"),
-        )
+        return m.lower(platform)
 
 
 def make_crc32_table():
@@ -94,7 +88,7 @@ def make_crc32_table():
 
 
 def test_crc32():
-    from migen.sim import run_simulation
+    from nmigen.back import pysim
     crc = CRC32()
 
     def testbench():
@@ -111,11 +105,16 @@ def test_crc32():
         out = yield (crc.crc_out)
         assert out == 0xCBF43926
 
-    run_simulation(crc, testbench(), vcd_name="crc32.vcd")
+    frag = crc.get_fragment(None)
+    vcdf = open("crc32.vcd", "w")
+    with pysim.Simulator(frag, vcd_file=vcdf) as sim:
+        sim.add_clock(1e-6)
+        sim.add_sync_process(testbench())
+        sim.run()
 
 
 def test_crc32_match():
-    from migen.sim import run_simulation
+    from nmigen.back import pysim
     crc = CRC32()
 
     frame = [
@@ -144,7 +143,12 @@ def test_crc32_match():
         match = yield (crc.crc_match)
         assert match == 1
 
-    run_simulation(crc, testbench(), vcd_name="crc32_match.vcd")
+    frag = crc.get_fragment(None)
+    vcdf = open("crc32_match.vcd", "w")
+    with pysim.Simulator(frag, vcd_file=vcdf) as sim:
+        sim.add_clock(1e-6)
+        sim.add_sync_process(testbench())
+        sim.run()
 
 
 def test_crc32_py():

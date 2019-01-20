@@ -1,17 +1,18 @@
 """
 Ethernet RMII MAC
 
-Copyright 2018 Adam Greig
+Copyright 2018-2019 Adam Greig
 """
 
-from migen import (Module, Signal, Constant, If, FSM, NextValue, NextState,
-                   Memory, ClockDomain, ClockDomainsRenamer)
+from nmigen import Module, Signal, Const, Memory, ClockDomain
+from nmigen.lib.cdc import MultiReg
+from nmigen.hdl.xfrm import DomainRenamer
 from .mdio import MDIO
 from .rmii import RMIIRx, RMIITx
 from ..utils import PulseStretch
 
 
-class MAC(Module):
+class MAC:
     """
     Ethernet RMII MAC.
 
@@ -25,7 +26,7 @@ class MAC(Module):
         * `phy_addr`: 5-bit address of the PHY
         * `mac_addr`: MAC address in standard XX:XX:XX:XX:XX:XX format
 
-    Ports:
+    Memory Ports:
         * `rx_port`: Read port into RX packet memory, 8 bytes by 2048 cells.
         * `tx_port`: Write port into TX packet memory, 8 bytes by 2048 cells.
 
@@ -35,97 +36,185 @@ class MAC(Module):
         * `phy_rst`: PHY RST pin (output, active low)
         * `eth_led`: Ethernet LED, active high, pulsed on packet traffic
 
+    TX port:
+        * `tx_start`: Pulse high to begin transmission of a packet from memory
+        * `tx_len`: 11-bit length of packet to transmit
+        * `tx_offset`: 11-bit address offset of packet to transmit
+
+    RX port:
+        * `rx_valid`: Held high while `rx_len` and `rx_offset` are valid
+        * `rx_len`: 11-bit length of received packet
+        * `rx_offset`: 11-bit address offset of received packet
+        * `rx_ack`: Pulse high to acknowledge packet receipt
+
     Inputs:
-        * `rx_ack`: Assert to acknowledge packet reception and restart
-                    listening for new packets, ideally within 48 RMII
-                    ref_clk cycles.
-        * `tx_start`: Assert to begin transmission of a packet from memory
-        * `tx_len`: 11-bit wide length of packet to transmit
+        * `phy_reset`: Assert to reset the PHY, de-assert for normal operation
 
     Outputs:
         * `link_up`: High while link is established
-        * `rx_valid`: Asserted when a valid packet is in RX memory.
-                      Acknowledge by asserting `rx_ack`.
-        * `rx_len`: Received packet length. Valid while `rx_valid` is asserted
-        * `tx_ready`: Asserted while ready to transmit a new packet
     """
     def __init__(self, clk_freq, phy_addr, mac_addr, rmii, phy_rst, eth_led):
-        # Ports
+        # Memory Ports
         self.rx_port = None  # Assigned below
         self.tx_port = None  # Assigned below
 
-        # Inputs
-        self.rx_ack = Signal()
+        # TX port
         self.tx_start = Signal()
         self.tx_len = Signal(11)
+        self.tx_offset = Signal(11)
+
+        # RX port
+        self.rx_ack = Signal()
+        self.rx_valid = Signal()
+        self.rx_len = Signal(11)
+        self.rx_offset = Signal(11)
+
+        # Inputs
+        self.phy_reset = Signal()
 
         # Outputs
         self.link_up = Signal()
-        self.rx_valid = Signal()
-        self.rx_len = Signal(11)
-        self.tx_ready = Signal()
 
-        ###
-
-        # Turn MAC address into list-of-ints
+        self.clk_freq = clk_freq
+        self.phy_addr = phy_addr
         self.mac_addr = [int(x, 16) for x in mac_addr.split(":")]
+        self.rmii = rmii
+        self.phy_rst = phy_rst
+        self.eth_led = eth_led
+
+        # Create packet memories and interface ports
+        self.rx_mem = Memory(8, 2048)
+        self.rx_port = self.rx_mem.read_port()
+        self.tx_mem = Memory(8, 2048)
+        self.tx_port = self.tx_mem.write_port()
+
+    def get_fragment(self, platform):
+        m = Module()
 
         # Create RMII clock domain from RMII clock input
-        self.clock_domains.rmii = ClockDomain("rmii")
-        self.comb += self.rmii.clk.eq(rmii.ref_clk)
+        cd = ClockDomain("rmii", reset_less=True)
+        m.d.comb += cd.clk.eq(self.rmii.ref_clk)
+        m.domains.rmii = cd
 
-        # Create RX packet memory and read/write ports
-        rx_mem = Memory(8, 2048)
-        self.rx_port = rx_mem.get_port()
-        rx_port_w = rx_mem.get_port(write_capable=True, clock_domain="rmii")
-        self.specials += [rx_mem, self.rx_port, rx_port_w]
-
-        # Create TX packet memory and read/write ports
-        tx_mem = Memory(8, 2048)
-        self.tx_port = tx_mem.get_port(write_capable=True)
-        tx_port_r = tx_mem.get_port(clock_domain="rmii")
-        self.specials += [tx_mem, self.tx_port, tx_port_r]
+        # Create RX write and TX read ports for RMII use
+        rx_port_w = self.rx_mem.write_port(domain="rmii")
+        tx_port_r = self.tx_mem.read_port(domain="rmii")
+        m.submodules += [self.rx_port, rx_port_w, self.tx_port, tx_port_r]
 
         # Create submodules for PHY and RMII
-        self.submodules.phy_manager = PHYManager(
-            clk_freq, phy_addr, phy_rst, rmii.mdio, rmii.mdc)
-        self.submodules.rmii_rx = ClockDomainsRenamer("rmii")(
-            RMIIRx(self.mac_addr, rx_port_w, rmii.crs_dv,
-                   rmii.rxd0, rmii.rxd1))
-        self.submodules.rmii_tx = ClockDomainsRenamer("rmii")(
-            RMIITx(tx_port_r, rmii.txen, rmii.txd0, rmii.txd1))
-        self.submodules.stretch = PulseStretch(int(clk_freq/1000))
+        m.submodules.phy_manager = phy_manager = PHYManager(
+            self.clk_freq, self.phy_addr, self.phy_rst,
+            self.rmii.mdio, self.rmii.mdc)
+        m.submodules.stretch = stretch = PulseStretch(int(1e6))
 
-        # Double register RMIIRx inputs/outputs for CDC
-        rx_valid_latch = Signal()
-        rx_len_latch = Signal(11)
-        rx_ack_latch = Signal()
-        tx_start_latch = Signal()
-        tx_len_latch = Signal(11)
-        tx_ready_latch = Signal()
-        self.sync += [
-            rx_valid_latch.eq(self.rmii_rx.rx_valid),
-            self.rx_valid.eq(rx_valid_latch),
-            rx_len_latch.eq(self.rmii_rx.rx_len),
-            self.rx_len.eq(rx_len_latch),
-            rx_ack_latch.eq(self.rx_ack),
-            self.rmii_rx.rx_ack.eq(rx_ack_latch),
-            tx_start_latch.eq(self.tx_start),
-            self.rmii_tx.tx_start.eq(tx_start_latch),
-            tx_len_latch.eq(self.tx_len),
-            self.rmii_tx.tx_len.eq(tx_len_latch),
-            tx_ready_latch.eq(self.rmii_tx.tx_ready),
-            self.tx_ready.eq(tx_ready_latch),
+        rmii_rx = RMIIRx(
+            self.mac_addr, rx_port_w, self.rmii.crs_dv,
+            self.rmii.rxd0, self.rmii.rxd1)
+        rmii_tx = RMIITx(
+            tx_port_r, self.rmii.txen, self.rmii.txd0, self.rmii.txd1)
+
+        # Create FIFOs to interface to RMII modules
+        rx_len_fifo = DummyFIFO(width=11)
+        rx_off_fifo = DummyFIFO(width=11)
+        tx_len_fifo = DummyFIFO(width=11)
+        tx_off_fifo = DummyFIFO(width=11)
+
+        m.d.comb += [
+            # RX length FIFO + rx_valid
+            rx_len_fifo.din.eq(rmii_rx.rx_len),
+            rx_len_fifo.we.eq(rmii_rx.rx_valid),
+            self.rx_len.eq(rx_len_fifo.dout),
+            self.rx_valid.eq(rx_len_fifo.readable),
+            rx_len_fifo.re.eq(self.rx_ack),
+
+            # RX offset FIFO
+            rx_off_fifo.din.eq(rmii_rx.rx_offset),
+            rx_off_fifo.we.eq(rmii_rx.rx_valid),
+            self.rx_offset.eq(rx_off_fifo.dout),
+            rx_off_fifo.re.eq(self.rx_ack),
+
+            # TX length FIFO + tx_start
+            tx_len_fifo.din.eq(self.tx_len),
+            tx_len_fifo.we.eq(self.tx_start),
+            rmii_tx.tx_len.eq(tx_len_fifo.dout),
+            rmii_tx.tx_start.eq(tx_len_fifo.readable),
+            tx_len_fifo.re.eq(rmii_tx.tx_ready),
+
+            # TX offset FIFO
+            tx_off_fifo.din.eq(self.tx_offset),
+            tx_off_fifo.we.eq(self.tx_start),
+            rmii_tx.tx_offset.eq(tx_off_fifo.dout),
+            tx_off_fifo.re.eq(rmii_tx.tx_ready),
+
+            # Other submodules
+            phy_manager.phy_reset.eq(self.phy_reset),
+            self.link_up.eq(phy_manager.link_up),
+            stretch.trigger.eq(self.rx_valid),
+            self.eth_led.eq(stretch.pulse),
         ]
 
-        self.comb += [
-            self.link_up.eq(self.phy_manager.link_up),
-            self.stretch.input.eq(self.rx_valid | ~self.tx_ready),
-            eth_led.eq(self.stretch.output),
-        ]
+        m.submodules.rx_len_fifo = rx_len_fifo
+        m.submodules.rx_off_fifo = rx_off_fifo
+        m.submodules.tx_len_fifo = DomainRenamer("rmii")(
+            tx_len_fifo.get_fragment(platform))
+        m.submodules.tx_off_fifo = DomainRenamer("rmii")(
+            tx_off_fifo.get_fragment(platform))
+        m.submodules.rmii_rx = DomainRenamer("rmii")(
+            rmii_rx.get_fragment(platform))
+        m.submodules.rmii_tx = DomainRenamer("rmii")(
+            rmii_tx.get_fragment(platform))
+
+        return m.lower(platform)
 
 
-class PHYManager(Module):
+class DummyFIFO:
+    """
+    A mock FIFO that doesn't actually store anything except the current value.
+
+    To be replaced with a real FIFO in due course.
+
+    Parameters:
+        * `width`: Bit width of FIFO data
+
+    Write port:
+        * `din`: Data input
+        * `we`: Pulse high to save data
+
+    Read port:
+        * `dout`: Data output
+        * `re`: Pulse high to acknowledge data
+        * `readable`: High while `dout` is valid
+    """
+    def __init__(self, width):
+        # Write port
+        self.din = Signal(width, reset_less=True)
+        self.we = Signal()
+
+        # Read port
+        self.dout = Signal(width, reset_less=True)
+        self.re = Signal()
+        self.readable = Signal()
+
+    def get_fragment(self, platform):
+        m = Module()
+
+        we_cdc = Signal()
+        m.submodules += MultiReg(self.we, we_cdc)
+        m.submodules += MultiReg(self.din, self.dout)
+
+        with m.If(we_cdc):
+            m.d.sync += [
+                self.readable.eq(1),
+            ]
+        with m.Elif(self.re):
+            m.d.sync += [
+                self.readable.eq(0),
+            ]
+
+        return m.lower(platform)
+
+
+class PHYManager:
     """
     Manage a PHY over MDIO.
 
@@ -156,18 +245,26 @@ class PHYManager(Module):
         # Outputs
         self.link_up = Signal()
 
-        ###
+        self.clk_freq = clk_freq
+        self.phy_addr = phy_addr
+        self.phy_rst = phy_rst
+        self.mdio = mdio
+        self.mdc = mdc
+
+    def get_fragment(self, platform):
+        m = Module()
 
         # Create MDIO submodule
-        clk_div = int(clk_freq // 2.5e6)
-        self.submodules.mdio = MDIO(clk_div, mdio, mdc)
-        self.mdio.phy_addr = Constant(phy_addr)
+        clk_div = int(self.clk_freq // 2.5e6)
+        m.submodules.mdio = mdio = MDIO(clk_div, self.mdio, self.mdc)
+        self.mdio_mod = mdio
+        mdio.phy_addr = Const(self.phy_addr)
 
         # Latches for registers we read
         bsr = Signal(16)
 
         # Compute output signal from registers
-        self.comb += self.link_up.eq(
+        m.d.comb += self.link_up.eq(
             bsr[2] &        # Link must be up
             ~bsr[4] &       # No remote fault
             bsr[5] &        # Autonegotiation complete
@@ -185,121 +282,175 @@ class PHYManager(Module):
         ]
 
         # Controller FSM
-        self.submodules.fsm = FSM(reset_state="RESET")
-        one_ms = int(clk_freq//1000)
+        one_ms = int(self.clk_freq//1000)
         counter = Signal(max=one_ms)
+        with m.FSM():
 
-        # Assert PHY_RST and begin 1ms counter
-        self.fsm.act(
-            "RESET",
-            phy_rst.eq(0),
-            NextValue(counter, one_ms),
-            NextState("RESET_WAIT"),
-        )
+            # Assert PHY_RST and begin 1ms counter
+            with m.State("RESET"):
+                m.d.comb += self.phy_rst.eq(0)
+                m.d.sync += counter.eq(one_ms)
+                m.next = "RESET_WAIT"
 
-        # Wait for reset timeout
-        self.fsm.act(
-            "RESET_WAIT",
-            phy_rst.eq(0),
-            NextValue(counter, counter - 1),
-            If(self.phy_reset == 1, NextState("RESET")),
-            If(
-                counter == 0,
-                NextValue(counter, one_ms),
-                NextState("WRITE_WAIT" if registers_to_write else "POLL_WAIT")
-            ),
-        )
+            # Wait for reset timeout
+            with m.State("RESET_WAIT"):
+                m.d.comb += self.phy_rst.eq(0)
+                m.d.sync += counter.eq(counter - 1)
+                with m.If(self.phy_reset):
+                    m.next = "RESET"
+                with m.Elif(counter == 0):
+                    m.d.sync += counter.eq(one_ms)
+                    write = bool(registers_to_write)
+                    m.next = "WRITE_WAIT" if write else "POLL_WAIT"
 
-        # Wait 1ms before writing
-        if registers_to_write:
-            self.fsm.act(
-                "WRITE_WAIT",
-                phy_rst.eq(1),
-                NextValue(counter, counter - 1),
-                If(self.phy_reset == 1, NextState("RESET")),
-                If(
-                    counter == 0,
-                    NextState(f"WRITE_{registers_to_write[0][0]}")
-                ),
-            )
-
-        for idx, (name, addr, val) in enumerate(registers_to_write):
-            if idx == len(registers_to_write) - 1:
-                next_state = "POLL_WAIT"
+            # Wait 1ms before writing
+            if registers_to_write:
+                with m.State("WRITE_WAIT"):
+                    m.d.comb += self.phy_rst.eq(1),
+                    m.d.sync += counter.eq(counter - 1)
+                    with m.If(self.phy_reset):
+                        m.next = "RESET"
+                    with m.Elif(counter == 0):
+                        m.next = f"WRITE_{registers_to_write[0][0]}"
             else:
-                next_state = f"WRITE_{registers_to_write[idx+1][0]}"
+                m.d.comb += mdio.write_data.eq(0)
 
-            self.fsm.act(
-                f"WRITE_{name}",
-                phy_rst.eq(0),
-                self.mdio.reg_addr.eq(Constant(addr)),
-                self.mdio.rw.eq(1),
-                self.mdio.write_data.eq(Constant(val)),
-                self.mdio.start.eq(1),
+            for idx, (name, addr, val) in enumerate(registers_to_write):
+                if idx == len(registers_to_write) - 1:
+                    next_state = "POLL_WAIT"
+                else:
+                    next_state = f"WRITE_{registers_to_write[idx+1][0]}"
 
-                If(self.phy_reset == 1, NextState("RESET")),
-                If(self.mdio.busy, NextState(f"WRITE_{name}_WAIT")),
-            )
+                with m.State(f"WRITE_{name}"):
+                    m.d.comb += [
+                        self.phy_rst.eq(0),
+                        mdio.reg_addr.eq(Const(addr)),
+                        mdio.rw.eq(1),
+                        mdio.write_data.eq(Const(val)),
+                        mdio.start.eq(1),
+                    ]
 
-            self.fsm.act(
-                f"WRITE_{name}_WAIT",
-                phy_rst.eq(1),
-                self.mdio.reg_addr.eq(0),
-                self.mdio.rw.eq(0),
-                self.mdio.write_data.eq(0),
-                self.mdio.start.eq(0),
-                If(self.phy_reset == 1, NextState("RESET")),
-                If(~self.mdio.busy,
-                    NextValue(counter, one_ms),
-                    NextState(next_state)),
-            )
+                    with m.If(self.phy_reset):
+                        m.next = "RESET"
+                    with m.Elif(mdio.busy):
+                        m.next = f"WRITE_{name}_WAIT"
 
-        # Wait 1ms between polls
-        self.fsm.act(
-            "POLL_WAIT",
-            phy_rst.eq(1),
-            NextValue(counter, counter - 1),
-            If(self.phy_reset == 1, NextState("RESET")),
-            If(counter == 0,
-                NextState(f"POLL_{registers_to_read[0][0]}")),
-        )
+                with m.State(f"WRITE_{name}_WAIT"):
+                    m.d.comb += [
+                        self.phy_rst.eq(1),
+                        mdio.reg_addr.eq(0),
+                        mdio.rw.eq(0),
+                        mdio.write_data.eq(0),
+                        mdio.start.eq(0),
+                    ]
+                    with m.If(self.phy_reset):
+                        m.next = "RESET"
+                    with m.Elif(~mdio.busy):
+                        m.d.sync += counter.eq(one_ms)
+                        m.next = next_state
 
-        for idx, (name, addr, latch) in enumerate(registers_to_read):
-            if idx == len(registers_to_read) - 1:
-                next_state = "POLL_WAIT"
-            else:
-                next_state = f"POLL_{registers_to_read[idx+1][0]}"
+            # Wait 1ms between polls
+            with m.State("POLL_WAIT"):
+                m.d.comb += self.phy_rst.eq(1)
+                m.d.sync += counter.eq(counter - 1)
+                with m.If(self.phy_reset):
+                    m.next = "RESET"
+                with m.Elif(counter == 0):
+                    m.next = f"POLL_{registers_to_read[0][0]}"
 
-            # Trigger a read of the register
-            self.fsm.act(
-                f"POLL_{name}",
-                phy_rst.eq(1),
-                self.mdio.reg_addr.eq(Constant(addr)),
-                self.mdio.rw.eq(0),
-                self.mdio.start.eq(1),
+            for idx, (name, addr, latch) in enumerate(registers_to_read):
+                if idx == len(registers_to_read) - 1:
+                    next_state = "POLL_WAIT"
+                else:
+                    next_state = f"POLL_{registers_to_read[idx+1][0]}"
 
-                If(self.phy_reset == 1, NextState("RESET")),
-                If(self.mdio.busy, NextState(f"POLL_{name}_WAIT")),
-            )
+                # Trigger a read of the register
+                with m.State(f"POLL_{name}"):
+                    m.d.comb += [
+                        self.phy_rst.eq(1),
+                        mdio.reg_addr.eq(Const(addr)),
+                        mdio.rw.eq(0),
+                        mdio.start.eq(1),
+                    ]
 
-            # Wait for MDIO to stop being busy
-            self.fsm.act(
-                f"POLL_{name}_WAIT",
-                phy_rst.eq(1),
-                self.mdio.reg_addr.eq(0),
-                self.mdio.rw.eq(0),
-                self.mdio.start.eq(0),
+                    with m.If(self.phy_reset):
+                        m.next = "RESET"
+                    with m.Elif(mdio.busy):
+                        m.next = f"POLL_{name}_WAIT"
 
-                If(self.phy_reset == 1, NextState("RESET")),
-                If(~self.mdio.busy,
-                    NextValue(latch, self.mdio.read_data),
-                    NextValue(counter, one_ms),
-                    NextState(next_state)),
-            )
+                # Wait for MDIO to stop being busy
+                with m.State(f"POLL_{name}_WAIT"):
+                    m.d.comb += [
+                        self.phy_rst.eq(1),
+                        mdio.reg_addr.eq(0),
+                        mdio.rw.eq(0),
+                        mdio.start.eq(0),
+                    ]
+
+                    with m.If(self.phy_reset):
+                        m.next = "RESET"
+                    with m.Elif(~mdio.busy):
+                        m.d.sync += [
+                            latch.eq(mdio.read_data),
+                            counter.eq(one_ms),
+                        ]
+                        m.next = next_state
+
+        return m.lower(platform)
+
+
+def test_dummy_fifo():
+    from nmigen.back import pysim
+    fifo = DummyFIFO(width=8)
+
+    def testbench():
+        for _ in range(10):
+            yield
+
+        # Apply some data but don't WE yet
+        yield fifo.din.eq(0xAA)
+        yield
+        yield
+        yield
+        # Should not be readable until after WE
+        assert not (yield fifo.readable)
+
+        # Now assert WE
+        yield fifo.we.eq(1)
+        yield
+        yield
+        yield
+        # Data should be readable
+        assert (yield fifo.readable)
+        assert (yield fifo.dout) == 0xAA
+        # Deassert WE, data should remain readable
+        yield fifo.we.eq(0)
+        yield
+        yield
+        yield
+        assert (yield fifo.readable)
+        assert (yield fifo.dout) == 0xAA
+        yield
+        yield
+        yield
+
+        # Now assert RE, data should stop being readable
+        yield fifo.re.eq(1)
+        yield
+        yield
+        yield
+        assert not (yield fifo.readable)
+
+    frag = fifo.get_fragment(None)
+    vcdf = open("dummy_fifo.vcd", "w")
+    with pysim.Simulator(frag, vcd_file=vcdf) as sim:
+        sim.add_clock(1e-6)
+        sim.add_sync_process(testbench())
+        sim.run()
 
 
 def test_phy_manager():
-    from migen.sim import run_simulation
+    from nmigen.back import pysim
 
     mdc = Signal()
     mdio = None
@@ -329,16 +480,16 @@ def test_phy_manager():
 
         # Wait for the register read to synchronise to MDIO
         while True:
-            if (yield phy_manager.mdio.mdio_t.o) == 1:
+            if (yield phy_manager.mdio_mod.mdio_t.o) == 1:
                 break
             yield
 
         # Clock through BSR register read, setting bits 14, 5, 2
         for clk in range(260):
             if clk in (194, 230, 242):
-                yield (phy_manager.mdio.mdio_t.i.eq(1))
+                yield (phy_manager.mdio_mod.mdio_t.i.eq(1))
             else:
-                yield (phy_manager.mdio.mdio_t.i.eq(0))
+                yield (phy_manager.mdio_mod.mdio_t.i.eq(0))
             yield
 
         # Finish register reads
@@ -348,4 +499,9 @@ def test_phy_manager():
         # Check link_up becomes 1
         assert (yield phy_manager.link_up) == 1
 
-    run_simulation(phy_manager, testbench(), vcd_name="phy_manager.vcd")
+    frag = phy_manager.get_fragment(None)
+    vcdf = open("phy_manager.vcd", "w")
+    with pysim.Simulator(frag, vcd_file=vcdf) as sim:
+        sim.add_clock(1e-6)
+        sim.add_sync_process(testbench())
+        sim.run()

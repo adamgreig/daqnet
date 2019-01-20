@@ -1,25 +1,19 @@
 import argparse
-import subprocess
-from .platform import ProtoSensorPlatform, ProtoSwitchPlatform
-from .top import ProtoSensorTop, ProtoSwitchTop
 
-
-def get_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--build", action='store_true')
-    parser.add_argument("--program", action='store_true')
-    return parser.parse_args()
+from .platform import SensorPlatform, SwitchPlatform
+from .top import SensorTop, SwitchTop
 
 
 def main():
-    args = get_args()
-    plat = ProtoSwitchPlatform()
-    # plat.add_period_constraint('sys', 10)
-    top = ProtoSwitchTop(plat)
-    if args.build:
-        plat.build(top)
-    if args.program:
-        subprocess.run(["/home/adam/Projects/amp_flashprog/prog.py",
-                        "--fpga", "build/top.bin"])
-        # prog = plat.create_programmer()
-        # prog.load_bitstream("build/top.bin")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("device", choices=["switch", "sensor"])
+    parser.add_argument("--seed", type=int, default=0)
+    args = parser.parse_args()
+    if args.device == "switch":
+        plat = SwitchPlatform(args)
+        top = SwitchTop(plat, args)
+    elif args.device == "sensor":
+        plat = SensorPlatform(args)
+        top = SensorTop(plat, args)
+    frag = top.get_fragment(plat)
+    plat.build(frag, args.device, "build/", freq=100, seed=args.seed)
