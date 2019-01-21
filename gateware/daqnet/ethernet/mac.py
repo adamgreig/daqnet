@@ -6,6 +6,7 @@ Copyright 2018-2019 Adam Greig
 
 from nmigen import Module, Signal, Const, Memory, ClockDomain
 from nmigen.lib.cdc import MultiReg
+from nmigen.lib.fifo import AsyncFIFO
 from nmigen.hdl.xfrm import DomainRenamer
 from .mdio import MDIO
 from .rmii import RMIIRx, RMIITx
@@ -114,18 +115,18 @@ class MAC:
             tx_port_r, self.rmii.txen, self.rmii.txd0, self.rmii.txd1)
 
         # Create FIFOs to interface to RMII modules
-        rx_len_fifo = DummyFIFO(width=11)
-        rx_off_fifo = DummyFIFO(width=11)
-        tx_len_fifo = DummyFIFO(width=11)
-        tx_off_fifo = DummyFIFO(width=11)
+        rx_len_fifo = AsyncFIFO(width=11, depth=2)
+        rx_off_fifo = AsyncFIFO(width=11, depth=2)
+        tx_len_fifo = AsyncFIFO(width=11, depth=2)
+        tx_off_fifo = AsyncFIFO(width=11, depth=2)
 
         m.d.comb += [
             # RX length FIFO + rx_valid
             rx_len_fifo.din.eq(rmii_rx.rx_len),
             rx_len_fifo.we.eq(rmii_rx.rx_valid),
             self.rx_len.eq(rx_len_fifo.dout),
-            self.rx_valid.eq(rx_len_fifo.readable),
             rx_len_fifo.re.eq(self.rx_ack),
+            self.rx_valid.eq(rx_len_fifo.readable),
 
             # RX offset FIFO
             rx_off_fifo.din.eq(rmii_rx.rx_offset),
@@ -137,8 +138,8 @@ class MAC:
             tx_len_fifo.din.eq(self.tx_len),
             tx_len_fifo.we.eq(self.tx_start),
             rmii_tx.tx_len.eq(tx_len_fifo.dout),
-            rmii_tx.tx_start.eq(tx_len_fifo.readable),
             tx_len_fifo.re.eq(rmii_tx.tx_ready),
+            rmii_tx.tx_start.eq(tx_len_fifo.readable),
 
             # TX offset FIFO
             tx_off_fifo.din.eq(self.tx_offset),
@@ -153,63 +154,17 @@ class MAC:
             self.eth_led.eq(stretch.pulse),
         ]
 
-        m.submodules.rx_len_fifo = rx_len_fifo
-        m.submodules.rx_off_fifo = rx_off_fifo
-        m.submodules.tx_len_fifo = DomainRenamer("rmii")(
-            tx_len_fifo.get_fragment(platform))
-        m.submodules.tx_off_fifo = DomainRenamer("rmii")(
-            tx_off_fifo.get_fragment(platform))
+        rdr = DomainRenamer({"read": "sync", "write": "rmii"})
+        wdr = DomainRenamer({"write": "sync", "read": "rmii"})
+        m.submodules.rx_len_fifo = rdr(rx_len_fifo.get_fragment(platform))
+        m.submodules.rx_off_fifo = rdr(rx_off_fifo.get_fragment(platform))
+        m.submodules.tx_len_fifo = wdr(tx_len_fifo.get_fragment(platform))
+        m.submodules.tx_off_fifo = wdr(tx_off_fifo.get_fragment(platform))
+
         m.submodules.rmii_rx = DomainRenamer("rmii")(
             rmii_rx.get_fragment(platform))
         m.submodules.rmii_tx = DomainRenamer("rmii")(
             rmii_tx.get_fragment(platform))
-
-        return m.lower(platform)
-
-
-class DummyFIFO:
-    """
-    A mock FIFO that doesn't actually store anything except the current value.
-
-    To be replaced with a real FIFO in due course.
-
-    Parameters:
-        * `width`: Bit width of FIFO data
-
-    Write port:
-        * `din`: Data input
-        * `we`: Pulse high to save data
-
-    Read port:
-        * `dout`: Data output
-        * `re`: Pulse high to acknowledge data
-        * `readable`: High while `dout` is valid
-    """
-    def __init__(self, width):
-        # Write port
-        self.din = Signal(width, reset_less=True)
-        self.we = Signal()
-
-        # Read port
-        self.dout = Signal(width, reset_less=True)
-        self.re = Signal()
-        self.readable = Signal()
-
-    def get_fragment(self, platform):
-        m = Module()
-
-        we_cdc = Signal()
-        m.submodules += MultiReg(self.we, we_cdc)
-        m.submodules += MultiReg(self.din, self.dout)
-
-        with m.If(we_cdc):
-            m.d.sync += [
-                self.readable.eq(1),
-            ]
-        with m.Elif(self.re):
-            m.d.sync += [
-                self.readable.eq(0),
-            ]
 
         return m.lower(platform)
 
@@ -397,56 +352,6 @@ class PHYManager:
                         m.next = next_state
 
         return m.lower(platform)
-
-
-def test_dummy_fifo():
-    from nmigen.back import pysim
-    fifo = DummyFIFO(width=8)
-
-    def testbench():
-        for _ in range(10):
-            yield
-
-        # Apply some data but don't WE yet
-        yield fifo.din.eq(0xAA)
-        yield
-        yield
-        yield
-        # Should not be readable until after WE
-        assert not (yield fifo.readable)
-
-        # Now assert WE
-        yield fifo.we.eq(1)
-        yield
-        yield
-        yield
-        # Data should be readable
-        assert (yield fifo.readable)
-        assert (yield fifo.dout) == 0xAA
-        # Deassert WE, data should remain readable
-        yield fifo.we.eq(0)
-        yield
-        yield
-        yield
-        assert (yield fifo.readable)
-        assert (yield fifo.dout) == 0xAA
-        yield
-        yield
-        yield
-
-        # Now assert RE, data should stop being readable
-        yield fifo.re.eq(1)
-        yield
-        yield
-        yield
-        assert not (yield fifo.readable)
-
-    frag = fifo.get_fragment(None)
-    vcdf = open("dummy_fifo.vcd", "w")
-    with pysim.Simulator(frag, vcd_file=vcdf) as sim:
-        sim.add_clock(1e-6)
-        sim.add_sync_process(testbench())
-        sim.run()
 
 
 def test_phy_manager():

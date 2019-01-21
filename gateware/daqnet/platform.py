@@ -312,7 +312,7 @@ class _Platform:
         if freq is not None:
             nextpnr_args += ["--freq", str(freq)]
 
-        subprocess.run(nextpnr_args, check=True)
+        subprocess.run(nextpnr_args, check=False)
         subprocess.run(["icepack", makepath("asc"), makepath("bin")],
                        check=True)
 

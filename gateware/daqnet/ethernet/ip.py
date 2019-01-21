@@ -68,14 +68,11 @@ class IPStack:
             eth.rx_data.eq(self.rx_port.data),
         ]
 
-        load_ctr = Signal(3)
-
         with m.FSM():
             with m.State("IDLE"):
                 m.d.sync += self.rx_addr.eq(self.rx_offset),
                 m.d.sync += self.tx_start.eq(0)
                 m.d.sync += eth.run.eq(0)
-                m.d.sync += load_ctr.eq(0)
                 with m.If(self.rx_valid):
                     m.d.sync += self.rx_ack.eq(1)
                     m.next = "REPLY"
@@ -86,21 +83,14 @@ class IPStack:
                 m.d.sync += self.rx_ack.eq(0)
                 with m.If(eth.done):
                     with m.If(eth.send):
-                        m.next = "TX_LOAD"
+                        m.next = "INCR_TX_OFFSET"
                         m.d.sync += self.tx_start.eq(1)
                         m.d.sync += self.tx_len.eq(eth.tx_len)
                     with m.Else():
                         m.next = "IDLE"
 
-            with m.State("TX_LOAD"):
+            with m.State("INCR_TX_OFFSET"):
                 m.d.sync += eth.run.eq(0)
-                m.d.sync += self.tx_start.eq(1)
-                with m.If(load_ctr == 4):
-                    m.next = "TX_INCR_OFFSET"
-                with m.Else():
-                    m.d.sync += load_ctr.eq(load_ctr + 1)
-
-            with m.State("TX_INCR_OFFSET"):
                 m.d.sync += self.tx_start.eq(0)
                 m.d.sync += self.tx_offset.eq(self.tx_offset + self.tx_len)
                 m.next = "IDLE"
