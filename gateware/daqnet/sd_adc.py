@@ -2,6 +2,7 @@
 Sigma-delta ADC using one differential input and one single-ended output.
 
 Copyright 2018 Adam Greig
+Released under the MIT license; see LICENSE for details.
 """
 
 import numpy as np

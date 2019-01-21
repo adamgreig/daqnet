@@ -2,6 +2,7 @@
 A UART transmitter.
 
 Copyright 2017 Adam Greig
+Released under the MIT license; see LICENSE for details.
 """
 
 from migen import Module, Signal, If, FSM, NextValue, NextState, Array

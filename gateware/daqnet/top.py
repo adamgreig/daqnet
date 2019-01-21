@@ -1,3 +1,8 @@
+"""
+Copyright 2018-2019 Adam Greig
+Released under the MIT license; see LICENSE for details.
+"""
+
 from nmigen import Signal, Module, ClockDomain
 from .platform import SB_PLL40_PAD
 

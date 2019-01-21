@@ -2,10 +2,10 @@
 Ethernet RMII MAC
 
 Copyright 2018-2019 Adam Greig
+Released under the MIT license; see LICENSE for details.
 """
 
 from nmigen import Module, Signal, Const, Memory, ClockDomain
-from nmigen.lib.cdc import MultiReg
 from nmigen.lib.fifo import AsyncFIFO
 from nmigen.hdl.xfrm import DomainRenamer
 from .mdio import MDIO

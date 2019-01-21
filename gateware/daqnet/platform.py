@@ -1,3 +1,12 @@
+"""
+iCE40HX Platform
+
+Platform support and instance wrappers for iCE40 FPGAs.
+
+Copyright 2019 Adam Greig
+Released under the MIT license; see LICENSE for details.
+"""
+
 import os
 import subprocess
 from collections import namedtuple

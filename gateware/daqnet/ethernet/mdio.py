@@ -2,6 +2,7 @@
 MDIO Controller
 
 Copyright 2018-2019 Adam Greig
+Released under the MIT license; see LICENSE for details.
 """
 
 from nmigen import Module, Signal, Array
