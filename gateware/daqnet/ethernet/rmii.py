@@ -478,7 +478,7 @@ def test_rmii_rx():
             yield (crs_dv.eq(0))
 
             # Finish clocking
-            for _ in range(5):
+            for _ in range(6):
                 yield
 
         for _ in range(10):
