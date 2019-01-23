@@ -5,7 +5,7 @@ Copyright 2018-2019 Adam Greig
 Released under the MIT license; see LICENSE for details.
 """
 
-from nmigen import Module, Signal, Const, Memory, ClockDomain
+from nmigen import Module, Signal, Const, Memory, ClockDomain, Cat
 from nmigen.lib.fifo import AsyncFIFO
 from nmigen.hdl.xfrm import DomainRenamer
 from .mdio import MDIO
@@ -115,37 +115,23 @@ class MAC:
             tx_port_r, self.rmii.txen, self.rmii.txd0, self.rmii.txd1)
 
         # Create FIFOs to interface to RMII modules
-        rx_len_fifo = AsyncFIFO(width=11, depth=2)
-        rx_off_fifo = AsyncFIFO(width=11, depth=2)
-        tx_len_fifo = AsyncFIFO(width=11, depth=2)
-        tx_off_fifo = AsyncFIFO(width=11, depth=2)
+        rx_fifo = AsyncFIFO(width=22, depth=2)
+        tx_fifo = AsyncFIFO(width=22, depth=2)
 
         m.d.comb += [
-            # RX length FIFO + rx_valid
-            rx_len_fifo.din.eq(rmii_rx.rx_len),
-            rx_len_fifo.we.eq(rmii_rx.rx_valid),
-            self.rx_len.eq(rx_len_fifo.dout),
-            rx_len_fifo.re.eq(self.rx_ack),
-            self.rx_valid.eq(rx_len_fifo.readable),
+            # RX FIFO
+            rx_fifo.din.eq(Cat(rmii_rx.rx_offset, rmii_rx.rx_len)),
+            rx_fifo.we.eq(rmii_rx.rx_valid),
+            Cat(self.rx_offset, self.rx_len).eq(rx_fifo.dout),
+            rx_fifo.re.eq(self.rx_ack),
+            self.rx_valid.eq(rx_fifo.readable),
 
-            # RX offset FIFO
-            rx_off_fifo.din.eq(rmii_rx.rx_offset),
-            rx_off_fifo.we.eq(rmii_rx.rx_valid),
-            self.rx_offset.eq(rx_off_fifo.dout),
-            rx_off_fifo.re.eq(self.rx_ack),
-
-            # TX length FIFO + tx_start
-            tx_len_fifo.din.eq(self.tx_len),
-            tx_len_fifo.we.eq(self.tx_start),
-            rmii_tx.tx_len.eq(tx_len_fifo.dout),
-            tx_len_fifo.re.eq(rmii_tx.tx_ready),
-            rmii_tx.tx_start.eq(tx_len_fifo.readable),
-
-            # TX offset FIFO
-            tx_off_fifo.din.eq(self.tx_offset),
-            tx_off_fifo.we.eq(self.tx_start),
-            rmii_tx.tx_offset.eq(tx_off_fifo.dout),
-            tx_off_fifo.re.eq(rmii_tx.tx_ready),
+            # TX FIFO
+            tx_fifo.din.eq(Cat(self.tx_offset, self.tx_len)),
+            tx_fifo.we.eq(self.tx_start),
+            Cat(rmii_tx.tx_offset, rmii_tx.tx_len).eq(tx_fifo.dout),
+            tx_fifo.re.eq(rmii_tx.tx_ready),
+            rmii_tx.tx_start.eq(tx_fifo.readable),
 
             # Other submodules
             phy_manager.phy_reset.eq(self.phy_reset),
@@ -156,15 +142,11 @@ class MAC:
 
         rdr = DomainRenamer({"read": "sync", "write": "rmii"})
         wdr = DomainRenamer({"write": "sync", "read": "rmii"})
-        m.submodules.rx_len_fifo = rdr(rx_len_fifo.get_fragment(platform))
-        m.submodules.rx_off_fifo = rdr(rx_off_fifo.get_fragment(platform))
-        m.submodules.tx_len_fifo = wdr(tx_len_fifo.get_fragment(platform))
-        m.submodules.tx_off_fifo = wdr(tx_off_fifo.get_fragment(platform))
-
-        m.submodules.rmii_rx = DomainRenamer("rmii")(
-            rmii_rx.get_fragment(platform))
-        m.submodules.rmii_tx = DomainRenamer("rmii")(
-            rmii_tx.get_fragment(platform))
+        rmiir = DomainRenamer("rmii")
+        m.submodules.rx_fifo = rdr(rx_fifo.get_fragment(platform))
+        m.submodules.tx_fifo = wdr(tx_fifo.get_fragment(platform))
+        m.submodules.rmii_rx = rmiir(rmii_rx.get_fragment(platform))
+        m.submodules.rmii_tx = rmiir(rmii_tx.get_fragment(platform))
 
         return m.lower(platform)
 

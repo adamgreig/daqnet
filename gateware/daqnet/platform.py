@@ -288,7 +288,7 @@ class _Platform:
         Group = namedtuple(group, [port[len(group)+1:] for port in ports])
         return Group(*(self.request(port) for port in ports))
 
-    def build(self, top, name, builddir, freq=None, seed=0):
+    def build(self, top, name, builddir, freq=None, emit_v=False, seed=0):
         def makepath(ext):
             return os.path.join(builddir, f"{name}.{ext}")
 
@@ -303,8 +303,9 @@ class _Platform:
         with open(makepath("il"), "w") as f:
             f.write(rtlil.convert(frag, name=name, ports=ports))
 
-        with open(makepath("v"), "w") as f:
-            f.write(verilog.convert(frag, name=name, ports=ports))
+        if emit_v:
+            with open(makepath("v"), "w") as f:
+                f.write(verilog.convert(frag, name=name, ports=ports))
 
         subprocess.run([
             "yosys", "-q", "-p",
