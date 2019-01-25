@@ -36,14 +36,14 @@ class IPStack:
         # RX port
         self.rx_port = rx_port
         self.rx_len = Signal(11)
-        self.rx_offset = Signal(11)
+        self.rx_offset = Signal(rx_port.addr.nbits)
         self.rx_valid = Signal()
         self.rx_ack = Signal()
 
         # TX port
         self.tx_port = tx_port
         self.tx_len = Signal(11)
-        self.tx_offset = Signal(11)
+        self.tx_offset = Signal(tx_port.addr.nbits)
         self.tx_start = Signal()
 
         self.mac_addr = [int(x, 16) for x in mac_addr.split(":")]
@@ -56,13 +56,15 @@ class IPStack:
 
         m.submodules.eth = eth = _EthernetLayer(self)
 
-        self.rx_addr = Signal(11)
+        self.rx_addr = Signal(self.rx_port.addr.nbits)
 
         m.d.comb += [
             self.rx_port.addr.eq(self.rx_addr),
             self.tx_port.addr.eq(eth.tx_addr + self.tx_offset),
             self.tx_port.data.eq(eth.tx_data),
             self.tx_port.en.eq(eth.tx_en),
+            self.tx_start.eq(eth.send),
+            self.tx_len.eq(eth.tx_len),
         ]
 
         m.d.sync += [
@@ -72,7 +74,6 @@ class IPStack:
         with m.FSM():
             with m.State("IDLE"):
                 m.d.sync += self.rx_addr.eq(self.rx_offset),
-                m.d.sync += self.tx_start.eq(0)
                 m.d.sync += eth.run.eq(0)
                 with m.If(self.rx_valid):
                     m.d.sync += self.rx_ack.eq(1)
@@ -84,17 +85,9 @@ class IPStack:
                 m.d.sync += self.rx_ack.eq(0)
                 with m.If(eth.done):
                     with m.If(eth.send):
-                        m.next = "INCR_TX_OFFSET"
-                        m.d.sync += self.tx_start.eq(1)
-                        m.d.sync += self.tx_len.eq(eth.tx_len)
-                    with m.Else():
-                        m.next = "IDLE"
-
-            with m.State("INCR_TX_OFFSET"):
-                m.d.sync += eth.run.eq(0)
-                m.d.sync += self.tx_start.eq(0)
-                m.d.sync += self.tx_offset.eq(self.tx_offset + self.tx_len)
-                m.next = "IDLE"
+                        m.d.sync += self.tx_offset.eq(
+                            self.tx_offset + self.tx_len)
+                    m.next = "IDLE"
 
         return m.lower(platform)
 
@@ -125,7 +118,7 @@ class _StackLayer:
           transmitted from the tx memory
         * `rx_data`: Input 8-bit received packet data, one byte per clock
         * `tx_en`: Output pulsed high if `tx_addr` and `tx_data` are valid
-        * `tx_addr`: Output 11-bit address to store `tx_data` in, relative to
+        * `tx_addr`: Output n-bit address to store `tx_data` in, relative to
           start address of this layer
         * `tx_data`: Output 8-bit data to store at `tx_addr`
         * `tx_len`: Output 11-bit number of bytes to transmit from this layer,
@@ -137,7 +130,7 @@ class _StackLayer:
         self.send = Signal()
         self.rx_data = Signal(8)
         self.tx_en = Signal()
-        self.tx_addr = Signal(11)
+        self.tx_addr = Signal(ip_stack.tx_port.addr.nbits)
         self.tx_data = Signal(8)
         self.tx_len = Signal(11)
 

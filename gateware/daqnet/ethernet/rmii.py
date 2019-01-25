@@ -35,13 +35,13 @@ class RMIIRx:
 
     Outputs:
         * `rx_valid`: pulsed when a valid packet is in memory
-        * `rx_offset`: 11-bit start address of received packet
+        * `rx_offset`: n-bit start address of received packet
         * `rx_len`: 11-bit length of received packet
     """
     def __init__(self, mac_addr, write_port, crs_dv, rxd0, rxd1):
         # Outputs
         self.rx_valid = Signal()
-        self.rx_offset = Signal(11)
+        self.rx_offset = Signal(write_port.addr.nbits)
         self.rx_len = Signal(11)
 
         # Store arguments
@@ -60,7 +60,7 @@ class RMIIRx:
         m.submodules.rxbyte = rxbyte = RMIIRxByte(
             self.crs_dv, self.rxd0, self.rxd1)
 
-        adr = Signal(11)
+        adr = Signal(self.write_port.addr.nbits)
 
         with m.FSM() as fsm:
             m.d.comb += [
@@ -234,7 +234,7 @@ class RMIITx:
 
     Inputs:
         * `tx_start`: Pulse high to begin transmission of a packet
-        * `tx_offset`: 11-bit address offset of packet to transmit
+        * `tx_offset`: n-bit address offset of packet to transmit
         * `tx_len`: 11-bit length of packet to transmit
 
     Outputs:
@@ -243,7 +243,7 @@ class RMIITx:
     def __init__(self, read_port, txen, txd0, txd1):
         # Inputs
         self.tx_start = Signal()
-        self.tx_offset = Signal(11)
+        self.tx_offset = Signal(read_port.addr.nbits)
         self.tx_len = Signal(11)
 
         # Outputs
@@ -258,11 +258,11 @@ class RMIITx:
         m = Module()
 
         # Transmit byte counter
-        tx_idx = Signal(11)
+        tx_idx = Signal(self.read_port.addr.nbits)
         # Transmit length latch
         tx_len = Signal(11)
         # Transmit offset latch
-        tx_offset = Signal(11)
+        tx_offset = Signal(self.read_port.addr.nbits)
 
         m.submodules.crc = crc = CRC32()
         m.submodules.txbyte = txbyte = RMIITxByte(
@@ -271,7 +271,7 @@ class RMIITx:
         with m.FSM() as fsm:
             m.d.comb += [
                 self.read_port.addr.eq(tx_idx + tx_offset),
-                crc.data.eq(self.read_port.data),
+                crc.data.eq(txbyte.data),
                 crc.reset.eq(fsm.ongoing("IDLE")),
                 crc.data_valid.eq(
                     (fsm.ongoing("DATA") | fsm.ongoing("PAD"))
@@ -640,8 +640,12 @@ def test_rmii_tx():
             ((txbyte >> 6) & 0b11),
         ]
 
-    # Put the transmit bytes into memory at some offset from 0
-    mem = Memory(8, 128, [0, 0, 0, 0] + txbytes)
+    # Put the transmit bytes into memory at some offset, and fill the rest of
+    # memory with all-1s (to ensure we're not relying on memory being zeroed).
+    txbytes_zp = txbytes + [0xFF]*(128 - len(txbytes))
+    txoffset = 120
+    txbytes_mem = txbytes_zp[-txoffset:] + txbytes_zp[:-txoffset]
+    mem = Memory(8, 128, txbytes_mem)
     mem_port = mem.read_port()
 
     rmii_tx = RMIITx(mem_port, txen, txd0, txd1)
@@ -651,7 +655,7 @@ def test_rmii_tx():
             yield
 
         yield (rmii_tx.tx_start.eq(1))
-        yield (rmii_tx.tx_offset.eq(4))
+        yield (rmii_tx.tx_offset.eq(txoffset))
         yield (rmii_tx.tx_len.eq(len(txbytes)))
 
         yield

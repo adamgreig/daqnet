@@ -40,12 +40,14 @@ class MAC:
     TX port:
         * `tx_start`: Pulse high to begin transmission of a packet from memory
         * `tx_len`: 11-bit length of packet to transmit
-        * `tx_offset`: 11-bit address offset of packet to transmit
+        * `tx_offset`: n-bit address offset of packet to transmit, with
+                       n=log2(tx_buf_size)
 
     RX port:
         * `rx_valid`: Held high while `rx_len` and `rx_offset` are valid
         * `rx_len`: 11-bit length of received packet
-        * `rx_offset`: 11-bit address offset of received packet
+        * `rx_offset`: n-bit address offset of received packet, with
+                       n=log2(rx_buf_size)
         * `rx_ack`: Pulse high to acknowledge packet receipt
 
     Inputs:
@@ -54,7 +56,8 @@ class MAC:
     Outputs:
         * `link_up`: High while link is established
     """
-    def __init__(self, clk_freq, phy_addr, mac_addr, rmii, phy_rst, eth_led):
+    def __init__(self, clk_freq, phy_addr, mac_addr, rmii, phy_rst, eth_led,
+                 tx_buf_size=2048, rx_buf_size=2048):
         # Memory Ports
         self.rx_port = None  # Assigned below
         self.tx_port = None  # Assigned below
@@ -62,13 +65,13 @@ class MAC:
         # TX port
         self.tx_start = Signal()
         self.tx_len = Signal(11)
-        self.tx_offset = Signal(11)
+        self.tx_offset = Signal(max=tx_buf_size-1)
 
         # RX port
         self.rx_ack = Signal()
         self.rx_valid = Signal()
         self.rx_len = Signal(11)
-        self.rx_offset = Signal(11)
+        self.rx_offset = Signal(max=rx_buf_size-1)
 
         # Inputs
         self.phy_reset = Signal()
@@ -84,10 +87,10 @@ class MAC:
         self.eth_led = eth_led
 
         # Create packet memories and interface ports
-        self.rx_mem = Memory(8, 2048)
-        self.rx_port = self.rx_mem.read_port()
-        self.tx_mem = Memory(8, 2048)
+        self.tx_mem = Memory(8, tx_buf_size)
         self.tx_port = self.tx_mem.write_port()
+        self.rx_mem = Memory(8, rx_buf_size)
+        self.rx_port = self.rx_mem.read_port()
 
     def get_fragment(self, platform):
         m = Module()
@@ -115,8 +118,8 @@ class MAC:
             tx_port_r, self.rmii.txen, self.rmii.txd0, self.rmii.txd1)
 
         # Create FIFOs to interface to RMII modules
-        rx_fifo = AsyncFIFO(width=22, depth=2)
-        tx_fifo = AsyncFIFO(width=22, depth=2)
+        rx_fifo = AsyncFIFO(width=11+self.rx_port.addr.nbits, depth=4)
+        tx_fifo = AsyncFIFO(width=11+self.tx_port.addr.nbits, depth=4)
 
         m.d.comb += [
             # RX FIFO

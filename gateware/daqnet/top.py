@@ -61,7 +61,7 @@ class SwitchTop(Top):
         m = Module()
 
         # Set up PLL to multiply 25MHz clock to 100MHz clock
-        m.submodules.pll = pll = SB_PLL40_PAD(0, 23, 3, 2)
+        m.submodules.pll = pll = SB_PLL40_PAD(0, 31, 3, 2)
         pll.packagepin = platform.request("clk25")
         pll.plloutglobal = Signal()
 
