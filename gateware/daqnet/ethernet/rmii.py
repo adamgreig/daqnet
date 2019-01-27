@@ -51,7 +51,7 @@ class RMIIRx:
         self.rxd0 = rxd0
         self.rxd1 = rxd1
 
-    def get_fragment(self, platform):
+    def elaborate(self, platform):
 
         m = Module()
 
@@ -96,7 +96,7 @@ class RMIIRx:
                     m.d.sync += self.rx_valid.eq(1)
                 m.next = "IDLE"
 
-        return m.lower(platform)
+        return m
 
 
 class RMIIRxByte:
@@ -130,7 +130,7 @@ class RMIIRxByte:
         self.rxd0 = rxd0
         self.rxd1 = rxd1
 
-    def get_fragment(self, platform):
+    def elaborate(self, platform):
         m = Module()
 
         # Sample RMII signals on rising edge of ref_clk
@@ -210,7 +210,7 @@ class RMIIRxByte:
                     m.d.sync += self.data_valid.eq(1),
                     m.next = "IDLE"
 
-        return m.lower(platform)
+        return m
 
 
 class RMIITx:
@@ -254,7 +254,7 @@ class RMIITx:
         self.txd0 = txd0
         self.txd1 = txd1
 
-    def get_fragment(self, platform):
+    def elaborate(self, platform):
         m = Module()
 
         # Transmit byte counter
@@ -348,7 +348,7 @@ class RMIITx:
                 with m.If(tx_idx == 48):
                     m.next = "IDLE"
 
-        return m.lower(platform)
+        return m
 
 
 class RMIITxByte:
@@ -387,7 +387,7 @@ class RMIITxByte:
         self.txd0 = txd0
         self.txd1 = txd1
 
-    def get_fragment(self, platform):
+    def elaborate(self, platform):
         m = Module()
 
         # Register input data on the data_valid signal
@@ -440,7 +440,7 @@ class RMIITxByte:
                 with m.Else():
                     m.next = "IDLE"
 
-        return m.lower(platform)
+        return m
 
 
 def test_rmii_rx():
@@ -530,10 +530,10 @@ def test_rmii_rx():
 
         yield
 
-    frag = rmii_rx.get_fragment(None)
-    frag.add_subfragment(mem_port.get_fragment(None))
+    mod = rmii_rx.elaborate(None)
+    mod.submodules += mem_port
     vcdf = open("rmii_rx.vcd", "w")
-    with pysim.Simulator(frag, vcd_file=vcdf) as sim:
+    with pysim.Simulator(mod, vcd_file=vcdf) as sim:
         sim.add_clock(1/50e6)
         sim.add_sync_process(testbench())
         sim.run()
@@ -602,7 +602,7 @@ def test_rmii_rx_byte():
 
         assert rxbytes == txbytes
 
-    frag = rmii_rx_byte.get_fragment(None)
+    frag = rmii_rx_byte.elaborate(None)
     vcdf = open("rmii_rx_byte.vcd", "w")
     with pysim.Simulator(frag, vcd_file=vcdf) as sim:
         sim.add_clock(1/50e6)
@@ -674,11 +674,11 @@ def test_rmii_tx():
         print(rxnibbles)
         assert txnibbles == rxnibbles
 
-    frag = rmii_tx.get_fragment(None)
-    frag.add_subfragment(mem_port.get_fragment(None))
+    mod = rmii_tx.elaborate(None)
+    mod.submodules += mem_port
 
     vcdf = open("rmii_tx.vcd", "w")
-    with pysim.Simulator(frag, vcd_file=vcdf) as sim:
+    with pysim.Simulator(mod, vcd_file=vcdf) as sim:
         sim.add_clock(1/50e6)
         sim.add_sync_process(testbench())
         sim.run()
@@ -732,7 +732,7 @@ def test_rmii_tx_byte():
         for _ in range(10):
             yield
 
-    frag = rmii_tx_byte.get_fragment(None)
+    frag = rmii_tx_byte.elaborate(None)
     vcdf = open("rmii_tx_byte.vcd", "w")
     with pysim.Simulator(frag, vcd_file=vcdf) as sim:
         sim.add_clock(1/50e6)

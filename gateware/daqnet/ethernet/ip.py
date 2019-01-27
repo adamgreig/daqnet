@@ -51,7 +51,7 @@ class IPStack:
         self.mac_addr_int = sum(self.mac_addr[5-x] << (8*x) for x in range(6))
         self.ip4_addr_int = sum(self.ip4_addr[3-x] << (8*x) for x in range(4))
 
-    def get_fragment(self, platform):
+    def elaborate(self, platform):
         m = Module()
 
         m.submodules.eth = eth = _EthernetLayer(self)
@@ -89,7 +89,7 @@ class IPStack:
                             self.tx_offset + self.tx_len)
                     m.next = "IDLE"
 
-        return m.lower(platform)
+        return m
 
 
 class _StackLayer:
@@ -313,7 +313,7 @@ class _StackLayer:
                 with self.m.Else():
                     self.m.next = "DONE_NO_TX"
 
-    def get_fragment(self, platform):
+    def elaborate(self, platform):
         """
         Default dummy implementation to allow using not-yet-implemented
         modules.
@@ -329,7 +329,7 @@ class _StackLayer:
             self.tx_data.eq(0),
         ]
 
-        return self.m.lower(platform)
+        return self.m
 
 
 class _EthernetLayer(_StackLayer):
@@ -338,7 +338,7 @@ class _EthernetLayer(_StackLayer):
 
     Muxes to lower levels depending on packet EtherType.
     """
-    def get_fragment(self, platform):
+    def elaborate(self, platform):
         self.m = Module()
         self.m.submodules.arp = arp = _ARPLayer(self.ip_stack)
         self.m.submodules.ipv4 = ipv4 = _IPv4Layer(self.ip_stack)
@@ -366,7 +366,7 @@ class _EthernetLayer(_StackLayer):
             self.write("ETYPE", val=ethertype, dst=12, n=2)
             self.end_fsm(tx_len=14)
 
-        return self.m.lower(platform)
+        return self.m
 
 
 class _ARPLayer(_StackLayer):
@@ -375,7 +375,7 @@ class _ARPLayer(_StackLayer):
 
     Replies to requests for its own MAC address only.
     """
-    def get_fragment(self, platform):
+    def elaborate(self, platform):
         self.m = Module()
 
         with self.m.FSM():
@@ -401,7 +401,7 @@ class _ARPLayer(_StackLayer):
             # Send response
             self.end_fsm(tx_len=28, send=True)
 
-        return self.m.lower(platform)
+        return self.m
 
 
 class _IPv4Layer(_StackLayer):
@@ -413,7 +413,7 @@ class _IPv4Layer(_StackLayer):
         self.total_length = Signal(16)
         self.source_ip = Signal(32)
 
-    def get_fragment(self, platform):
+    def elaborate(self, platform):
         self.m = Module()
         self.m.submodules.icmpv4 = icmpv4 = _ICMPv4Layer(self.ip_stack, self)
         self.m.submodules.udp = udp = _UDPLayer(self.ip_stack, self)
@@ -457,7 +457,7 @@ class _IPv4Layer(_StackLayer):
             self.write("CHECKSUM", val=ipchecksum.checksum, dst=10, n=2)
             self.end_fsm(tx_len=20, send=True)
 
-        return self.m.lower(platform)
+        return self.m
 
 
 class _ICMPv4Layer(_StackLayer):
@@ -470,7 +470,7 @@ class _ICMPv4Layer(_StackLayer):
         super().__init__(ip_stack)
         self.ipv4 = ipv4
 
-    def get_fragment(self, platform):
+    def elaborate(self, platform):
         self.m = Module()
         self.m.submodules.ipchecksum = ipchecksum = _InternetChecksum()
 
@@ -496,7 +496,7 @@ class _ICMPv4Layer(_StackLayer):
             self.write("CHECKSUM", val=ipchecksum.checksum, dst=2, n=2)
             self.end_fsm(tx_len=self.ipv4.total_length - 20, send=True)
 
-        return self.m.lower(platform)
+        return self.m
 
 
 class _UDPLayer(_StackLayer):
@@ -527,7 +527,7 @@ class _InternetChecksum:
         self.reset = Signal()
         self.checksum = Signal(16)
 
-    def get_fragment(self, platform):
+    def elaborate(self, platform):
         m = Module()
         state = Signal(17)
         lowbyte = Signal()
@@ -546,7 +546,7 @@ class _InternetChecksum:
             with m.If(self.en):
                 m.d.sync += state.eq(state[:-1] + data_shift + state[-1])
                 m.d.sync += lowbyte.eq(~lowbyte),
-        return m.lower(platform)
+        return m
 
 
 def test_ipv4_checksum():
@@ -579,7 +579,7 @@ def test_ipv4_checksum():
             yield checksum.reset.eq(0)
             yield
 
-    frag = checksum.get_fragment(None)
+    frag = checksum.elaborate(None)
     vcdf = open(f"ipstack_ipv4_checksum.vcd", "w")
     with pysim.Simulator(frag, vcd_file=vcdf) as sim:
         sim.add_clock(1/100e6)
@@ -641,12 +641,11 @@ def run_rx_test(name, rx_bytes, expected_bytes, mac_addr, ip4_addr):
                 # Check transmit did not get asserted
                 assert not tx_start
 
-    frag = ipstack.get_fragment(None)
-    frag.add_subfragment(rx_mem_port.get_fragment(None))
-    frag.add_subfragment(tx_mem_port.get_fragment(None))
+    mod = ipstack.elaborate(None)
+    mod.submodules += rx_mem_port, tx_mem_port
 
     vcdf = open(f"ipstack_rx_{name}.vcd", "w")
-    with pysim.Simulator(frag, vcd_file=vcdf) as sim:
+    with pysim.Simulator(mod, vcd_file=vcdf) as sim:
         sim.add_clock(1/100e6)
         sim.add_sync_process(testbench())
         sim.run()

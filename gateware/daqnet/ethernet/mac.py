@@ -92,7 +92,7 @@ class MAC:
         self.rx_mem = Memory(8, rx_buf_size)
         self.rx_port = self.rx_mem.read_port()
 
-    def get_fragment(self, platform):
+    def elaborate(self, platform):
         m = Module()
 
         # Create RMII clock domain from RMII clock input
@@ -145,13 +145,13 @@ class MAC:
 
         rdr = DomainRenamer({"read": "sync", "write": "rmii"})
         wdr = DomainRenamer({"write": "sync", "read": "rmii"})
-        rmiir = DomainRenamer("rmii")
-        m.submodules.rx_fifo = rdr(rx_fifo.get_fragment(platform))
-        m.submodules.tx_fifo = wdr(tx_fifo.get_fragment(platform))
-        m.submodules.rmii_rx = rmiir(rmii_rx.get_fragment(platform))
-        m.submodules.rmii_tx = rmiir(rmii_tx.get_fragment(platform))
+        rr = DomainRenamer("rmii")
+        m.submodules.rx_fifo = rdr(rx_fifo.elaborate(platform).lower(platform))
+        m.submodules.tx_fifo = wdr(tx_fifo.elaborate(platform).lower(platform))
+        m.submodules.rmii_rx = rr(rmii_rx.elaborate(platform).lower(platform))
+        m.submodules.rmii_tx = rr(rmii_tx.elaborate(platform).lower(platform))
 
-        return m.lower(platform)
+        return m
 
 
 class PHYManager:
@@ -191,7 +191,7 @@ class PHYManager:
         self.mdio = mdio
         self.mdc = mdc
 
-    def get_fragment(self, platform):
+    def elaborate(self, platform):
         m = Module()
 
         # Create MDIO submodule
@@ -336,7 +336,7 @@ class PHYManager:
                         ]
                         m.next = next_state
 
-        return m.lower(platform)
+        return m
 
 
 def test_phy_manager():
@@ -389,7 +389,7 @@ def test_phy_manager():
         # Check link_up becomes 1
         assert (yield phy_manager.link_up) == 1
 
-    frag = phy_manager.get_fragment(None)
+    frag = phy_manager.elaborate(None)
     vcdf = open("phy_manager.vcd", "w")
     with pysim.Simulator(frag, vcd_file=vcdf) as sim:
         sim.add_clock(1e-6)

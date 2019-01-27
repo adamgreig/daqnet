@@ -50,7 +50,7 @@ class _InstanceWrapper:
         else:
             super().__setattr__(name, value)
 
-    def get_fragment(self, platform):
+    def elaborate(self, platform):
         args = {f"p_{key.upper()}": val for (key, val) in self.params.items()}
         for port, (dirn, shape) in self.ports.items():
             if port.lower() in self.ports_used:
@@ -292,7 +292,7 @@ class _Platform:
         def makepath(ext):
             return os.path.join(builddir, f"{name}.{ext}")
 
-        frag = top.get_fragment(self)
+        frag = top.elaborate(self)
         ports = self._get_ports()
 
         os.makedirs(builddir, exist_ok=True)
@@ -339,7 +339,7 @@ class _Platform:
         io.d_out_0 = tstriple.o
         io.output_enable = tstriple.oe
         m.d.comb += tstriple.i.eq(io.d_in_0)
-        frag = m.get_fragment(self)
+        frag = m.lower(self)
         frag.flatten = True
         return frag
 

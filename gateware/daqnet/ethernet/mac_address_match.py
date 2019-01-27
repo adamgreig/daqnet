@@ -39,7 +39,7 @@ class MACAddressMatch:
         # Parameters
         self.mac_addr = mac_addr
 
-    def get_fragment(self, platform):
+    def elaborate(self, platform):
         m = Module()
         mac = [Signal(8) for _ in range(6)]
 
@@ -68,7 +68,7 @@ class MACAddressMatch:
                 with m.If(self.reset):
                     m.next = "RESET"
 
-        return m.lower(platform)
+        return m
 
 
 def test_mac_address_match():
@@ -156,7 +156,7 @@ def test_mac_address_match():
         yield (reset.eq(0))
         yield
 
-    frag = mac_matcher.get_fragment(None)
+    frag = mac_matcher.elaborate(None)
     vcdf = open("mac_matcher.vcd", "w")
     with pysim.Simulator(frag, vcd_file=vcdf) as sim:
         sim.add_clock(1e-6)

@@ -20,7 +20,7 @@ class LFSR:
 
         self.k = k
 
-    def get_fragment(self, platform):
+    def elaborate(self, platform):
         m = Module()
         x = Signal()
         tap = LFSR.TAPS[self.k]
@@ -30,7 +30,7 @@ class LFSR:
         with m.Else():
             m.d.sync += Cat(self.state).eq(Cat(x, self.state))
 
-        return m.lower(platform)
+        return m
 
 
 class PulseStretch:
@@ -43,7 +43,7 @@ class PulseStretch:
 
         self.nclks = nclks
 
-    def get_fragment(self, platform):
+    def elaborate(self, platform):
         m = Module()
 
         counter = Signal(max=self.nclks)
@@ -61,4 +61,4 @@ class PulseStretch:
                 with m.Else():
                     m.d.sync += counter.eq(counter + 1)
 
-        return m.lower(platform)
+        return m

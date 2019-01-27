@@ -15,12 +15,12 @@ class LEDBlinker:
         self.led = Signal()
         self.nbits = nbits
 
-    def get_fragment(self, platform):
+    def elaborate(self, platform):
         m = Module()
         divider = Signal(self.nbits)
         m.d.sync += divider.eq(divider + 1)
         m.d.comb += self.led.eq(divider[-1])
-        return m.lower(platform)
+        return m
 
 
 class Top:
@@ -32,7 +32,7 @@ class SensorTop(Top):
     def __init__(self, platform, args):
         self.led_blinker = LEDBlinker(23)
 
-    def get_fragment(self, platform):
+    def elaborate(self, platform):
         m = Module()
 
         # Set up PLL
@@ -46,18 +46,18 @@ class SensorTop(Top):
         m.domains += cd
 
         # Create LED blinker in PLL clock domain
-        blinker = self.led_blinker.get_fragment(platform)
+        blinker = self.led_blinker.elaborate(platform)
         m.submodules.led_blinker = blinker
         m.d.comb += platform.request("user_led_3").eq(self.led_blinker.led)
 
-        return m.lower(platform)
+        return m
 
 
 class SwitchTop(Top):
     def __init__(self, platform, args):
         self.led_blinker = LEDBlinker(24)
 
-    def get_fragment(self, platform):
+    def elaborate(self, platform):
         m = Module()
 
         # Set up PLL to multiply 25MHz clock to 100MHz clock
@@ -106,4 +106,4 @@ class SwitchTop(Top):
             led2.eq(mac.link_up),
         ]
 
-        return m.lower(platform)
+        return m

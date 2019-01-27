@@ -52,7 +52,7 @@ class MDIO:
         self.mdio = mdio
         self.mdc = mdc
 
-    def get_fragment(self, platform):
+    def elaborate(self, platform):
 
         m = Module()
 
@@ -298,7 +298,7 @@ class MDIO:
                     with m.Else():
                         m.d.sync += bit_counter.eq(bit_counter - 1)
 
-        return m.lower(platform)
+        return m
 
 
 def test_mdio_read():
@@ -375,7 +375,7 @@ def test_mdio_read():
             assert read_data == expected
             assert not was_busy
 
-    frag = mdio.get_fragment(platform=None)
+    frag = mdio.elaborate(platform=None)
     vcdf = open("mdio_read.vcd", "w")
     with pysim.Simulator(frag, vcd_file=vcdf) as sim:
         sim.add_clock(1e-6)
@@ -455,7 +455,7 @@ def test_mdio_write():
             assert oebits == expected
             assert not was_busy
 
-    frag = mdio.get_fragment(platform=None)
+    frag = mdio.elaborate(platform=None)
     vcdf = open("mdio_write.vcd", "w")
     with pysim.Simulator(frag, vcd_file=vcdf) as sim:
         sim.add_clock(1e-6)

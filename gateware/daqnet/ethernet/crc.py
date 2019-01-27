@@ -37,7 +37,7 @@ class CRC32:
         self.crc_out = Signal(32)
         self.crc_match = Signal()
 
-    def get_fragment(self, platform):
+    def elaborate(self, platform):
 
         m = Module()
         crc = Signal(32)
@@ -69,7 +69,7 @@ class CRC32:
                 m.d.sync += crc.eq(table_port.data ^ (crc >> 8))
                 m.next = "IDLE"
 
-        return m.lower(platform)
+        return m
 
 
 def make_crc32_table():
@@ -106,7 +106,7 @@ def test_crc32():
         out = yield (crc.crc_out)
         assert out == 0xCBF43926
 
-    frag = crc.get_fragment(None)
+    frag = crc.elaborate(None)
     vcdf = open("crc32.vcd", "w")
     with pysim.Simulator(frag, vcd_file=vcdf) as sim:
         sim.add_clock(1e-6)
@@ -144,7 +144,7 @@ def test_crc32_match():
         match = yield (crc.crc_match)
         assert match == 1
 
-    frag = crc.get_fragment(None)
+    frag = crc.elaborate(None)
     vcdf = open("crc32_match.vcd", "w")
     with pysim.Simulator(frag, vcd_file=vcdf) as sim:
         sim.add_clock(1e-6)
