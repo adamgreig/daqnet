@@ -8,6 +8,7 @@ from .platform import SB_PLL40_PAD
 
 from .ethernet.mac import MAC
 from .ethernet.ip import IPStack
+from .user import User
 
 
 class LEDBlinker:
@@ -83,10 +84,15 @@ class SwitchTop(Top):
             mac.phy_reset.eq(0),
         ]
 
+        # User data stuff
+        user = User()
+        m.submodules.user = user
+
         # IP stack
         ip4_addr = "10.1.1.5"
         m.submodules.ipstack = ipstack = IPStack(
-            mac_addr, ip4_addr, mac.rx_port, mac.tx_port)
+            mac_addr, ip4_addr, 16, 1735, mac.rx_port, mac.tx_port,
+            user.mem_r_port, user.mem_w_port)
         m.d.comb += [
             mac.tx_start.eq(ipstack.tx_start),
             mac.tx_len.eq(ipstack.tx_len),
@@ -95,15 +101,9 @@ class SwitchTop(Top):
             ipstack.rx_len.eq(mac.rx_len),
             ipstack.rx_offset.eq(mac.rx_offset),
             mac.rx_ack.eq(ipstack.rx_ack),
-        ]
-
-        # Debug outputs
-        led1 = platform.request("user_led_1")
-        led2 = platform.request("user_led_2")
-
-        m.d.comb += [
-            led1.eq(eth_led),
-            led2.eq(mac.link_up),
+            ipstack.user_tx.eq(user.transmit_packet),
+            user.transmit_ready.eq(ipstack.user_ready),
+            user.packet_received.eq(ipstack.user_rx),
         ]
 
         return m

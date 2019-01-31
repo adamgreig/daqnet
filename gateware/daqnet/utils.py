@@ -13,7 +13,7 @@ class LFSR:
 
     def __init__(self, k):
         self.reset = Signal()
-        self.state = Signal(k)
+        self.state = Signal(k, reset=1)
 
         if k not in LFSR.TAPS.keys():
             raise ValueError(f"k={k} invalid for LFSR")

@@ -307,21 +307,22 @@ class _Platform:
             with open(makepath("v"), "w") as f:
                 f.write(verilog.convert(frag, name=name, ports=ports))
 
-        subprocess.run([
-            "yosys", "-q", "-p",
-            f"synth_ice40 -relut -json {makepath('json')}",
-            makepath("il")
-        ], check=True)
+        yosys_args = ["yosys", "-q", "-p",
+                      f"synth_ice40 -relut -json {makepath('json')}",
+                      makepath("il")]
+        print(" ".join(yosys_args))
+        subprocess.run(yosys_args, check=True)
 
         nextpnr_args = [
             "nextpnr-ice40", "--hx8k", "--package", "bg121", "--json",
             makepath("json"), "--pcf", makepath("pcf"), "--asc",
-            makepath("asc"), "--seed", str(seed),
+            makepath("asc"), "--seed", str(seed), "--opt-timing",
         ]
 
         if freq is not None:
             nextpnr_args += ["--freq", str(freq)]
 
+        print(" ".join(nextpnr_args))
         subprocess.run(nextpnr_args, check=False)
         subprocess.run(["icepack", makepath("asc"), makepath("bin")],
                        check=True)
