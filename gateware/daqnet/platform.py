@@ -316,7 +316,7 @@ class _Platform:
         nextpnr_args = [
             "nextpnr-ice40", "--hx8k", "--package", "bg121", "--json",
             makepath("json"), "--pcf", makepath("pcf"), "--asc",
-            makepath("asc"), "--seed", str(seed), "--opt-timing",
+            makepath("asc"), "--seed", str(seed),
         ]
 
         if freq is not None:
