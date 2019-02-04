@@ -644,6 +644,7 @@ class _IPv4Layer(_StackLayer):
         self.m.submodules.ipchecksum = ipchecksum = _InternetChecksum()
         self.m.d.comb += [
             ipchecksum.data.eq(self.tx_data),
+            ipchecksum.lowbyte.eq(self.tx_addr[0]),
             ipchecksum.en.eq(self.tx_en),
             ipchecksum.reset.eq(self.done),
         ]
@@ -668,11 +669,10 @@ class _IPv4Layer(_StackLayer):
             })
 
             # If the child layer requested transmission, fill in the
-            # outbound IPv4 header. We write TTL before DSCP_ECN to
-            # ensure correct ordering of bytes for the 16-bit checksum.
-            self.write("TTL", val=64, dst=8, n=1)
+            # outbound IPv4 header.
             self.write("DSCP_ECN", val=0x00, dst=1, n=1)
             self.write("TOTAL_LENGTH", val=self.child_tx_len+20, dst=2, n=2)
+            self.write("TTL", val=64, dst=8, n=1)
             self.write("ID_FLAGS_FRAG", val=0x00000000, dst=4, n=4)
             self.write("CHECKSUM", val=ipchecksum.checksum, dst=10, n=2)
             self.end_fsm(tx_len=20, send=True)
@@ -695,6 +695,7 @@ class _ICMPv4Layer(_StackLayer):
         self.m.submodules.ipchecksum = ipchecksum = _InternetChecksum()
         self.m.d.comb += [
             ipchecksum.data.eq(self.tx_data),
+            ipchecksum.lowbyte.eq(self.tx_addr[0]),
             ipchecksum.en.eq(self.tx_en),
             ipchecksum.reset.eq(self.done),
         ]
@@ -802,6 +803,7 @@ class _UDPTxLayer(_StackLayer):
             # the first byte after the 14-byte Ethernet header.
             self.m.d.comb += [
                 ipchecksum.data.eq(self.tx_data),
+                ipchecksum.lowbyte.eq(self.tx_addr[0]),
                 ipchecksum.reset.eq(self.done),
                 ipchecksum.en.eq(functools.reduce(
                     operator.or_, [fsm.ongoing(x) for x in range(15, 33)])
@@ -838,8 +840,9 @@ class _InternetChecksum:
     Implements the Internet Checksum algorithm from RFC 1071.
 
     Inputs:
-        * `data`: 8-bit data to add to checksum. Alternating bytes are treated
-          as high/low bytes and must be input in that order.
+        * `data`: 8-bit data to add to checksum.
+        * `lowbyte`: Assert if `data` contains the lower byte of a 16-bit word
+                     in network byte order
         * `en`: Checksum updated with `data` when `en` is high
         * `reset`: Pulse high to reset checksum to zero
 
@@ -848,6 +851,7 @@ class _InternetChecksum:
     """
     def __init__(self):
         self.data = Signal(8)
+        self.lowbyte = Signal()
         self.en = Signal()
         self.reset = Signal()
         self.checksum = Signal(16)
@@ -855,22 +859,20 @@ class _InternetChecksum:
     def elaborate(self, platform):
         m = Module()
         state = Signal(17)
-        lowbyte = Signal()
         data_shift = Signal(16)
 
         m.d.comb += self.checksum.eq(~state[:-1])
 
-        with m.If(lowbyte):
+        with m.If(self.lowbyte):
             m.d.comb += data_shift.eq(self.data)
         with m.Else():
             m.d.comb += data_shift.eq(self.data << 8)
 
         with m.If(self.reset):
-            m.d.sync += [state.eq(0), lowbyte.eq(0)]
+            m.d.sync += state.eq(0)
         with m.Else():
             with m.If(self.en):
                 m.d.sync += state.eq(state[:-1] + data_shift + state[-1])
-                m.d.sync += lowbyte.eq(~lowbyte),
         return m
 
 
@@ -889,8 +891,9 @@ def test_ipv4_checksum():
 
         for i in range(2):
 
-            for byte in data:
+            for idx, byte in enumerate(data):
                 yield checksum.data.eq(byte)
+                yield checksum.lowbyte.eq(idx & 1)
                 yield checksum.en.eq(1)
                 yield
 
