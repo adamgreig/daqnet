@@ -8,10 +8,10 @@ Released under the MIT license; see LICENSE for details.
 import operator
 import functools
 from contextlib import contextmanager
-from nmigen import Module, Signal, Memory, Const
+from nmigen import Elaboratable, Module, Signal, Memory, Const
 
 
-class IPStack:
+class IPStack(Elaboratable):
     """
     IP stack.
 
@@ -161,7 +161,7 @@ class IPStack:
         return m
 
 
-class _StackLayer:
+class _StackLayer(Elaboratable):
     """
     Layer in IP stack.
 
@@ -835,7 +835,7 @@ class _UDPTxLayer(_StackLayer):
         return self.m
 
 
-class _InternetChecksum:
+class _InternetChecksum(Elaboratable):
     """
     Implements the Internet Checksum algorithm from RFC 1071.
 
@@ -907,9 +907,8 @@ def test_ipv4_checksum():
             yield checksum.reset.eq(0)
             yield
 
-    frag = checksum.elaborate(None)
     vcdf = open(f"ipstack_ipv4_checksum.vcd", "w")
-    with pysim.Simulator(frag, vcd_file=vcdf) as sim:
+    with pysim.Simulator(checksum, vcd_file=vcdf) as sim:
         sim.add_clock(1/100e6)
         sim.add_sync_process(testbench())
         sim.run()
@@ -977,8 +976,8 @@ def run_rx_test(name, rx_bytes, expected_bytes, mac_addr, ip4_addr):
                 # Check transmit did not get asserted
                 assert not tx_start
 
-    mod = ipstack.elaborate(None)
-    mod.submodules += rx_mem_port, tx_mem_port
+    mod = Module()
+    mod.submodules += ipstack, rx_mem_port, tx_mem_port
 
     vcdf = open(f"ipstack_rx_{name}.vcd", "w")
     with pysim.Simulator(mod, vcd_file=vcdf) as sim:
@@ -1246,8 +1245,8 @@ def test_udp_tx():
         compare_packet(tx_bytes, expected_bytes)
         assert tx_bytes == expected_bytes
 
-    mod = ipstack.elaborate(None)
-    mod.submodules += rx_mem_port, tx_mem_port, user_tx_mem_port
+    mod = Module()
+    mod.submodules += ipstack, rx_mem_port, tx_mem_port, user_tx_mem_port
 
     vcdf = open(f"ipstack_udp_tx.vcd", "w")
     with pysim.Simulator(mod, vcd_file=vcdf) as sim:
@@ -1367,8 +1366,8 @@ def test_udp_rx():
         assert (yield ipstack.user_last_ip4) == src_ip4_addr_int
         assert (yield ipstack.user_last_port) == src_udp_port
 
-    mod = ipstack.elaborate(None)
-    mod.submodules += rx_mem_port, tx_mem_port, user_rx_mem_port
+    mod = Module()
+    mod.submodules += ipstack, rx_mem_port, tx_mem_port, user_rx_mem_port
 
     vcdf = open(f"ipstack_udp_rx.vcd", "w")
     with pysim.Simulator(mod, vcd_file=vcdf) as sim:

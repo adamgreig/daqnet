@@ -5,10 +5,10 @@ Copyright 2018-2019 Adam Greig
 Released under the MIT license; see LICENSE for details.
 """
 
-from nmigen import Module, Signal, Memory
+from nmigen import Elaboratable, Module, Signal, Memory
 
 
-class CRC32:
+class CRC32(Elaboratable):
     """
     Ethernet CRC32
 
@@ -106,9 +106,8 @@ def test_crc32():
         out = yield (crc.crc_out)
         assert out == 0xCBF43926
 
-    frag = crc.elaborate(None)
     vcdf = open("crc32.vcd", "w")
-    with pysim.Simulator(frag, vcd_file=vcdf) as sim:
+    with pysim.Simulator(crc, vcd_file=vcdf) as sim:
         sim.add_clock(1e-6)
         sim.add_sync_process(testbench())
         sim.run()
@@ -144,9 +143,8 @@ def test_crc32_match():
         match = yield (crc.crc_match)
         assert match == 1
 
-    frag = crc.elaborate(None)
     vcdf = open("crc32_match.vcd", "w")
-    with pysim.Simulator(frag, vcd_file=vcdf) as sim:
+    with pysim.Simulator(crc, vcd_file=vcdf) as sim:
         sim.add_clock(1e-6)
         sim.add_sync_process(testbench())
         sim.run()

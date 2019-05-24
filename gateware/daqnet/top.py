@@ -3,7 +3,7 @@ Copyright 2018-2019 Adam Greig
 Released under the MIT license; see LICENSE for details.
 """
 
-from nmigen import Signal, Module, ClockDomain
+from nmigen import Elaboratable, Signal, Module, ClockDomain
 from .platform import SB_PLL40_PAD
 
 from .ethernet.mac import MAC
@@ -11,7 +11,7 @@ from .ethernet.ip import IPStack
 from .user import User
 
 
-class LEDBlinker:
+class LEDBlinker(Elaboratable):
     def __init__(self, nbits):
         self.led = Signal()
         self.nbits = nbits
@@ -24,15 +24,15 @@ class LEDBlinker:
         return m
 
 
-class Top:
+class Top(Elaboratable):
     def __init__(self, platform, args):
         pass
 
+    def elaborate(self, platform):
+        raise NotImplementedError
+
 
 class SensorTop(Top):
-    def __init__(self, platform, args):
-        self.led_blinker = LEDBlinker(23)
-
     def elaborate(self, platform):
         m = Module()
 
@@ -55,9 +55,6 @@ class SensorTop(Top):
 
 
 class SwitchTop(Top):
-    def __init__(self, platform, args):
-        self.led_blinker = LEDBlinker(24)
-
     def elaborate(self, platform):
         m = Module()
 

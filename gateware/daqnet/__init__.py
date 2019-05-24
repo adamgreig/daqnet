@@ -16,6 +16,5 @@ def main():
     elif args.device == "sensor":
         plat = SensorPlatform(args)
         top = SensorTop(plat, args)
-    frag = top.elaborate(plat)
-    plat.build(frag, args.device, "build/", freq=100, emit_v=args.verilog,
+    plat.build(top, args.device, "build/", freq=100, emit_v=args.verilog,
                seed=args.seed)

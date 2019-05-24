@@ -5,11 +5,11 @@ Copyright 2018-2019 Adam Greig
 Released under the MIT license; see LICENSE for details.
 """
 
-from nmigen import Module, Signal, Array
-from nmigen.lib.io import TSTriple
+from nmigen import Elaboratable, Module, Signal, Array
+from nmigen.lib.io import Pin
 
 
-class MDIO:
+class MDIO(Elaboratable):
     """
     MDIO interface controller.
 
@@ -57,10 +57,10 @@ class MDIO:
         m = Module()
 
         # Create tristate for MDIO
-        self.mdio_t = TSTriple()
+        self.mdio_t = Pin(1, 'io')
         # Skip tristate creation when self.mdio=None (for use with simulator)
         if self.mdio is not None:
-            m.submodules += self.mdio_t.get_tristate(self.mdio)
+            m.submodules += platform.get_tristate(self.mdio_t, self.mdio)
 
         # Create divided clock for MDC
         mdc_int = Signal()
@@ -375,9 +375,8 @@ def test_mdio_read():
             assert read_data == expected
             assert not was_busy
 
-    frag = mdio.elaborate(platform=None)
     vcdf = open("mdio_read.vcd", "w")
-    with pysim.Simulator(frag, vcd_file=vcdf) as sim:
+    with pysim.Simulator(mdio, vcd_file=vcdf) as sim:
         sim.add_clock(1e-6)
         sim.add_sync_process(testbench())
         sim.run()
@@ -455,9 +454,8 @@ def test_mdio_write():
             assert oebits == expected
             assert not was_busy
 
-    frag = mdio.elaborate(platform=None)
     vcdf = open("mdio_write.vcd", "w")
-    with pysim.Simulator(frag, vcd_file=vcdf) as sim:
+    with pysim.Simulator(mdio, vcd_file=vcdf) as sim:
         sim.add_clock(1e-6)
         sim.add_sync_process(testbench())
         sim.run()

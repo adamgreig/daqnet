@@ -5,7 +5,8 @@ Copyright 2018-2019 Adam Greig
 Released under the MIT license; see LICENSE for details.
 """
 
-from nmigen import Module, Signal, Const, Memory, ClockDomain, Cat
+from nmigen import Elaboratable, Module, Signal, Const, Memory, ClockDomain
+from nmigen import Cat
 from nmigen.lib.fifo import AsyncFIFO
 from nmigen.hdl.xfrm import DomainRenamer
 from .mdio import MDIO
@@ -13,7 +14,7 @@ from .rmii import RMIIRx, RMIITx
 from ..utils import PulseStretch
 
 
-class MAC:
+class MAC(Elaboratable):
     """
     Ethernet RMII MAC.
 
@@ -90,7 +91,7 @@ class MAC:
         self.tx_mem = Memory(8, tx_buf_size)
         self.tx_port = self.tx_mem.write_port()
         self.rx_mem = Memory(8, rx_buf_size)
-        self.rx_port = self.rx_mem.read_port()
+        self.rx_port = self.rx_mem.read_port(transparent=False)
 
     def elaborate(self, platform):
         m = Module()
@@ -102,8 +103,9 @@ class MAC:
 
         # Create RX write and TX read ports for RMII use
         rx_port_w = self.rx_mem.write_port(domain="rmii")
-        tx_port_r = self.tx_mem.read_port(domain="rmii")
+        tx_port_r = self.tx_mem.read_port(domain="rmii", transparent=False)
         m.submodules += [self.rx_port, rx_port_w, self.tx_port, tx_port_r]
+        m.d.comb += [self.rx_port.en.eq(1), tx_port_r.en.eq(1)]
 
         # Create submodules for PHY and RMII
         m.submodules.phy_manager = phy_manager = PHYManager(
@@ -146,15 +148,15 @@ class MAC:
         rdr = DomainRenamer({"read": "sync", "write": "rmii"})
         wdr = DomainRenamer({"write": "sync", "read": "rmii"})
         rr = DomainRenamer("rmii")
-        m.submodules.rx_fifo = rdr(rx_fifo.elaborate(platform).lower(platform))
-        m.submodules.tx_fifo = wdr(tx_fifo.elaborate(platform).lower(platform))
-        m.submodules.rmii_rx = rr(rmii_rx.elaborate(platform).lower(platform))
-        m.submodules.rmii_tx = rr(rmii_tx.elaborate(platform).lower(platform))
+        m.submodules.rx_fifo = rdr(rx_fifo)
+        m.submodules.tx_fifo = wdr(tx_fifo)
+        m.submodules.rmii_rx = rr(rmii_rx)
+        m.submodules.rmii_tx = rr(rmii_tx)
 
         return m
 
 
-class PHYManager:
+class PHYManager(Elaboratable):
     """
     Manage a PHY over MDIO.
 
@@ -389,9 +391,8 @@ def test_phy_manager():
         # Check link_up becomes 1
         assert (yield phy_manager.link_up) == 1
 
-    frag = phy_manager.elaborate(None)
     vcdf = open("phy_manager.vcd", "w")
-    with pysim.Simulator(frag, vcd_file=vcdf) as sim:
+    with pysim.Simulator(phy_manager, vcd_file=vcdf) as sim:
         sim.add_clock(1e-6)
         sim.add_sync_process(testbench())
         sim.run()

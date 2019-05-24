@@ -8,10 +8,10 @@ Released under the MIT license; see LICENSE for details.
 import operator
 from functools import reduce
 
-from nmigen import Module, Signal
+from nmigen import Elaboratable, Module, Signal
 
 
-class MACAddressMatch:
+class MACAddressMatch(Elaboratable):
     """
     MAC Address Matcher
 
@@ -156,9 +156,8 @@ def test_mac_address_match():
         yield (reset.eq(0))
         yield
 
-    frag = mac_matcher.elaborate(None)
     vcdf = open("mac_matcher.vcd", "w")
-    with pysim.Simulator(frag, vcd_file=vcdf) as sim:
+    with pysim.Simulator(mac_matcher, vcd_file=vcdf) as sim:
         sim.add_clock(1e-6)
         sim.add_sync_process(testbench())
         sim.run()

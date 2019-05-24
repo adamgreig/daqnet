@@ -5,10 +5,10 @@ Copyright 2018-2019 Adam Greig
 Released under the MIT license; see LICENSE for details.
 """
 
-from nmigen import Module, Signal, Cat
+from nmigen import Module, Signal, Cat, Elaboratable
 
 
-class LFSR:
+class LFSR(Elaboratable):
     TAPS = {7: 6, 9: 5, 11: 9, 15: 14, 20: 3, 23: 18, 31: 28}
 
     def __init__(self, k):
@@ -33,7 +33,7 @@ class LFSR:
         return m
 
 
-class PulseStretch:
+class PulseStretch(Elaboratable):
     def __init__(self, nclks):
         # Inputs
         self.trigger = Signal()

@@ -10,11 +10,11 @@ Released under the MIT license; see LICENSE for details.
 import os
 import subprocess
 from collections import namedtuple
-from nmigen import Signal, Instance, Const, Module
+from nmigen import Fragment, Elaboratable, Signal, Instance, Const, Module
 from nmigen.back import rtlil, verilog
 
 
-class _InstanceWrapper:
+class _InstanceWrapper(Elaboratable):
     """
     Wraps an Instance, taking parameters in the constructor and then
     exposing all ports as attributes. Unused ports are not specified
@@ -45,7 +45,9 @@ class _InstanceWrapper:
             raise AttributeError
 
     def __setattr__(self, name, value):
-        if name.upper() in self.ports:
+        if name.startswith("_Elaboratable"):
+            super().__setattr__(name, value)
+        elif name.upper() in self.ports:
             self.ports_used[name] = value
         else:
             super().__setattr__(name, value)
@@ -292,7 +294,7 @@ class _Platform:
         def makepath(ext):
             return os.path.join(builddir, f"{name}.{ext}")
 
-        frag = top.elaborate(self)
+        frag = Fragment.get(top, self)
         ports = self._get_ports()
 
         os.makedirs(builddir, exist_ok=True)
@@ -340,7 +342,7 @@ class _Platform:
         io.d_out_0 = tstriple.o
         io.output_enable = tstriple.oe
         m.d.comb += tstriple.i.eq(io.d_in_0)
-        frag = m.lower(self)
+        frag = Fragment.get(m, self)
         frag.flatten = True
         return frag
 

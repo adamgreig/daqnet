@@ -5,12 +5,12 @@ Copyright 2018-2019 Adam Greig
 Released under the MIT license; see LICENSE for details.
 """
 
-from nmigen import Module, Signal, Cat
+from nmigen import Elaboratable, Module, Signal, Cat
 from .crc import CRC32
 from .mac_address_match import MACAddressMatch
 
 
-class RMIIRx:
+class RMIIRx(Elaboratable):
     """
     RMII receive module
 
@@ -99,7 +99,7 @@ class RMIIRx:
         return m
 
 
-class RMIIRxByte:
+class RMIIRxByte(Elaboratable):
     """
     RMII Receive Byte De-muxer
 
@@ -213,7 +213,7 @@ class RMIIRxByte:
         return m
 
 
-class RMIITx:
+class RMIITx(Elaboratable):
     """
     RMII transmit module
 
@@ -351,7 +351,7 @@ class RMIITx:
         return m
 
 
-class RMIITxByte:
+class RMIITxByte(Elaboratable):
     """
     RMII Transmit Byte Muxer
 
@@ -530,8 +530,8 @@ def test_rmii_rx():
 
         yield
 
-    mod = rmii_rx.elaborate(None)
-    mod.submodules += mem_port
+    mod = Module()
+    mod.submodules += rmii_rx, mem_port
     vcdf = open("rmii_rx.vcd", "w")
     with pysim.Simulator(mod, vcd_file=vcdf) as sim:
         sim.add_clock(1/50e6)
@@ -602,9 +602,8 @@ def test_rmii_rx_byte():
 
         assert rxbytes == txbytes
 
-    frag = rmii_rx_byte.elaborate(None)
     vcdf = open("rmii_rx_byte.vcd", "w")
-    with pysim.Simulator(frag, vcd_file=vcdf) as sim:
+    with pysim.Simulator(rmii_rx_byte, vcd_file=vcdf) as sim:
         sim.add_clock(1/50e6)
         sim.add_sync_process(testbench())
         sim.run()
@@ -674,8 +673,8 @@ def test_rmii_tx():
         print(rxnibbles)
         assert txnibbles == rxnibbles
 
-    mod = rmii_tx.elaborate(None)
-    mod.submodules += mem_port
+    mod = Module()
+    mod.submodules += rmii_tx, mem_port
 
     vcdf = open("rmii_tx.vcd", "w")
     with pysim.Simulator(mod, vcd_file=vcdf) as sim:
@@ -732,9 +731,8 @@ def test_rmii_tx_byte():
         for _ in range(10):
             yield
 
-    frag = rmii_tx_byte.elaborate(None)
     vcdf = open("rmii_tx_byte.vcd", "w")
-    with pysim.Simulator(frag, vcd_file=vcdf) as sim:
+    with pysim.Simulator(rmii_tx_byte, vcd_file=vcdf) as sim:
         sim.add_clock(1/50e6)
         sim.add_sync_process(testbench())
         sim.run()
