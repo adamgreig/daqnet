@@ -7,11 +7,9 @@ Copyright 2019 Adam Greig
 Released under the MIT license; see LICENSE for details.
 """
 
-import os
-import subprocess
-from collections import namedtuple
 from nmigen import Fragment, Elaboratable, Signal, Instance, Const, Module
-from nmigen.back import rtlil, verilog
+from nmigen.vendor.lattice_ice40 import LatticeICE40Platform
+from nmigen.build import Resource, Pins, Clock, Subsignal
 
 
 class _InstanceWrapper(Elaboratable):
@@ -236,189 +234,105 @@ class SB_PLL40_PAD(_InstanceWrapper):
         super().__init__("SB_PLL40_PAD", params, ports, required, default)
 
 
-class _Port:
-    """
-    Represents a port (one or more pins with the same name) available to the
-    platform.
-    """
-    def __init__(self, name, dirn, pads):
-        """
-        name: name of port
-        pads: either a single string of one pin location or a tuple of strings
-        """
-        self.name = name
-        self.dirn = dirn
-        self.pads = pads
-        n = len(self.pads) if isinstance(self.pads, tuple) else 1
-        self.signal = Signal(n, name=name)
-
-    def make_pcf(self):
-        """
-        Returns a string of lines for the PCF file containing this port.
-        """
-        pcf_lines = []
-        if isinstance(self.pads, tuple):
-            for idx, p in enumerate(self.pads):
-                pcf_lines.append(f"set_io {self.name}[{idx}] {p}")
-        else:
-            pcf_lines.append(f"set_io {self.name} {self.pads}")
-        return "\n".join(pcf_lines)
+class SensorPlatform(LatticeICE40Platform):
+    device = "iCE40HX8K"
+    package = "BG121"
+    resources = [
+        Resource("clk25", 0, Pins("B6", dir="i"), Clock(25e6)),
+        Resource("user_led", 0, Pins("A10", dir="o")),
+        Resource("user_led", 1, Pins("A11", dir="o")),
+        Resource("user_sw", 0, Pins("L1", dir="i")),
+        Resource("user_sw", 1, Pins("L7", dir="i")),
+        Resource(
+            "adc", 0,
+            Subsignal("cs", Pins("L2", dir="o")),
+            Subsignal("dout", Pins("L3", dir="o")),
+            Subsignal("sclk", Pins("L4", dir="o")),
+        ),
+        Resource(
+            "daqnet", 0,
+            Subsignal("led1", Pins("A3", dir="o")),
+            Subsignal("led2", Pins("A4", dir="o")),
+            Subsignal("txp", Pins("C2", dir="o")),
+            Subsignal("txn", Pins("C1", dir="o")),
+            Subsignal("rx", Pins("B2", dir="i")),
+        ),
+    ]
+    connectors = []
 
 
-class _Platform:
-    def __init__(self, ports):
-        self.ports_available = {port.name: port for port in ports}
-        self.ports_used = {}
-
-    def request(self, port):
-        if port in self.ports_available:
-            self.ports_used[port] = self.ports_available[port]
-            del self.ports_available[port]
-            return self.ports_used[port].signal
-        elif port in self.ports_used:
-            raise ValueError(f"Port {port} already used")
-        else:
-            raise ValueError(f"Unknown port {port}")
-
-    def request_group(self, group):
-        ports = []
-        for port in self.ports_available:
-            if port.startswith(group + "_"):
-                ports.append(port)
-        if not ports:
-            raise ValueError(f"No ports found in group {group}")
-        Group = namedtuple(group, [port[len(group)+1:] for port in ports])
-        return Group(*(self.request(port) for port in ports))
-
-    def build(self, top, name, builddir, freq=None, emit_v=False, seed=0):
-        def makepath(ext):
-            return os.path.join(builddir, f"{name}.{ext}")
-
-        frag = Fragment.get(top, self)
-        ports = self._get_ports()
-
-        os.makedirs(builddir, exist_ok=True)
-
-        with open(makepath("pcf"), "w") as f:
-            f.write(self._get_pcf())
-
-        with open(makepath("il"), "w") as f:
-            f.write(rtlil.convert(frag, name=name, ports=ports))
-
-        if emit_v:
-            with open(makepath("v"), "w") as f:
-                f.write(verilog.convert(frag, name=name, ports=ports))
-
-        yosys_args = ["yosys", "-q", "-p",
-                      f"synth_ice40 -relut -json {makepath('json')}",
-                      makepath("il")]
-        print(" ".join(yosys_args))
-        subprocess.run(yosys_args, check=True)
-
-        nextpnr_args = [
-            "nextpnr-ice40", "--hx8k", "--package", "bg121", "--json",
-            makepath("json"), "--pcf", makepath("pcf"), "--asc",
-            makepath("asc"), "--seed", str(seed),
-        ]
-
-        if freq is not None:
-            nextpnr_args += ["--freq", str(freq)]
-
-        print(" ".join(nextpnr_args))
-        subprocess.run(nextpnr_args, check=False)
-        subprocess.run(["icepack", makepath("asc"), makepath("bin")],
-                       check=True)
-
-    def _get_pcf(self):
-        return "\n".join(port.make_pcf() for port in self.ports_used.values())
-
-    def _get_ports(self):
-        return [port.signal for port in self.ports_used.values()]
-
-    def get_tristate(self, tstriple, pad):
-        m = Module()
-        m.submodules.io = io = SB_IO(out_pin_type=SB_IO.PIN_OUTPUT_TRISTATE)
-        io.package_pin = pad
-        io.d_out_0 = tstriple.o
-        io.output_enable = tstriple.oe
-        m.d.comb += tstriple.i.eq(io.d_in_0)
-        frag = Fragment.get(m, self)
-        frag.flatten = True
-        return frag
-
-
-class SensorPlatform(_Platform):
-    def __init__(self, args):
-        ports = (
-            _Port("clk25", "i", "B6"),
-            _Port("user_led_3", "o", "A10"),
-            _Port("user_led_4", "o", "A11"),
-            _Port("user_sw_1", "i", "L1"),
-            _Port("user_sw_2", "i", "L7"),
-            _Port("adc_cs", "o", "L2"),
-            _Port("adc_dout", "o", "L3"),
-            _Port("adc_sclk", "o", "L4"),
-            _Port("flash_sdi", "o", "K9"),
-            _Port("flash_sdo", "i", "J9"),
-            _Port("flash_sck", "o", "L10"),
-            _Port("flash_cs", "o", "K10"),
-            _Port("flash_io2", "i", "H11"),
-            _Port("flash_io3", "i", "J11"),
-            _Port("daqnet_led1", "o", "A3"),
-            _Port("daqnet_led2", "o", "A4"),
-            _Port("daqnet_txp", "o", "C2"),
-            _Port("daqnet_txn", "o", "C1"),
-            _Port("daqnet_rx", "i", "B2"),
-        )
-
-        super().__init__(ports)
-
-
-class SwitchPlatform(_Platform):
-    def __init__(self, args):
-        ports = (
-            _Port("clk25", "i", "B6"),
-            _Port("user_led_1", "o", "A11"),
-            _Port("user_led_2", "o", "A10"),
-            _Port("uart_rx", "i", "A4"),
-            _Port("uart_tx", "o", "A3"),
-            _Port("flash_sdi", "o", "K9"),
-            _Port("flash_sdo", "i", "J9"),
-            _Port("flash_sck", "o", "L10"),
-            _Port("flash_cs", "o", "K10"),
-            _Port("flash_io2", "i", "K11"),
-            _Port("flash_io3", "i", "J11"),
-            _Port("rmii_txd0", "o", "J3"),
-            _Port("rmii_txd1", "o", "L1"),
-            _Port("rmii_txen", "o", "L2"),
-            _Port("rmii_rxd0", "i", "K5"),
-            _Port("rmii_rxd1", "i", "J5"),
-            _Port("rmii_crs_dv", "i", "L4"),
-            _Port("rmii_ref_clk", "i", "K4"),
-            _Port("rmii_mdc", "o", "K3"),
-            _Port("rmii_mdio", "io", "L3"),
-            _Port("phy_rst", "o", "K2"),
-            _Port("eth_led", "o", "J2"),
-            _Port("daqnet_0_led1", "o", "C4"),
-            _Port("daqnet_0_led2", "o", "D3"),
-            _Port("daqnet_0_txp", "o", "B1"),
-            _Port("daqnet_0_txn", "o", "B2"),
-            _Port("daqnet_0_rx", "i", "C1"),
-            _Port("daqnet_1_led1", "o", "D2"),
-            _Port("daqnet_1_led2", "o", "C3"),
-            _Port("daqnet_1_txp", "o", "E1"),
-            _Port("daqnet_1_txn", "o", "D1"),
-            _Port("daqnet_1_rx", "i", "E3"),
-            _Port("daqnet_2_led1", "o", "G3"),
-            _Port("daqnet_2_led2", "o", "F3"),
-            _Port("daqnet_2_txp", "o", "F1"),
-            _Port("daqnet_2_txn", "o", "F2"),
-            _Port("daqnet_2_rx", "i", "G2"),
-            _Port("daqnet_3_led1", "o", "F4"),
-            _Port("daqnet_3_led2", "o", "H3"),
-            _Port("daqnet_3_txp", "o", "H1"),
-            _Port("daqnet_3_txn", "o", "H2"),
-            _Port("daqnet_3_rx", "i", "K1"),
-        )
-
-        super().__init__(ports)
+class SwitchPlatform(LatticeICE40Platform):
+    device = "iCE40HX8K"
+    package = "BG121"
+    resources = [
+        Resource("clk25", 0, Pins("B6", dir="i")),
+        Resource("user_led", 0, Pins("A11", dir="o")),
+        Resource("user_led", 1, Pins("A10", dir="o")),
+        Resource(
+            "uart", 0,
+            Subsignal("rx", Pins("A4", dir="i")),
+            Subsignal("tx", Pins("A3", dir="o")),
+        ),
+        Resource(
+            "flash", 0,
+            Subsignal("sdi", Pins("K9", dir="o")),
+            Subsignal("sdo", Pins("J9", dir="i")),
+            Subsignal("sck", Pins("L10", dir="o")),
+            Subsignal("cs", Pins("K10", dir="o")),
+            Subsignal("io2", Pins("K11", dir="i")),
+            Subsignal("io3", Pins("J11", dir="i")),
+        ),
+        Resource(
+            "rmii", 0,
+            Subsignal("txd0", Pins("J3", dir="o")),
+            Subsignal("txd1", Pins("L1", dir="o")),
+            Subsignal("txen", Pins("L2", dir="o")),
+            Subsignal("rxd0", Pins("K5", dir="i")),
+            Subsignal("rxd1", Pins("J5", dir="i")),
+            Subsignal("crs_dv", Pins("L4", dir="i")),
+            Subsignal("ref_clk", Pins("K4", dir="i")),
+        ),
+        Resource(
+            "mdio", 0,
+            Subsignal("mdc", Pins("K3", dir="o")),
+            Subsignal("mdio", Pins("L3", dir="io")),
+        ),
+        Resource(
+            "phy", 0,
+            Subsignal("rst", Pins("K2", dir="o")),
+            Subsignal("led", Pins("J2", dir="o")),
+        ),
+        Resource(
+            "daqnet", 0,
+            Subsignal("led1", Pins("C4", dir="o")),
+            Subsignal("led2", Pins("D3", dir="o")),
+            Subsignal("txp", Pins("B1", dir="o")),
+            Subsignal("txn", Pins("B2", dir="o")),
+            Subsignal("rx", Pins("C1", dir="i")),
+        ),
+        Resource(
+            "daqnet", 1,
+            Subsignal("led1", Pins("D2", dir="o")),
+            Subsignal("led2", Pins("C3", dir="o")),
+            Subsignal("txp", Pins("E1", dir="o")),
+            Subsignal("txn", Pins("D1", dir="o")),
+            Subsignal("rx", Pins("E3", dir="i")),
+        ),
+        Resource(
+            "daqnet", 2,
+            Subsignal("led1", Pins("G3", dir="o")),
+            Subsignal("led2", Pins("F3", dir="o")),
+            Subsignal("txp", Pins("F1", dir="o")),
+            Subsignal("txn", Pins("F2", dir="o")),
+            Subsignal("rx", Pins("G2", dir="i")),
+        ),
+        Resource(
+            "daqnet", 3,
+            Subsignal("led1", Pins("F4", dir="o")),
+            Subsignal("led2", Pins("H3", dir="o")),
+            Subsignal("txp", Pins("H1", dir="o")),
+            Subsignal("txn", Pins("H2", dir="o")),
+            Subsignal("rx", Pins("K1", dir="i")),
+        ),
+    ]
+    connectors = []

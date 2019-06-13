@@ -33,8 +33,9 @@ class MAC(Elaboratable):
         * `tx_port`: Write port into TX packet memory, 8 bytes by 2048 cells.
 
     Pins:
-        * `rmii`: signal group containing txd0, txd1, txen, rxd0, rxd1, crs_dv,
-                  ref_clk, mdc, mdio
+        * `rmii`: signal group containing:
+            txd0, txd1, txen, rxd0, rxd1, crs_dv, ref_clk
+        * `mdio`: signal group containing: mdc, mdio
         * `phy_rst`: PHY RST pin (output, active low)
         * `eth_led`: Ethernet LED, active high, pulsed on packet traffic
 
@@ -57,8 +58,8 @@ class MAC(Elaboratable):
     Outputs:
         * `link_up`: High while link is established
     """
-    def __init__(self, clk_freq, phy_addr, mac_addr, rmii, phy_rst, eth_led,
-                 tx_buf_size=2048, rx_buf_size=2048):
+    def __init__(self, clk_freq, phy_addr, mac_addr, rmii, mdio,
+                 phy_rst, eth_led, tx_buf_size=2048, rx_buf_size=2048):
         # Memory Ports
         self.rx_port = None  # Assigned below
         self.tx_port = None  # Assigned below
@@ -84,6 +85,7 @@ class MAC(Elaboratable):
         self.phy_addr = phy_addr
         self.mac_addr = [int(x, 16) for x in mac_addr.split(":")]
         self.rmii = rmii
+        self.mdio = mdio
         self.phy_rst = phy_rst
         self.eth_led = eth_led
 
@@ -110,7 +112,7 @@ class MAC(Elaboratable):
         # Create submodules for PHY and RMII
         m.submodules.phy_manager = phy_manager = PHYManager(
             self.clk_freq, self.phy_addr, self.phy_rst,
-            self.rmii.mdio, self.rmii.mdc)
+            self.mdio.mdio, self.mdio.mdc)
         m.submodules.stretch = stretch = PulseStretch(int(1e6))
 
         rmii_rx = RMIIRx(

@@ -19,8 +19,8 @@ class User(Elaboratable):
 
         m.submodules += [self.mem_r_port, self.mem_w_port, rx_port, tx_port]
 
-        led1 = platform.request("user_led_1")
-        led2 = platform.request("user_led_2")
+        led1 = platform.request("user_led", 0)
+        led2 = platform.request("user_led", 1)
 
         m.d.comb += [
             tx_port.addr.eq(0),

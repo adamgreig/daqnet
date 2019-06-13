@@ -6,7 +6,6 @@ Released under the MIT license; see LICENSE for details.
 """
 
 from nmigen import Elaboratable, Module, Signal, Array
-from nmigen.lib.io import Pin
 
 
 class MDIO(Elaboratable):
@@ -56,12 +55,6 @@ class MDIO(Elaboratable):
 
         m = Module()
 
-        # Create tristate for MDIO
-        self.mdio_t = Pin(1, 'io')
-        # Skip tristate creation when self.mdio=None (for use with simulator)
-        if self.mdio is not None:
-            m.submodules += platform.get_tristate(self.mdio_t, self.mdio)
-
         # Create divided clock for MDC
         mdc_int = Signal()
         mdc_rise = Signal()
@@ -106,7 +99,7 @@ class MDIO(Elaboratable):
             with m.State("IDLE"):
                 m.d.comb += [
                     self.mdc.eq(0),
-                    self.mdio_t.oe.eq(0),
+                    self.mdio.oe.eq(0),
                 ]
 
                 # Latch input signals while in idle
@@ -126,7 +119,7 @@ class MDIO(Elaboratable):
             with m.State("SYNC"):
                 m.d.comb += [
                     self.mdc.eq(0),
-                    self.mdio_t.oe.eq(0),
+                    self.mdio.oe.eq(0),
                 ]
 
                 with m.If(mdc_fall):
@@ -138,10 +131,10 @@ class MDIO(Elaboratable):
             with m.State("PRE_32"):
                 m.d.comb += [
                     self.mdc.eq(mdc_int),
-                    self.mdio_t.oe.eq(1),
+                    self.mdio.oe.eq(1),
 
                     # Output all 1s
-                    self.mdio_t.o.eq(1),
+                    self.mdio.o.eq(1),
                 ]
 
                 # Count falling edges of MDC,
@@ -158,8 +151,8 @@ class MDIO(Elaboratable):
             with m.State("ST"):
                 m.d.comb += [
                     self.mdc.eq(mdc_int),
-                    self.mdio_t.oe.eq(1),
-                    self.mdio_t.o.eq(bit_counter[0]),
+                    self.mdio.oe.eq(1),
+                    self.mdio.o.eq(bit_counter[0]),
                 ]
 
                 with m.If(mdc_fall):
@@ -174,12 +167,12 @@ class MDIO(Elaboratable):
             with m.State("OP"):
                 m.d.comb += [
                     self.mdc.eq(mdc_int),
-                    self.mdio_t.oe.eq(1),
+                    self.mdio.oe.eq(1),
                 ]
                 with m.If(_rw):
-                    m.d.comb += self.mdio_t.o.eq(bit_counter[0])
+                    m.d.comb += self.mdio.o.eq(bit_counter[0])
                 with m.Else():
-                    m.d.comb += self.mdio_t.o.eq(~bit_counter[0])
+                    m.d.comb += self.mdio.o.eq(~bit_counter[0])
 
                 with m.If(mdc_fall):
                     with m.If(bit_counter == 1):
@@ -193,8 +186,8 @@ class MDIO(Elaboratable):
             with m.State("PA5"):
                 m.d.comb += [
                     self.mdc.eq(mdc_int),
-                    self.mdio_t.oe.eq(1),
-                    self.mdio_t.o.eq(Array(_phy_addr)[bit_counter - 1]),
+                    self.mdio.oe.eq(1),
+                    self.mdio.o.eq(Array(_phy_addr)[bit_counter - 1]),
                 ]
 
                 with m.If(mdc_fall):
@@ -209,8 +202,8 @@ class MDIO(Elaboratable):
             with m.State("RA5"):
                 m.d.comb += [
                     self.mdc.eq(mdc_int),
-                    self.mdio_t.oe.eq(1),
-                    self.mdio_t.o.eq(Array(_reg_addr)[bit_counter - 1]),
+                    self.mdio.oe.eq(1),
+                    self.mdio.o.eq(Array(_reg_addr)[bit_counter - 1]),
                 ]
 
                 with m.If(mdc_fall):
@@ -229,7 +222,7 @@ class MDIO(Elaboratable):
             with m.State("TA_R"):
                 m.d.comb += [
                     self.mdc.eq(mdc_int),
-                    self.mdio_t.oe.eq(0),
+                    self.mdio.oe.eq(0),
                 ]
 
                 with m.If(mdc_fall):
@@ -244,8 +237,8 @@ class MDIO(Elaboratable):
             with m.State("TA_W"):
                 m.d.comb += [
                     self.mdc.eq(mdc_int),
-                    self.mdio_t.oe.eq(1),
-                    self.mdio_t.o.eq(~bit_counter[0]),
+                    self.mdio.oe.eq(1),
+                    self.mdio.o.eq(~bit_counter[0]),
                 ]
 
                 with m.If(mdc_fall):
@@ -260,12 +253,12 @@ class MDIO(Elaboratable):
             with m.State("D16_R"):
                 m.d.comb += [
                     self.mdc.eq(mdc_int),
-                    self.mdio_t.oe.eq(0),
+                    self.mdio.oe.eq(0),
                 ]
 
                 with m.If(mdc_fall):
                     bit = Array(self.read_data)[bit_counter - 1]
-                    m.d.sync += bit.eq(self.mdio_t.i)
+                    m.d.sync += bit.eq(self.mdio.i)
                     with m.If(bit_counter == 1):
                         m.next = "READ_LAST_CLOCK"
                     with m.Else():
@@ -277,7 +270,7 @@ class MDIO(Elaboratable):
             with m.State("READ_LAST_CLOCK"):
                 m.d.comb += [
                     self.mdc.eq(mdc_int),
-                    self.mdio_t.oe.eq(0),
+                    self.mdio.oe.eq(0),
                 ]
 
                 with m.If(mdc_fall):
@@ -288,8 +281,8 @@ class MDIO(Elaboratable):
             with m.State("D16_W"):
                 m.d.comb += [
                     self.mdc.eq(mdc_int),
-                    self.mdio_t.oe.eq(1),
-                    self.mdio_t.o.eq(Array(_write_data)[bit_counter - 1]),
+                    self.mdio.oe.eq(1),
+                    self.mdio.o.eq(Array(_write_data)[bit_counter - 1]),
                 ]
 
                 with m.If(mdc_fall):
@@ -303,10 +296,12 @@ class MDIO(Elaboratable):
 
 def test_mdio_read():
     import random
+    from nmigen.lib.io import Pin
     from nmigen.back import pysim
 
     mdc = Signal()
-    mdio = MDIO(20, None, mdc)
+    mdio_pin = Pin(1, 'io')
+    mdio = MDIO(20, mdio_pin, mdc)
 
     def testbench():
         rng = random.Random(0)
@@ -343,10 +338,10 @@ def test_mdio_read():
                 # Detect rising edge
                 if new_mdc and last_mdc == 0:
                     mdio_clk += 1
-                    obits.append((yield mdio.mdio_t.o))
-                    oebits.append((yield mdio.mdio_t.oe))
+                    obits.append((yield mdio.mdio.o))
+                    oebits.append((yield mdio.mdio.oe))
                     if mdio_clk >= 48:
-                        yield (mdio.mdio_t.i.eq(ibits[mdio_clk - 48]))
+                        yield (mdio.mdio.i.eq(ibits[mdio_clk - 48]))
                     if mdio_clk == 63:
                         break
                 last_mdc = new_mdc
@@ -384,10 +379,12 @@ def test_mdio_read():
 
 def test_mdio_write():
     import random
+    from nmigen.lib.io import Pin
     from nmigen.back import pysim
 
     mdc = Signal()
-    mdio = MDIO(20, None, mdc)
+    mdio_pin = Pin(1, 'io')
+    mdio = MDIO(20, mdio_pin, mdc)
 
     def testbench():
         rng = random.Random(0)
@@ -426,8 +423,8 @@ def test_mdio_write():
                 # Detect rising edge
                 if new_mdc and last_mdc == 0:
                     mdio_clk += 1
-                    obits.append((yield mdio.mdio_t.o))
-                    oebits.append((yield mdio.mdio_t.oe))
+                    obits.append((yield mdio.mdio.o))
+                    oebits.append((yield mdio.mdio.oe))
                     if mdio_clk == 64:
                         break
                 last_mdc = new_mdc

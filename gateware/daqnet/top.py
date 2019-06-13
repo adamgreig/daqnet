@@ -47,9 +47,9 @@ class SensorTop(Top):
         m.domains += cd
 
         # Create LED blinker in PLL clock domain
-        blinker = self.led_blinker.elaborate(platform)
+        blinker = LEDBlinker(24)
         m.submodules.led_blinker = blinker
-        m.d.comb += platform.request("user_led_3").eq(self.led_blinker.led)
+        m.d.comb += platform.request("user_led").eq(blinker.led)
 
         return m
 
@@ -69,11 +69,11 @@ class SwitchTop(Top):
         m.domains += cd
 
         # Ethernet MAC
-        rmii = platform.request_group("rmii")
-        phy_rst = platform.request("phy_rst")
-        eth_led = platform.request("eth_led")
+        phy = platform.request("phy")
+        rmii = platform.request("rmii")
+        mdio = platform.request("mdio")
         mac_addr = "02:44:4E:30:76:9E"
-        mac = MAC(100e6, 0, mac_addr, rmii, phy_rst, eth_led)
+        mac = MAC(100e6, 0, mac_addr, rmii, mdio, phy.rst, phy.led)
         m.submodules.mac = mac
 
         # Explicitly zero unused inputs in MAC
