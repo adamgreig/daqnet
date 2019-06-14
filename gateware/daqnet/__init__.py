@@ -19,7 +19,9 @@ def main():
     elif args.device == "sensor":
         plat = SensorPlatform()
         top = SensorTop(plat, args)
-    plat.build(top, args.device, "build/")
+    plat.build(top, args.device, "build/", synth_opts=["-relut"],
+               nextpnr_opts=["--seed", args.seed, "--freq", 100,
+                             "--placer", "heap"])
     if args.program:
         subprocess.run(
             ["ffp", "fpga", "program", "build/{}.bin".format(args.device)])
