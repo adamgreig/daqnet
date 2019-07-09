@@ -62,3 +62,63 @@ class PulseStretch(Elaboratable):
                     m.d.sync += counter.eq(counter + 1)
 
         return m
+
+
+class PipelinedAdder(Elaboratable):
+    """
+    Implements an n-wide adder using m pipelined sub-adders.
+    """
+    def __init__(self, n, m):
+        self.a = Signal(n)
+        self.b = Signal(n)
+        self.c = Signal(n)
+
+        self.n = n
+        self.m = m
+
+    def elaborate(self, platform):
+        m = Module()
+
+        bits_per_sub = self.n//self.m
+        ci = 0
+        for idx in range(self.m):
+            sub_adder = Signal(bits_per_sub+1, name=f"sub{idx}")
+            i0 = idx*bits_per_sub
+            i1 = (idx+1)*bits_per_sub
+            m.d.sync += sub_adder.eq(self.a[i0:i1] + self.b[i0:i1] + ci)
+            m.d.comb += self.c[i0:i1].eq(sub_adder[:bits_per_sub])
+            ci = sub_adder[-1]
+
+        return m
+
+
+def test_pipelined_adder():
+    from nmigen.back import pysim
+    import random
+
+    n = 64
+    m = 4
+    adder = PipelinedAdder(n, m)
+
+    def testbench():
+        for _ in range(100):
+            a = random.randrange(2**n)
+            b = random.randrange(2**n)
+            yield
+            yield adder.a.eq(a)
+            yield adder.b.eq(b)
+            for _ in range(m+1):
+                yield
+            assert (yield adder.c) == (a+b) % (2**n)
+
+        yield adder.a.eq(2**n-1)
+        yield adder.b.eq(1)
+        for _ in range(m+1):
+            yield
+        assert (yield adder.c) == 0
+
+    vcdf = open("adder.vcd", "w")
+    with pysim.Simulator(adder, vcd_file=vcdf) as sim:
+        sim.add_clock(1e-6)
+        sim.add_sync_process(testbench())
+        sim.run()
