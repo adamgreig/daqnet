@@ -345,9 +345,10 @@ class PHYManager(Elaboratable):
 
 def test_phy_manager():
     from nmigen.back import pysim
+    from nmigen.lib.io import Pin
 
     mdc = Signal()
-    mdio = None
+    mdio = Pin(1, 'io')
     phy_rst = Signal()
 
     # Specify a fake 10MHz clock frequency to reduce number of simulation steps
@@ -374,16 +375,16 @@ def test_phy_manager():
 
         # Wait for the register read to synchronise to MDIO
         while True:
-            if (yield phy_manager.mdio_mod.mdio_t.o) == 1:
+            if (yield phy_manager.mdio_mod.mdio.o) == 1:
                 break
             yield
 
         # Clock through BSR register read, setting bits 14, 5, 2
         for clk in range(260):
             if clk in (194, 230, 242):
-                yield (phy_manager.mdio_mod.mdio_t.i.eq(1))
+                yield (phy_manager.mdio_mod.mdio.i.eq(1))
             else:
-                yield (phy_manager.mdio_mod.mdio_t.i.eq(0))
+                yield (phy_manager.mdio_mod.mdio.i.eq(0))
             yield
 
         # Finish register reads
