@@ -33,20 +33,18 @@ class _InstanceWrapper(Elaboratable):
         self.defaults = defaults
 
     def __getattr__(self, name):
-        if name in self.ports_used:
-            return self.ports_used[name]
-        elif name.upper() in self.ports:
-            _, shape = self.ports[name.upper()]
-            self.ports_used[name] = Signal(shape=shape, name=name)
-            return self.ports_used[name]
+        if name in self.__dict__['ports_used']:
+            return self.__dict__['ports_used'][name]
+        elif name.upper() in self.__dict__['ports']:
+            _, shape = self.__dict__['ports'][name.upper()]
+            self.__dict__['ports_used'][name] = Signal(shape=shape, name=name)
+            return self.__dict__['ports_used'][name]
         else:
             raise AttributeError
 
     def __setattr__(self, name, value):
-        if name.startswith("_Elaboratable"):
-            super().__setattr__(name, value)
-        elif name.upper() in self.ports:
-            self.ports_used[name] = value
+        if 'ports' in self.__dict__ and name.upper() in self.__dict__['ports']:
+            self.__dict__['ports_used'][name] = value
         else:
             super().__setattr__(name, value)
 
